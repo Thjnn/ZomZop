@@ -4,20 +4,15 @@
 
 @section('content')
 <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="lg:col-span-2 bg-red-500 rounded-2xl p-6 text-white relative overflow-hidden flex flex-col md:flex-row justify-between items-center min-h-[280px]">
-        <div class="space-y-4 max-w-xs z-10 text-center md:text-left">
-            <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold">Gợi Ý Hôm Nay</span>
-            <h1 class="text-3xl font-black tracking-tight leading-tight">Đại Tiệc <br>THỨC ĂN NHANH</h1>
-            <p class="text-yellow-300 font-bold text-xl">Giảm ngay 50% <span class="text-xs block text-white font-normal">Áp dụng cho các thực đơn được chọn.</span></p>
-            <div class="bg-white text-red-500 inline-block px-4 py-1.5 rounded-full font-bold text-sm shadow-md">
-                Đặt ngay! Hotline: 1900 xxxx
-            </div>
-        </div>
-        <div class="relative w-64 h-48 mt-4 md:mt-0 bg-yellow-500/20 rounded-full border-4 border-dashed border-white/30 flex items-center justify-center text-6xl">
-            🍔🍟
-            <div class="absolute -top-2 -left-2 bg-yellow-400 text-red-600 font-black rounded-full w-16 h-14 flex flex-col items-center justify-center text-xs shadow-lg transform -rotate-12">
-                <span class="line-through text-[9px] text-red-500/70">200k</span>
-                <span>100k</span>
+    <div class="lg:col-span-2 relative w-full h-[300px] rounded-2xl overflow-hidden shadow-xl">
+        <div class="swiper mySwiper w-full h-full">
+            <div class="swiper-wrapper">
+                <div class="swiper-slide">
+                    <img src="{{ asset('images/banners/banner-1.jpeg') }}" class="w-full h-full object-cover">
+                </div>
+                <div class="swiper-slide">
+                    <img src="{{ asset('images/banners/banner-2.jpeg') }}" class="w-full h-full object-cover">
+                </div>
             </div>
         </div>
     </div>
@@ -26,29 +21,29 @@
         <h3 class="font-bold text-slate-700 mb-4 text-center">Khám Phá Thực Đơn</h3>
         <div class="grid grid-cols-3 gap-3">
             <div class="bg-white p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-slate-100 hover:scale-105 transition cursor-pointer">
-                <span class="text-2xl mb-1">🍱</span>
-                <span class="text-xs font-medium text-slate-600">Combo</span>
+                <img src="{{ asset('images/categories/icon-buger.jpg') }}" alt="Buger" class="w-10 h-auto">
+                <span class="text-xs font-medium text-slate-600">Buger</span>
             </div>
             <div class="bg-white p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-slate-100 hover:scale-105 transition cursor-pointer">
                 <span class="text-2xl mb-1">🔥</span>
                 <span class="text-xs font-medium text-slate-600">Bán Chạy</span>
             </div>
-            <div class="bg-white p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-slate-100 hover:scale-105 transition cursor-pointer">
-                <span class="text-2xl mb-1">🍛</span>
-                <span class="text-xs font-medium text-slate-600">Cơm Gà</span>
-            </div>
-            <div class="bg-white p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-slate-100 hover:scale-105 transition cursor-pointer">
-                <span class="text-2xl mb-1">🍹</span>
-                <span class="text-xs font-medium text-slate-600">Nước Giải Khát</span>
-            </div>
-            <a href="/category/pizza" class="bg-white p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-slate-100 hover:scale-105 transition cursor-pointer no-underline text-inherit">
-                <span class="text-2xl mb-1">🍕</span>
-                <span class="text-xs font-medium text-slate-600">Pizza</span>
+            <a href="/category/pizza" class="bg-[#fff] p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-transparent hover:scale-105 transition cursor-pointer no-underline">
+                <img src="{{ asset('images/categories/icon-my-y.png') }}" alt="Mỳ ý" class="w-10 h-auto">
+                <span class="text-xs font-bold text-slate-800">Mỳ ý</span>
             </a>
-            <div class="bg-white p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-slate-100 hover:scale-105 transition cursor-pointer">
-                <span class="text-2xl mb-1">🥪</span>
-                <span class="text-xs font-medium text-slate-600">Sandwich</span>
-            </div>
+            <a href="/category/do-uong" class="bg-[#fff] p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-transparent hover:scale-105 transition cursor-pointer no-underline">
+                <img src="{{ asset('images/categories/icon-ga-chien.jpg') }}" alt="Ga Chien" class="w-10 h-auto">
+                <span class="text-xs font-bold text-slate-800">Gà rán</span>
+            </a>
+            <a href="/category/pizza" class="bg-[#fff] p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-transparent hover:scale-105 transition cursor-pointer no-underline">
+                <img src="{{ asset('images/categories/icon-pizza.jpg') }}" alt="Pizza" class="w-10 h-auto">
+                <span class="text-xs font-bold text-slate-800">Pizza</span>
+            </a>
+            <a href="/category/sandwich" class="bg-[#fff] p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-transparent hover:scale-105 transition cursor-pointer no-underline">
+                <img src="{{ asset('images/categories/icon-sandwich.jpg') }}" alt="Sandwich" class="w-10 h-auto">
+                <span class="text-xs font-bold text-slate-800">Sandwich</span>
+            </a>
         </div>
     </div>
 </section>

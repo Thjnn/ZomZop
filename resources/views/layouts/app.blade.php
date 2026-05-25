@@ -9,6 +9,7 @@
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -30,8 +31,14 @@
 
             <div class="flex-1 max-w-md mx-4">
                 <div class="relative">
-                    <input type="text" placeholder="Bạn đang đói bụng cồn cào?" class="w-full bg-slate-100 pl-10 pr-4 py-2 rounded-full text-sm border border-transparent focus:bg-white focus:border-red-400 focus:outline-hidden transition">
-                    <span class="absolute left-3.5 top-2.5 text-slate-400 text-sm">🔍</span>
+                    <input type="text" placeholder="Bạn đang đói bụng cồn cào?" class="w-full bg-slate-100 pl-10 pr-4 py-2 rounded-full text-sm border border-transparent focus:bg-white focus:border-red-400 focus:outline-hidden transition shadow-inner">
+
+                    <span class="absolute left-3 top-2 text-slate-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" />
+                        </svg>
+                    </span>
                 </div>
             </div>
 
@@ -42,13 +49,20 @@
                         <option>Chi nhánh chính</option>
                     </select>
                 </div>
-                <button class="relative p-2 hover:bg-slate-100 rounded-full transition cursor-pointer">
-                    <span class="text-xl">❤️</span>
-                    <span class="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">0</span>
+                <button class="relative p-2 hover:bg-slate-100 rounded-full transition cursor-pointer group">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 group-hover:text-red-500 transition">
+                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                    </svg>
+                    <span class="absolute top-1 right-0.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">0</span>
                 </button>
-                <button class="relative p-2 hover:bg-slate-100 rounded-full transition cursor-pointer">
-                    <span class="text-xl">🛍️</span>
-                    <span class="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">0</span>
+
+                <button class="relative p-2 hover:bg-slate-100 rounded-full transition cursor-pointer group">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 group-hover:text-red-500 transition">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                        <path d="M3 6h18" />
+                        <path d="M16 10a4 4 0 0 1-8 0" />
+                    </svg>
+                    <span class="absolute top-1 right-0.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">0</span>
                 </button>
                 <button class="p-2 hover:bg-slate-100 rounded-full transition cursor-pointer hidden sm:block">👤</button>
                 <button class="p-2 hover:bg-slate-100 rounded-full transition cursor-pointer">☰</button>
@@ -65,8 +79,8 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div class="space-y-4">
                     <a href="/" class="flex items-center gap-2 hover:opacity-90 transition">
-                        <img src="{{ asset('images/Logo_1_ZomZop.png') }}" alt="ZomZop Avatar" class="h-9 w-auto object-contain">
-                        <img src="{{ asset('images/Logo_2_ZomZop.png') }}" alt="ZomZop Fast Food" class="h-7 w-auto object-contain">
+                        <img src="{{ asset('images/avatar-logo.png') }}" alt="ZomZop Avatar" class="h-9 w-auto object-contain">
+                        <img src="{{ asset('images/text-logo.png') }}" alt="ZomZop Fast Food" class="h-7 w-auto object-contain">
                     </a>
                     <p class="text-xs text-slate-400 leading-relaxed">
                         ZomZop - Chuỗi hệ thống thức ăn nhanh chất lượng cao, mang đến những bữa ăn ngon miệng, nhanh chóng và tràn đầy năng lượng cho ngày dài của bạn.
@@ -118,7 +132,7 @@
             </div>
         </div>
     </footer>
-
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 </body>
 
 </html>
