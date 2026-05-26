@@ -55,7 +55,7 @@
 <!-- Popular Items -->
 <section class="space-y-4">
     <div class="flex justify-between items-end">
-        <h2 class="text-xl font-bold text-slate-800">Món Ngon Địa Phương</h2>
+        <h2 class="text-xl font-bold text-slate-800">Món Ngon Được Yêu Thích</h2>
         <a href="#" class="text-xs font-semibold text-red-500 hover:underline">Xem Tất Cả</a>
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -180,6 +180,101 @@
                 </div>
             </div>
         </article>
+
+    </div>
+</section>
+<!-- Flavorful Set -->
+<section class="mt-10">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-5">
+        <h3 class="text-2xl font-extrabold text-slate-900">
+            Combo Ngon Mê Ly
+        </h3>
+
+        <a href="#" class="text-red-500 font-semibold hover:underline">
+            Xem Tất Cả
+        </a>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+        <!-- Card -->
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
+
+            <div class="w-44 h-32 overflow-hidden rounded-2xl flex-shrink-0">
+                <img
+                    src="{{ asset('images/products/combo-1.jpg') }}"
+                    alt="Combo 1"
+                    class="w-full h-full object-cover">
+            </div>
+
+            <div class="flex-1">
+                <h4 class="text-2xl font-extrabold text-slate-900">
+                    Combo Gia Đình
+                </h4>
+
+                <p class="text-slate-500 mt-1 text-sm">
+                    Gồm 2 Pizza, 1 Gà Rán, 1 Pepsi
+                </p>
+
+                <div class="mt-3 text-red-500 text-xl font-extrabold">
+                    299.000 đ
+                </div>
+            </div>
+        </div>
+
+        <!-- Card -->
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
+
+            <div class="w-44 h-32 overflow-hidden rounded-2xl flex-shrink-0">
+                <img
+                    src="{{ asset('images/products/combo-1.jpg') }}"
+                    alt="Combo 2"
+                    class="w-full h-full object-cover">
+            </div>
+
+            <div class="flex-1">
+                <h4 class="text-2xl font-extrabold text-slate-900">
+                    Combo Cặp Đôi
+                </h4>
+
+                <p class="text-slate-500 mt-1 text-sm">
+                    Gồm 1 Pizza, 2 Mỳ Ý, 2 Pepsi
+                </p>
+
+                <div class="mt-3 text-red-500 text-xl font-extrabold">
+                    189.000 đ
+                </div>
+            </div>
+        </div>
+
+        <!-- Card -->
+        <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition">
+
+            <div class="w-44 h-32 overflow-hidden rounded-2xl flex-shrink-0">
+                <img
+                    src="{{ asset('images/products/combo-1.jpg') }}"
+                    alt="Combo 3"
+                    class="w-full h-full object-cover">
+            </div>
+
+            <div class="flex-1">
+                <h4 class="text-2xl font-extrabold text-slate-900">
+                    Combo Party
+                </h4>
+
+                <p class="text-slate-500 mt-1 text-sm">
+                    Burger, Pizza, Khoai Tây, Pepsi
+                </p>
+
+                <div class="mt-3 text-red-500 text-xl font-extrabold">
+                    399.000 đ
+                </div>
+            </div>
+        </div>
+
 
     </div>
 </section>

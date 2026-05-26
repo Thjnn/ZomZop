@@ -26,7 +26,27 @@
 
             <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600">
                 <a href="/" class="{{ Request::is('/') ? 'text-red-500' : 'hover:text-red-500 transition' }}">Trang Chủ</a>
-                <a href="/category/pizza" class="{{ Request::is('category/pizza') ? 'text-red-500' : 'hover:text-red-500 transition' }}">Danh Mục</a>
+
+                <div class="relative group">
+                    <a href="#" class="hover:text-red-500 transition flex items-center gap-1 cursor-pointer">
+                        Danh Mục
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </a>
+
+                    <div class="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-100 shadow-xl rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                        <ul class="py-2">
+                            @foreach(\App\Models\Category::all() as $category)
+                            <li>
+                                <a href="/category/{{ $category->slug }}" class="block px-4 py-2 hover:bg-slate-50 hover:text-red-500">
+                                    {{ $category->name }}
+                                </a>
+                            </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
             </nav>
 
             <div class="flex-1 max-w-md mx-4">
