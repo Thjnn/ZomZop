@@ -18,6 +18,7 @@ class MenuItem extends Model
         'slug',
         'description',
         'base_price',
+        'discount_percent',
         'image',
         'is_available',
         'tags',
@@ -27,6 +28,7 @@ class MenuItem extends Model
     protected $casts = [
         'tags'         => 'array',   // JSON → array tự động khi get/set
         'base_price'   => 'integer',
+        'discount_percent' => 'integer',
         'is_available' => 'boolean',
     ];
 
@@ -56,6 +58,16 @@ class MenuItem extends Model
     public function branchMenuItems(): HasMany
     {
         return $this->hasMany(BranchMenuItem::class);
+    }
+
+    /**
+     * Danh sách ảnh của món, ưu tiên ảnh chính trước.
+     */
+    public function images(): HasMany
+    {
+        return $this->hasMany(MenuItemImage::class)
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order');
     }
 
     /**
@@ -103,7 +115,7 @@ class MenuItem extends Model
     public function getImageUrlAttribute(): string
     {
         return $this->image
-            ? asset('storage/menu/' . $this->image)
+            ? asset('images/products/' . $this->image)
             : asset('images/default-food.jpg');
     }
 
