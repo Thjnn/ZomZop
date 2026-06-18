@@ -98,8 +98,6 @@ class MenuItem extends Model
 
     /**
      * Lấy giá hiển thị theo chi nhánh.
-     * Dùng khi đã eager load branchMenuItems.
-     * Nếu chi nhánh có override price thì dùng, không thì dùng base_price.
      */
     public function getPriceForBranch(int $branchId): int
     {
@@ -110,13 +108,56 @@ class MenuItem extends Model
     }
 
     /**
-     * URL ảnh đầy đủ
+     * URL ảnh — ưu tiên lấy từ bảng menu_item_images, fallback về cột image
      */
     public function getImageUrlAttribute(): string
     {
+        $img = $this->relationLoaded('images')
+            ? $this->images->first()
+            : null;
+
+        if ($img) {
+            return asset('images/products/' . $img->image);
+        }
+
         return $this->image
             ? asset('images/products/' . $this->image)
             : asset('images/default-food.jpg');
+    }
+
+    /**
+     * Có đang giảm giá không
+     */
+    public function getIsOnSaleAttribute(): bool
+    {
+        return $this->discount_percent > 0;
+    }
+
+    /**
+     * Giá sau khi giảm
+     */
+    public function getDiscountedPriceAttribute(): float
+    {
+        if ($this->discount_percent > 0) {
+            return $this->base_price * (1 - $this->discount_percent / 100);
+        }
+        return (float) $this->base_price;
+    }
+
+    /**
+     * Giá hiển thị (đã tính discount)
+     */
+    public function getDisplayPriceAttribute(): string
+    {
+        return number_format($this->discounted_price, 0, ',', '.') . ' đ';
+    }
+
+    /**
+     * Giá gốc hiển thị
+     */
+    public function getDisplayBasePriceAttribute(): string
+    {
+        return number_format($this->base_price, 0, ',', '.') . ' đ';
     }
 
     // ── Scopes ───────────────────────────────────────────────
@@ -144,9 +185,9 @@ class MenuItem extends Model
     {
         return $query->whereJsonContains('tags', $tag);
     }
+
     public function favoritedBy()
     {
-        // Món ăn có thể được yêu thích bởi nhiều user
         return $this->belongsToMany(User::class, 'favorites', 'menu_item_id', 'user_id')
             ->withTimestamps();
     }

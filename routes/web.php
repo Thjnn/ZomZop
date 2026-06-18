@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\BranchController;
 use Illuminate\Support\Facades\Route;
 
 // Auth
@@ -20,3 +21,6 @@ Route::middleware('auth')->group(function () {
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
+
+Route::get('/branches/select', [BranchController::class, 'select'])->name('branches.select');
+Route::post('/branches/confirm', [BranchController::class, 'confirm'])->name('branches.confirm');

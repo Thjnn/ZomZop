@@ -65,9 +65,13 @@
             <div class="flex items-center gap-4 flex-shrink-0">
                 <div class="hidden sm:block text-right">
                     <p class="text-[10px] text-slate-400">Chi nhánh</p>
-                    <select class="text-xs font-semibold text-slate-700 bg-transparent focus:outline-hidden cursor-pointer">
-                        <option>Chi nhánh chính</option>
-                    </select>
+                    <a href="{{ route('branches.select') }}"
+                        class="text-xs font-semibold text-slate-700 hover:text-red-500 transition flex items-center gap-1 cursor-pointer">
+                        {{ session('selected_branch_name', 'Chọn chi nhánh') }}
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </a>
                 </div>
                 <button class="relative p-2 hover:bg-slate-100 rounded-full transition cursor-pointer group">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 group-hover:text-red-500 transition">
@@ -84,7 +88,40 @@
                     </svg>
                     <span class="absolute top-1 right-0.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">0</span>
                 </button>
-                <button class="p-2 hover:bg-slate-100 rounded-full transition cursor-pointer hidden sm:block">👤</button>
+                @auth
+                {{-- Đã đăng nhập: hiện avatar + dropdown --}}
+                <div class="relative group">
+                    <button class="p-2 hover:bg-slate-100 rounded-full transition cursor-pointer hidden sm:flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">
+                            {{ substr(auth()->user()->name, 0, 1) }}
+                        </div>
+                    </button>
+
+                    {{-- Dropdown --}}
+                    <div class="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 shadow-xl rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2">
+                        <div class="px-4 py-2 border-b border-slate-100">
+                            <p class="text-sm font-semibold text-slate-800 truncate">{{ auth()->user()->name }}</p>
+                            <p class="text-xs text-slate-400 truncate">{{ auth()->user()->email }}</p>
+                        </div>
+                        <a href="#" class="block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-red-500">👤 Tài khoản</a>
+                        <a href="#" class="block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-red-500">📦 Đơn hàng</a>
+                        <div class="border-t border-slate-100 mt-1 pt-1">
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 cursor-pointer">
+                                    🚪 Đăng xuất
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @else
+                {{-- Chưa đăng nhập: hiện nút đăng nhập --}}
+                <a href="{{ route('login') }}"
+                    class="hidden sm:flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold px-4 py-2 rounded-full transition cursor-pointer">
+                    Đăng nhập
+                </a>
+                @endauth
                 <button class="p-2 hover:bg-slate-100 rounded-full transition cursor-pointer">☰</button>
             </div>
         </div>
