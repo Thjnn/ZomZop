@@ -6,7 +6,7 @@
 
 @section('content')
 
-<div class="max-w-4xl mx-auto py-6">
+<div class="max-w-6xl mx-auto py-6">
 
     {{-- Tiêu đề + Toggle --}}
     <div class="flex items-center justify-between mb-6">
