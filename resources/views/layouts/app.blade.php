@@ -1,9 +1,15 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" style="scroll-behavior: smooth;">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="auth-check" content="{{ auth()->check() ? 'true' : 'false' }}">
+    <meta name="login-url" content="{{ route('login') }}">
+
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <title>@yield('title', 'ZomZop - Fast Food')</title>
 
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
@@ -11,9 +17,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
 </head>
 
-<body class="bg-slate-50 text-slate-800">
+<body class="bg-slate-50 text-slate-800 ">
 
     <header class="sticky top-0 z-50 bg-white shadow-xs border-b border-slate-100">
         <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
@@ -73,12 +80,16 @@
                         </svg>
                     </a>
                 </div>
-                <button class="relative p-2 hover:bg-slate-100 rounded-full transition cursor-pointer group">
+                <a href="{{ route('favorites.index') }}" class="relative p-2 hover:bg-slate-100 rounded-full transition cursor-pointer group">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 group-hover:text-red-500 transition">
                         <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                     </svg>
-                    <span class="absolute top-1 right-0.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">0</span>
-                </button>
+                    @auth
+                    <span id="fav-count" class="absolute top-1 right-0.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">
+                        {{ auth()->user()->favoriteItems()->count() }}
+                    </span>
+                    @endauth
+                </a>
 
                 <button class="relative p-2 hover:bg-slate-100 rounded-full transition cursor-pointer group">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 group-hover:text-red-500 transition">
@@ -189,6 +200,20 @@
             </div>
         </div>
     </footer>
+
+    {{-- Back to top button --}}
+    <button id="back-to-top"
+        class="fixed bottom-6 right-6 z-50 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 opacity-0 invisible cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+    </button>
+
+    {{-- Toast thông báo --}}
+    <div id="toast" class="fixed bottom-6 left-6 z-[200] flex items-center gap-3 bg-slate-800 text-white px-6 py-4 rounded-2xl shadow-xl text-sm font-medium opacity-0 invisible transition-all duration-300 -translate-y-2">
+        <span id="toast-icon" class="text-xl">⚠️</span>
+        <span id="toast-message" class="text-base"></span>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
         new Swiper(".mySwiper", {
@@ -230,6 +255,43 @@
             },
         });
     </script>
+    <script>
+        window.addEventListener('scroll', () => {
+            const btn = document.getElementById('back-to-top');
+            if (window.scrollY > 300) {
+                btn.classList.remove('opacity-0', 'invisible');
+            } else {
+                btn.classList.add('opacity-0', 'invisible');
+            }
+        });
+
+        // Custom smooth scroll với easing - mượt hơn behavior:'smooth' mặc định
+        document.getElementById('back-to-top').addEventListener('click', () => {
+            const duration = 600; // ms
+            const start = window.scrollY;
+            const startTime = performance.now();
+
+            function easeInOutCubic(t) {
+                return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            }
+
+            function scrollStep(timestamp) {
+                const elapsed = timestamp - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = easeInOutCubic(progress);
+
+                window.scrollTo(0, start * (1 - eased));
+
+                if (progress < 1) {
+                    requestAnimationFrame(scrollStep);
+                }
+            }
+
+            requestAnimationFrame(scrollStep);
+        });
+    </script>
+
+    <x-menu-item-modal />
 </body>
 
 </html>

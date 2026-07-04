@@ -6,7 +6,7 @@ $image = $item->images->first();
 $imgSrc = $image ? $image->image_url : $item->image_url;
 @endphp
 
-<article class="group rounded-[1.7rem] bg-white shadow-[0_16px_35px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 transition hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(253,164,175,0.22)]">
+<article data-item-id="{{ $item->id }}" class="group rounded-[1.7rem] bg-white shadow-[0_16px_35px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 transition hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(253,164,175,0.22)]">
     <div class="relative px-4 pt-4">
         <div class="relative h-40 overflow-hidden rounded-[1.5rem] bg-[#f6e6d6] cursor-pointer">
             <img src="{{ $imgSrc }}" alt="{{ $item->name }}"
@@ -18,7 +18,7 @@ $imgSrc = $image ? $image->image_url : $item->image_url;
             </span>
             @endif
 
-            <button class="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition hover:text-red-500 cursor-pointer" aria-label="Yêu thích">
+            <button class="btn-favorite absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition hover:text-red-500 cursor-pointer" aria-label="Yêu thích">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m12 21-1.45-1.32C5.4 15.36 2 12.28 2 8.5A4.5 4.5 0 0 1 6.5 4C8.24 4 9.91 4.81 11 6.09 12.09 4.81 13.76 4 15.5 4A4.5 4.5 0 0 1 20 8.5c0 3.78-3.4 6.86-8.55 11.18Z" />
                 </svg>
