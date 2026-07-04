@@ -1,6 +1,6 @@
 {{-- resources/views/components/menu-item-modal.blade.php --}}
 
-<div id="item-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 hidden">
+<div id="item-modal" data-item-id="" class="fixed inset-0 z-[100] flex items-center justify-center p-4 hidden">
 
     {{-- Overlay --}}
     <div id="modal-overlay" class="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-pointer"></div>

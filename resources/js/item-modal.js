@@ -35,6 +35,29 @@ function requireLogin() {
     setTimeout(() => redirectToLogin(), 1500);
 }
 
+function addToCart(menuItemId, quantity, note) {
+    fetch("/cart/add", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content,
+        },
+        body: JSON.stringify({ menu_item_id: menuItemId, quantity, note }),
+    })
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success) {
+                showToast(data.message, "🛒");
+                const badge = document.getElementById("cart-badge");
+                if (badge) badge.textContent = data.count;
+            } else if (data.redirect) {
+                showToast(data.message, "⚠️");
+                setTimeout(() => (window.location.href = data.redirect), 1500);
+            }
+        })
+        .catch((err) => console.error("Lỗi thêm giỏ hàng:", err));
+}
+
 // ==================== MODAL ====================
 
 async function openItemModal(id) {
@@ -45,6 +68,9 @@ async function openItemModal(id) {
         const res = await fetch(`/menu-items/${id}/detail`);
         const item = await res.json();
         modalItem = item;
+
+        // Gán data-item-id cho modal để nút favorite hoạt động
+        document.getElementById("item-modal").dataset.itemId = id;
 
         document.getElementById("modal-image").src = item.image_url;
         document.getElementById("modal-image").alt = item.name;
@@ -138,11 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .getElementById("modal-add-cart-btn")
         .addEventListener("click", () => {
             if (!modalItem) return;
-            if (!isLoggedIn()) {
-                requireLogin();
-                return;
-            }
-            alert(`Đã thêm ${modalQty}x ${modalItem.name} vào giỏ!`);
+            addToCart(modalItem.id, modalQty, "");
             closeItemModalDirect();
         });
 
@@ -151,21 +173,33 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === "Escape") closeItemModalDirect();
     });
 
+    // Load trạng thái yêu thích ban đầu
+    if (isLoggedIn()) {
+        fetch("/favorites/ids")
+            .then((res) => res.json())
+            .then((data) => {
+                data.ids.forEach((id) => {
+                    document
+                        .querySelectorAll(`[data-item-id="${id}"]`)
+                        .forEach((el) => {
+                            const btn = el.querySelector(".btn-favorite");
+                            if (btn) btn.classList.add("text-red-500");
+                        });
+                });
+            });
+    }
+
     // Click toàn trang — 1 listener duy nhất
     document.addEventListener("click", (e) => {
         // Nút Thêm trên card → thêm giỏ, không mở modal
         const addBtn = e.target.closest(".btn-add-cart");
         if (addBtn) {
             e.stopPropagation();
-            if (!isLoggedIn()) {
-                requireLogin();
-                return;
-            }
-            alert(`Đã thêm 1x ${addBtn.dataset.name} vào giỏ!`);
+            addToCart(addBtn.dataset.id, 1, "");
             return;
         }
 
-        // Nút tim trên card
+        // Nút tim trên card / modal
         const favBtn = e.target.closest(".btn-favorite");
         if (favBtn) {
             e.stopPropagation();
@@ -190,13 +224,24 @@ document.addEventListener("DOMContentLoaded", () => {
             })
                 .then((res) => res.json())
                 .then((data) => {
-                    if (data.favorited) {
-                        favBtn.classList.add("text-red-500");
-                        showToast("Đã thêm vào yêu thích!", "❤️");
-                    } else {
-                        favBtn.classList.remove("text-red-500");
-                        showToast("Đã xóa khỏi yêu thích!", "🤍");
-                    }
+                    // Cập nhật TẤT CẢ nút tim của item này (cả card + modal)
+                    document.querySelectorAll(".btn-favorite").forEach((btn) => {
+                        const parent = btn.closest("[data-item-id]");
+                        if (parent?.dataset.itemId === itemId) {
+                            if (data.favorited) {
+                                btn.classList.add("text-red-500");
+                            } else {
+                                btn.classList.remove("text-red-500");
+                            }
+                        }
+                    });
+
+                    showToast(
+                        data.favorited
+                            ? "Đã thêm vào yêu thích!"
+                            : "Đã xóa khỏi yêu thích!",
+                        data.favorited ? "❤️" : "🤍",
+                    );
                     // Cập nhật số trên icon tim header
                     const favCountEl = document.getElementById("fav-count");
                     if (favCountEl) favCountEl.textContent = data.count;
@@ -206,7 +251,10 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Click vào card → mở modal
+        // Click vào card → mở modal (bỏ qua nếu click trong modal hoặc trong trang cart)
+        if (e.target.closest("#item-modal")) return;
+        if (e.target.closest(".cart-item")) return;
+        if (e.target.closest(".btn-cart-minus, .btn-cart-plus, .btn-cart-remove")) return;
         const card = e.target.closest("[data-item-id]");
         if (!card) return;
         openItemModal(card.dataset.itemId);

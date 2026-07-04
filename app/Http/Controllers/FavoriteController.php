@@ -19,7 +19,7 @@ class FavoriteController extends Controller
         $user = auth()->user();
         $menuItemId = $request->menu_item_id;
 
-        $exists = $user->favoriteItems()->where('menu_item_id', $menuItemId)->exists();
+        $exists = $user->favoriteItems()->wherePivot('menu_item_id', $menuItemId)->exists();
 
         if ($exists) {
             $user->favoriteItems()->detach($menuItemId);
@@ -40,7 +40,7 @@ class FavoriteController extends Controller
      */
     public function ids()
     {
-        $ids = auth()->user()->favoriteItems()->pluck('menu_item_id');
+        $ids = auth()->user()->favoriteItems()->pluck('menu_items.id');
         return response()->json(['ids' => $ids]);
     }
 

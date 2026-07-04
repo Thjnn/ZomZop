@@ -21,6 +21,10 @@
 </head>
 
 <body class="bg-slate-50 text-slate-800 ">
+    @php
+        $_cart = session('cart', ['items' => []]);
+        $_cartCount = collect($_cart['items'])->sum('quantity');
+    @endphp
 
     <header class="sticky top-0 z-50 bg-white shadow-xs border-b border-slate-100">
         <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
@@ -91,14 +95,14 @@
                     @endauth
                 </a>
 
-                <button class="relative p-2 hover:bg-slate-100 rounded-full transition cursor-pointer group">
+                <a href="{{ route('cart.index') }}" class="relative p-2 hover:bg-slate-100 rounded-full transition cursor-pointer group">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 group-hover:text-red-500 transition">
                         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
                         <path d="M3 6h18" />
                         <path d="M16 10a4 4 0 0 1-8 0" />
                     </svg>
-                    <span class="absolute top-1 right-0.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">0</span>
-                </button>
+                    <span id="cart-badge" class="absolute top-1 right-0.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">{{ $_cartCount }}</span>
+                </a>
                 @auth
                 {{-- Đã đăng nhập: hiện avatar + dropdown --}}
                 <div class="relative group">
@@ -292,6 +296,8 @@
     </script>
 
     <x-menu-item-modal />
+
+    @stack('scripts')
 </body>
 
 </html>
