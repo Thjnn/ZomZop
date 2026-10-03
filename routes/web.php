@@ -1,5 +1,4 @@
 <?php
-
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CategoryController;
@@ -8,6 +7,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FavoriteController;
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AddressController;
 
 // Auth
 Route::middleware('guest')->group(function () {
@@ -43,4 +44,34 @@ Route::middleware('auth')->group(function () {
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout/store', [CheckoutController::class, 'store'])->name('checkout.store');
     Route::get('/order/{orderCode}', [CheckoutController::class, 'success'])->name('order.success');
+});
+
+Route::get('/menu', function () {
+    return view('menu');
+});
+
+// Các trang thông tin & chính sách
+Route::get('/notifications', function () { return view('notifications'); })->name('notifications');
+Route::get('/coupons', function () { return view('coupons'); })->name('coupons');
+Route::get('/about-us', function () { return view('about-us'); })->name('about-us');
+Route::get('/support', function () { return view('support'); })->name('support');
+Route::get('/privacy-policy', function () { return view('privacy-policy'); })->name('privacy-policy');
+
+// Các trang hồ sơ, đơn hàng, địa chỉ (yêu thích đã có ở trên)
+Route::middleware('auth')->group(function () {
+    // Hồ sơ
+    Route::get('/profile',          [AccountController::class, 'profile'])->name('account.profile');
+    Route::put('/profile',          [AccountController::class, 'updateProfile'])->name('account.update');
+    Route::put('/profile/password', [AccountController::class, 'updatePassword'])->name('account.password');
+    Route::delete('/profile',       [AccountController::class, 'destroy'])->name('account.destroy');
+
+    // Đơn hàng (đang là dữ liệu mẫu)
+    Route::view('/orders', 'orders')->name('orders');
+
+    // Địa chỉ
+    Route::get('/addresses',                    [AddressController::class, 'index'])->name('addresses.index');
+    Route::post('/addresses',                   [AddressController::class, 'store'])->name('addresses.store');
+    Route::put('/addresses/{address}',          [AddressController::class, 'update'])->name('addresses.update');
+    Route::delete('/addresses/{address}',       [AddressController::class, 'destroy'])->name('addresses.destroy');
+    Route::post('/addresses/{address}/default', [AddressController::class, 'setDefault'])->name('addresses.default');
 });
