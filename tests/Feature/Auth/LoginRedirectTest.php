@@ -33,6 +33,20 @@ class LoginRedirectTest extends TestCase
             ->assertRedirect('/checkout');
     }
 
+    /** Review Focus #3 (giai đoạn 3) */
+    public function test_staff_and_kitchen_login_without_dashboard_go_home(): void
+    {
+        $branch = $this->makeBranch();
+
+        foreach (['staff', 'kitchen'] as $role) {
+            $user = $this->makeUser($role, $branch);
+            $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+                ->assertRedirect(route('home'))
+                ->assertSessionHas('info', 'Khu vực nhân viên đang được xây dựng.');
+            $this->post('/logout');
+        }
+    }
+
     public function test_manager_goes_to_dashboard_even_with_other_remembered_page(): void
     {
         $manager = $this->makeUser('manager', $this->makeBranch());

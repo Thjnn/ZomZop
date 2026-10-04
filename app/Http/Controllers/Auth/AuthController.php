@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 
 class AuthController extends Controller
 {
@@ -133,12 +134,15 @@ class AuthController extends Controller
         $intendedPath    = $intended ? (parse_url($intended, PHP_URL_PATH) ?? '/') : null;
         $customerTarget  = $intendedPath && !str_starts_with($intendedPath, '/manager') ? $intended : route('home');
 
-        return match ($user->role) {
-            'admin'   => redirect()->route('admin.dashboard'),
-            'manager' => redirect()->route('manager.dashboard'),
-            'staff'   => redirect()->route('staff.dashboard'),
-            'kitchen' => redirect()->route('kitchen.dashboard'),
-            default   => redirect()->to($customerTarget), // customer
-        };
+        if ($user->role === 'customer' || !in_array($user->role, ['admin', 'manager', 'staff', 'kitchen'], true)) {
+            return redirect()->to($customerTarget);
+        }
+
+        // Role nội bộ chưa có trang riêng (admin/staff/kitchen) → trang chủ, tránh lỗi route không tồn tại
+        $route = "{$user->role}.dashboard";
+
+        return Route::has($route)
+            ? redirect()->route($route)
+            : redirect()->route('home')->with('info', 'Khu vực nhân viên đang được xây dựng.');
     }
 }

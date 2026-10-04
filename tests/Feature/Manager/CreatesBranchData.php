@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Support\Str;
 
@@ -41,6 +42,11 @@ trait CreatesBranchData
             'payment_status' => 'unpaid',
             'pickup_code'    => 'A01',
         ], $attrs));
+    }
+
+    protected function makeShift(Branch $branch, string $start = '08:00', string $end = '14:00', string $name = 'Ca sáng'): Shift
+    {
+        return Shift::create(['branch_id' => $branch->id, 'name' => $name, 'start_time' => $start, 'end_time' => $end]);
     }
 
     protected function makeMenuItem(string $name = 'Burger Bò'): MenuItem
