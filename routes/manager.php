@@ -3,6 +3,7 @@
 use App\Http\Controllers\Manager\DashboardController;
 use App\Http\Controllers\Manager\MenuController;
 use App\Http\Controllers\Manager\OrderController;
+use App\Http\Controllers\Manager\StaffController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'role:manager'])
@@ -16,4 +17,12 @@ Route::middleware(['auth', 'role:manager'])
 
         Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
         Route::put('/menu/{menuItem}', [MenuController::class, 'update'])->name('menu.update');
+
+        Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
+        Route::get('/staff/create', [StaffController::class, 'create'])->name('staff.create');
+        Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
+        Route::get('/staff/{user}/edit', [StaffController::class, 'edit'])->name('staff.edit');
+        Route::put('/staff/{user}', [StaffController::class, 'update'])->name('staff.update');
+        Route::patch('/staff/{user}/lock', [StaffController::class, 'toggleLock'])->name('staff.lock');
+        Route::put('/staff/{user}/password', [StaffController::class, 'resetPassword'])->name('staff.password');
     });

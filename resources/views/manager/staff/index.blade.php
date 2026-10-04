@@ -1,0 +1,41 @@
+@extends('layouts.manager')
+
+@section('title', 'Nhân viên')
+
+@section('content')
+    <div class="flex items-center justify-between mb-4">
+        <h1 class="text-xl font-bold">Nhân viên chi nhánh</h1>
+        <a href="{{ route('manager.staff.create') }}" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold">+ Tạo tài khoản</a>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-100 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="text-left text-xs text-slate-400 border-b border-slate-100">
+                <tr>
+                    <th class="px-4 py-3">Họ tên</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">SĐT</th>
+                    <th class="px-4 py-3">Vai trò</th><th class="px-4 py-3">Trạng thái</th><th class="px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($staff as $u)
+                    <tr class="border-b border-slate-50 {{ $u->is_active ? '' : 'text-slate-400' }}">
+                        <td class="px-4 py-3 font-semibold">{{ $u->name }}</td>
+                        <td class="px-4 py-3">{{ $u->email }}</td>
+                        <td class="px-4 py-3">{{ $u->phone ?? '—' }}</td>
+                        <td class="px-4 py-3">{{ $roles[$u->role] ?? $u->role }}</td>
+                        <td class="px-4 py-3">{{ $u->is_active ? 'Đang làm' : 'Đã khoá' }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-right">
+                            <a href="{{ route('manager.staff.edit', $u) }}" class="text-red-500 hover:underline mr-3">Sửa</a>
+                            <form method="POST" action="{{ route('manager.staff.lock', $u) }}" class="inline">
+                                @csrf @method('PATCH')
+                                <button class="text-slate-500 hover:underline cursor-pointer">{{ $u->is_active ? 'Khoá' : 'Mở khoá' }}</button>
+                            </form>
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Chưa có nhân viên nào.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+@endsection
