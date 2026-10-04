@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             CouponUsageSeeder::class,           // 19. cần order completed + coupon_id + user_id
             DailySalesSummarySeeder::class,     // 20
             SalesPredictionSeeder::class,       // 21
+            AddressSeeder::class,               // 22. cần user_id (customer)
         ]);
     }
 }
