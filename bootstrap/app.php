@@ -11,7 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Tunnel (cloudflared) chạy ngay trên máy này và chuyển tiếp HTTPS -> HTTP,
+        // nên chỉ tin header X-Forwarded-* đến từ loopback.
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

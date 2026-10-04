@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jul 04, 2026 at 07:37 PM
+-- Generation Time: Sep 16, 2026 at 01:06 AM
 -- Server version: 8.4.3
 -- PHP Version: 8.3.30
 
@@ -579,7 +579,9 @@ CREATE TABLE `favorites` (
 --
 
 INSERT INTO `favorites` (`id`, `user_id`, `menu_item_id`, `created_at`, `updated_at`) VALUES
-(1, 1, 6, '2026-06-13 00:21:57', '2026-06-13 00:21:57');
+(1, 1, 6, '2026-06-13 00:21:57', '2026-06-13 00:21:57'),
+(3, 6, 4, '2026-07-04 12:51:14', '2026-07-04 12:51:14'),
+(5, 6, 26, '2026-07-04 12:52:31', '2026-07-04 12:52:31');
 
 -- --------------------------------------------------------
 
@@ -864,7 +866,12 @@ INSERT INTO `orders` (`id`, `order_code`, `user_id`, `branch_id`, `kitchen_by`, 
 (27, 'ORD-6A2D051563150', 3, 2, NULL, 'delivery', 'pending', 29000, 29000, 0, 'vnpay', 'unpaid', '123 Đường Nguyễn Huệ, Q.1, TP.HCM', NULL, NULL, 3, NULL, '2026-06-13 00:21:57', '2026-06-13 00:21:57'),
 (28, 'ORD-6A2D051563EF0', 3, 2, NULL, 'delivery', 'pending', 356000, 30000, 326000, 'momo', 'unpaid', '123 Đường Nguyễn Huệ, Q.1, TP.HCM', NULL, NULL, 3, NULL, '2026-06-13 00:21:57', '2026-06-13 00:21:57'),
 (29, 'ORD-6A2D051565A77', 3, 1, NULL, 'takeaway', 'pending', 124000, 0, 124000, 'momo', 'unpaid', NULL, NULL, '565A8A', NULL, NULL, '2026-06-13 00:21:57', '2026-06-13 00:21:57'),
-(30, 'ORD-6A2D05156704A', 3, 1, NULL, 'delivery', 'pending', 124000, 0, 124000, 'vnpay', 'unpaid', '123 Đường Nguyễn Huệ, Q.1, TP.HCM', NULL, NULL, NULL, NULL, '2026-06-13 00:21:57', '2026-06-13 00:21:57');
+(30, 'ORD-6A2D05156704A', 3, 1, NULL, 'delivery', 'pending', 124000, 0, 124000, 'vnpay', 'unpaid', '123 Đường Nguyễn Huệ, Q.1, TP.HCM', NULL, NULL, NULL, NULL, '2026-06-13 00:21:57', '2026-06-13 00:21:57'),
+(31, 'ZMZ-0CXV9I', 6, 2, NULL, 'takeaway', 'pending', 55000, 0, 55000, 'vnpay', 'unpaid', NULL, NULL, '770643', NULL, NULL, '2026-07-04 13:05:41', '2026-07-04 13:05:41'),
+(32, 'ZMZ-UIGWXS', 6, 2, NULL, 'takeaway', 'pending', 95000, 0, 95000, 'vnpay', 'unpaid', NULL, NULL, '225654', NULL, NULL, '2026-07-04 13:09:20', '2026-07-04 13:09:20'),
+(33, 'ZMZ-8FZIIW', 6, 2, NULL, 'delivery', 'pending', 32000, 0, 32000, 'cash', 'unpaid', 'Blalalalal', NULL, '722581', NULL, NULL, '2026-07-04 13:10:27', '2026-07-04 13:10:27'),
+(34, 'ZMZ-W8FHHS', 6, 2, NULL, 'takeaway', 'pending', 232000, 0, 232000, 'cash', 'unpaid', NULL, NULL, '443566', NULL, NULL, '2026-07-14 18:50:49', '2026-07-14 18:50:49'),
+(35, 'ZMZ-IGIKUU', 6, 2, NULL, 'takeaway', 'pending', 59000, 0, 59000, 'vnpay', 'unpaid', NULL, NULL, '336333', NULL, NULL, '2026-09-15 17:56:50', '2026-09-15 17:56:50');
 
 -- --------------------------------------------------------
 
@@ -1069,7 +1076,13 @@ INSERT INTO `order_items` (`id`, `order_id`, `menu_item_id`, `name_snapshot`, `p
 (53, 29, 3, 'Crispy Chicken', 55000, 1, 55000, NULL, '2026-06-13 00:21:57', '2026-06-13 00:21:57'),
 (54, 29, 37, 'Combo Cơ Bản', 69000, 2, 138000, NULL, '2026-06-13 00:21:57', '2026-06-13 00:21:57'),
 (55, 30, 16, 'Sandwich BLT Bacon', 55000, 2, 110000, NULL, '2026-06-13 00:21:57', '2026-06-13 00:21:57'),
-(56, 30, 37, 'Combo Cơ Bản', 69000, 1, 69000, NULL, '2026-06-13 00:21:57', '2026-06-13 00:21:57');
+(56, 30, 37, 'Combo Cơ Bản', 69000, 1, 69000, NULL, '2026-06-13 00:21:57', '2026-06-13 00:21:57'),
+(57, 31, 3, 'Crispy Chicken', 55000, 1, 55000, '', '2026-07-04 13:05:41', '2026-07-04 13:05:41'),
+(58, 32, 10, 'Pizza Cay Kiểu Ý', 95000, 1, 95000, '', '2026-07-04 13:09:20', '2026-07-04 13:09:20'),
+(59, 33, 26, 'Khoai Tây Chiên (Lớn)', 32000, 1, 32000, '', '2026-07-04 13:10:27', '2026-07-04 13:10:27'),
+(60, 34, 3, 'Crispy Chicken', 55000, 1, 55000, '', '2026-07-14 18:50:49', '2026-07-14 18:50:49'),
+(61, 34, 4, 'Spicy Chicken', 59000, 3, 177000, '', '2026-07-14 18:50:49', '2026-07-14 18:50:49'),
+(62, 35, 4, 'Spicy Chicken', 59000, 1, 59000, '', '2026-09-15 17:56:50', '2026-09-15 17:56:50');
 
 -- --------------------------------------------------------
 
@@ -2037,7 +2050,7 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('YODqWvTbv0nLYT365aUkKbtcy3aFS9xizPGT4O9m', 6, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiIyV3NYSWs2eFdNWjJEU2VVUDEzTERCNENlRVdKdlU4dk9FNThPRW1JIiwiX2ZsYXNoIjp7Im5ldyI6W10sIm9sZCI6W119LCJfcHJldmlvdXMiOnsidXJsIjoiaHR0cDpcL1wvem9tem9wLnRlc3RcL2Zhdm9yaXRlcyIsInJvdXRlIjoiZmF2b3JpdGVzLmluZGV4In0sImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjo2fQ==', 1783193625);
+('8vOgCVBEkW6HgVwx6GQnWrHMxDFBkDXjwaNklEtb', 6, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJ6aXRIeElLYURuQU1mSmFIeDROcGt5dzhVTE44bzNGUlB5UXFLbldKIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL3pvbXpvcC50ZXN0XC9mYXZvcml0ZXNcL2lkcyIsInJvdXRlIjoiZmF2b3JpdGVzLmlkcyJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX0sInNlbGVjdGVkX2JyYW5jaF9pZCI6Miwic2VsZWN0ZWRfYnJhbmNoX25hbWUiOiJab21ab3AgLSBCXHUxZWJmbiBUcmUiLCJ1cmwiOnsiaW50ZW5kZWQiOiJodHRwOlwvXC96b216b3AudGVzdFwvY2hlY2tvdXQifSwibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiOjZ9', 1789520221);
 
 -- --------------------------------------------------------
 
@@ -2524,7 +2537,7 @@ ALTER TABLE `failed_jobs`
 -- AUTO_INCREMENT for table `favorites`
 --
 ALTER TABLE `favorites`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `jobs`
@@ -2554,7 +2567,7 @@ ALTER TABLE `migrations`
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `order_histories`
@@ -2566,7 +2579,7 @@ ALTER TABLE `order_histories`
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
 -- AUTO_INCREMENT for table `payrolls`
