@@ -3,6 +3,12 @@
 @section('title', 'Thanh Toán — ZomZop')
 
 @section('content')
+@if (session('cart_changes'))
+<div class="max-w-5xl mx-auto mb-6 px-4 py-3 rounded-xl bg-amber-50 text-amber-700 text-sm">
+    <p class="font-semibold mb-1">Giỏ hàng đã được cập nhật theo chi nhánh:</p>
+    @foreach (session('cart_changes') as $change) <p>• {{ $change }}</p> @endforeach
+</div>
+@endif
 
 <div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
 

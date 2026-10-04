@@ -73,4 +73,65 @@ class CustomerBranchMenuTest extends TestCase
 
         $this->assertEmpty(session('cart')['items'] ?? []);
     }
+
+    /** Review Focus #1 */
+    public function test_checkout_store_uses_fresh_price_and_stops_to_inform_customer(): void
+    {
+        $branch   = $this->makeBranch();
+        $burger   = $this->makeMenuItem('Burger');
+        $customer = $this->makeUser('customer');
+        $cart = ['branch_id' => $branch->id, 'items' => [
+            ['id' => $burger->id, 'name' => 'Burger', 'image' => '', 'price' => 50000, 'quantity' => 2, 'note' => ''],
+        ]];
+        BranchMenuItem::create(['branch_id' => $branch->id, 'menu_item_id' => $burger->id, 'price' => 70000, 'is_available' => true]);
+
+        $this->actingAs($customer)
+            ->withSession(['cart' => $cart, 'selected_branch_id' => $branch->id])
+            ->post('/checkout/store', ['type' => 'takeaway', 'payment_method' => 'cash'])
+            ->assertRedirect(route('checkout.index'))
+            ->assertSessionHas('cart_changes', ['Burger: giá đổi từ 50.000đ thành 70.000đ.']);
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(70000, session('cart')['items'][0]['price']);
+
+        // Lần đặt thứ 2 (khách đã thấy giá mới) thì đặt được, đúng giá mới
+        $this->post('/checkout/store', ['type' => 'takeaway', 'payment_method' => 'cash'])
+            ->assertRedirect();
+        $this->assertDatabaseHas('orders', ['total' => 140000]);
+        $this->assertDatabaseHas('order_items', ['price_snapshot' => 70000, 'quantity' => 2]);
+    }
+
+    public function test_checkout_drops_item_turned_off_and_redirects_to_cart_if_empty(): void
+    {
+        $branch   = $this->makeBranch();
+        $pizza    = $this->makeMenuItem('Pizza');
+        $customer = $this->makeUser('customer');
+        BranchMenuItem::create(['branch_id' => $branch->id, 'menu_item_id' => $pizza->id, 'is_available' => false]);
+        $cart = ['branch_id' => $branch->id, 'items' => [
+            ['id' => $pizza->id, 'name' => 'Pizza', 'image' => '', 'price' => 50000, 'quantity' => 1, 'note' => ''],
+        ]];
+
+        $this->actingAs($customer)
+            ->withSession(['cart' => $cart])
+            ->get('/checkout')
+            ->assertRedirect(route('cart.index'))
+            ->assertSessionHas('cart_changes', ['Pizza: tạm hết tại chi nhánh, đã bỏ khỏi giỏ.']);
+    }
+
+    public function test_checkout_page_shows_change_notice(): void
+    {
+        $branch   = $this->makeBranch();
+        $burger   = $this->makeMenuItem('Burger');
+        BranchMenuItem::create(['branch_id' => $branch->id, 'menu_item_id' => $burger->id, 'price' => 70000, 'is_available' => true]);
+        $cart = ['branch_id' => $branch->id, 'items' => [
+            ['id' => $burger->id, 'name' => 'Burger', 'image' => '', 'price' => 50000, 'quantity' => 1, 'note' => ''],
+        ]];
+
+        $this->actingAs($this->makeUser('customer'))
+            ->withSession(['cart' => $cart])
+            ->get('/checkout')
+            ->assertOk()
+            ->assertSee('Burger: giá đổi từ 50.000đ thành 70.000đ.')
+            ->assertSee('70.000');
+    }
 }

@@ -4,17 +4,29 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\BranchMenu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class CheckoutController extends Controller
 {
-    public function index()
+    public function index(BranchMenu $menu)
     {
         $cart = session('cart', ['branch_id' => null, 'items' => []]);
 
         if (empty($cart['items']) || !$cart['branch_id']) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống hoặc chưa chọn chi nhánh!');
+        }
+
+        // Giá trong giỏ có thể đã cũ (manager đổi giá / tắt món) → tính lại và báo khách
+        $result = $menu->refreshCart($cart);
+        if (!empty($result['changed'])) {
+            session(['cart' => $result['cart']]);
+            $cart = $result['cart'];
+            if (empty($cart['items'])) {
+                return redirect()->route('cart.index')->with('cart_changes', $result['changed']);
+            }
+            session()->now('cart_changes', $result['changed']);
         }
 
         $subtotal = collect($cart['items'])->sum(fn($i) => $i['price'] * $i['quantity']);
@@ -23,7 +35,7 @@ class CheckoutController extends Controller
         return view('checkout.index', compact('cart', 'subtotal', 'branchName'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, BranchMenu $menu)
     {
         $cart = session('cart', ['branch_id' => null, 'items' => []]);
 
@@ -37,6 +49,15 @@ class CheckoutController extends Controller
             'delivery_address' => 'required_if:type,delivery|nullable|string|max:500',
             'note'             => 'nullable|string|max:500',
         ]);
+
+        // Không âm thầm đặt với giá mới: có thay đổi thì quay lại checkout để khách xem lại
+        $result = $menu->refreshCart($cart);
+        if (!empty($result['changed'])) {
+            session(['cart' => $result['cart']]);
+            $target = empty($result['cart']['items']) ? 'cart.index' : 'checkout.index';
+
+            return redirect()->route($target)->with('cart_changes', $result['changed']);
+        }
 
         $user = auth()->user();
         $subtotal = collect($cart['items'])->sum(fn($i) => $i['price'] * $i['quantity']);
