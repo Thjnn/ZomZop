@@ -37,11 +37,12 @@ Chuỗi một thương hiệu gồm nhiều chi nhánh. Mỗi chi nhánh có men
 - **Giỏ hàng (session-based):** guest thêm được, cập nhật/xóa, ghi chú từng món, tự reset khi đổi chi nhánh
 - **Đặt hàng:** tạo đơn + snapshot tên/giá món, sinh `pickup_code`, chọn takeaway/delivery và phương thức thanh toán
 - **Yêu thích:** toggle qua AJAX
+- **Dashboard Manager (giai đoạn 1):** `/manager` — tổng quan doanh thu/đơn hôm nay của chi nhánh, danh sách đơn có lọc, chi tiết đơn, xác nhận / chuyển trạng thái / huỷ đơn (ghi `order_histories`)
 - **Cơ sở dữ liệu:** 24 model với quan hệ Eloquent đầy đủ, 28 migration, 21 seeder có dữ liệu mẫu (3 chi nhánh, 8 danh mục, 39 món...)
 
 ### 🚧 Đang phát triển / chưa hoàn thành
 
-- Dashboard cho **Admin / Manager / Staff / Kitchen** (hiện `AuthController` đã redirect theo role nhưng các route dashboard chưa được định nghĩa)
+- Dashboard cho **Admin / Staff / Kitchen**; Manager còn: menu & giá chi nhánh, nhân sự, báo cáo
 - Áp dụng **mã giảm giá (coupon)** khi thanh toán
 - Trang **lịch sử & theo dõi trạng thái đơn hàng** cho khách
 - Ghi lịch sử trạng thái đơn tự động (OrderObserver)
