@@ -3,13 +3,21 @@
 namespace App\Http\Controllers\Manager;
 
 use App\Models\Branch;
+use App\Models\Order;
+use App\Services\BranchStats;
 
 class DashboardController extends ManagerController
 {
-    public function index()
+    public function index(BranchStats $stats)
     {
-        $branch = Branch::findOrFail($this->branchId());
+        $branchId = $this->branchId();
 
-        return view('manager.dashboard', compact('branch'));
+        return view('manager.dashboard', [
+            'branch'        => Branch::findOrFail($branchId),
+            'today'         => $stats->today($branchId),
+            'revenue7'      => $stats->revenueLastDays($branchId, 7),
+            'topItems'      => $stats->topItemsToday($branchId),
+            'pendingOrders' => Order::ofBranch($branchId)->pending()->with('user')->oldest()->limit(10)->get(),
+        ]);
     }
 }
