@@ -14,6 +14,7 @@
             ['route' => 'manager.orders.index', 'match' => 'manager.orders.*',  'label' => 'Đơn hàng',  'icon' => '🧾'],
             ['route' => 'manager.menu.index',   'match' => 'manager.menu.*',    'label' => 'Menu & giá', 'icon' => '🍔'],
             ['route' => 'manager.staff.index',  'match' => 'manager.staff.*',   'label' => 'Nhân viên',  'icon' => '👥'],
+            ['route' => 'manager.shifts.index', 'match' => 'manager.shifts.*',  'label' => 'Ca làm',     'icon' => '🕒'],
         ];
     @endphp
 

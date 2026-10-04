@@ -3,6 +3,7 @@
 use App\Http\Controllers\Manager\DashboardController;
 use App\Http\Controllers\Manager\MenuController;
 use App\Http\Controllers\Manager\OrderController;
+use App\Http\Controllers\Manager\ShiftController;
 use App\Http\Controllers\Manager\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,4 +26,9 @@ Route::middleware(['auth', 'role:manager'])
         Route::put('/staff/{user}', [StaffController::class, 'update'])->name('staff.update');
         Route::patch('/staff/{user}/lock', [StaffController::class, 'toggleLock'])->name('staff.lock');
         Route::put('/staff/{user}/password', [StaffController::class, 'resetPassword'])->name('staff.password');
+
+        Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
+        Route::post('/shifts', [ShiftController::class, 'store'])->name('shifts.store');
+        Route::put('/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
+        Route::delete('/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
     });
