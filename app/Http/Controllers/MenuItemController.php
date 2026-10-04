@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\MenuItem;
+use App\Services\BranchMenu;
 use Illuminate\Http\Request;
 
 class MenuItemController extends Controller
 {
-    public function detail($id)
+    public function detail($id, BranchMenu $menu)
     {
         $item = MenuItem::with(['images', 'category'])->findOrFail($id);
+        $menu->applyPrices([$item], $menu->currentBranchId());
 
         return response()->json([
             'id'               => $item->id,

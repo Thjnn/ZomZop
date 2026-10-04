@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\MenuItem;
+use App\Services\BranchMenu;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
-    public function add(Request $request)
+    public function add(Request $request, BranchMenu $menu)
     {
         $request->validate([
             'menu_item_id' => 'required|exists:menu_items,id',
@@ -25,6 +26,14 @@ class CartController extends Controller
         }
 
         $item = MenuItem::with('images')->findOrFail($request->menu_item_id);
+        if (!$menu->isAvailable($item, (int) $branchId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Món này tạm hết tại chi nhánh bạn chọn.',
+            ], 422);
+        }
+        $menu->applyPrices([$item], (int) $branchId);
+
         $cart = session('cart', ['branch_id' => $branchId, 'items' => []]);
 
         if ($cart['branch_id'] !== $branchId) {
@@ -50,7 +59,7 @@ class CartController extends Controller
                 'id'       => $item->id,
                 'name'     => $item->name,
                 'image'    => $item->image_url,
-                'price'    => $item->discounted_price,
+                'price'    => (int) round($item->discounted_price),
                 'quantity' => $qty,
                 'note'     => $note,
             ];
