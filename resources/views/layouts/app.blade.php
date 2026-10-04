@@ -26,17 +26,18 @@
         $_cartCount = collect($_cart['items'])->sum('quantity');
     @endphp
 
-    <header class="sticky top-0 z-50 bg-white shadow-xs border-b border-slate-100">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+    <header class="sticky top-0 z-50 bg-white shadow-xs border-b border-slate-100 relative">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2 sm:gap-4">
             <div class="flex items-center gap-6 flex-shrink-0">
-                <a href="/" class="flex items-center gap-2 hover:opacity-90 transition">
+                <a href="{{ url('/') }}" class="flex items-center gap-2 hover:opacity-90 transition">
                     <img src="{{ asset('images/avatar-logo.png') }}" alt="ZomZop Avatar" class="h-10 w-auto object-contain">
-                    <img src="{{ asset('images/text-logo.png') }}" alt="ZomZop Fast Food" class="h-8 w-auto object-contain">
+                    {{-- Điện thoại: ẩn chữ logo để đủ chỗ cho nút 3 gạch --}}
+                    <img src="{{ asset('images/text-logo.png') }}" alt="ZomZop Fast Food" class="hidden sm:block h-8 w-auto object-contain">
                 </a>
             </div>
 
             <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600">
-                <a href="/" class="{{ Request::is('/') ? 'text-red-500' : 'hover:text-red-500 transition' }}">Trang Chủ</a>
+                <a href="{{ url('/') }}" class="{{ Request::is('/') ? 'text-red-500' : 'hover:text-red-500 transition' }}">Trang Chủ</a>
 
                 <div class="relative group">
                     <a href="#" class="hover:text-red-500 transition flex items-center gap-1 cursor-pointer">
@@ -50,7 +51,7 @@
                         <ul class="py-2">
                             @foreach(\App\Models\Category::all() as $category)
                             <li>
-                                <a href="/category/{{ $category->slug }}" class="block px-4 py-2 hover:bg-slate-50 hover:text-red-500">
+                                <a href="{{ url('/category/' . $category->slug) }}" class="block px-4 py-2 hover:bg-slate-50 hover:text-red-500">
                                     {{ $category->name }}
                                 </a>
                             </li>
@@ -60,9 +61,10 @@
                 </div>
             </nav>
 
-            <div class="flex-1 max-w-md mx-4">
+            {{-- min-w-0: cho phép ô tìm kiếm co lại, không đẩy nút 3 gạch ra khỏi màn hình --}}
+            <div class="flex-1 min-w-0 max-w-md mx-0 sm:mx-4">
                 <div class="relative">
-                    <input type="text" placeholder="Bạn đang đói bụng cồn cào?" class="w-full bg-slate-100 pl-10 pr-4 py-2 rounded-full text-sm border border-transparent focus:bg-white focus:border-red-400 focus:outline-hidden transition shadow-inner">
+                    <input type="text" placeholder="Bạn đang đói bụng cồn cào?" class="w-full min-w-0 bg-slate-100 pl-10 pr-4 py-2 rounded-full text-sm border border-transparent focus:bg-white focus:border-red-400 focus:outline-hidden transition shadow-inner">
 
                     <span class="absolute left-3 top-2 text-slate-400">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -73,7 +75,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-4 flex-shrink-0">
+            <div class="flex items-center gap-1 sm:gap-4 flex-shrink-0">
                 <div class="hidden sm:block text-right">
                     <p class="text-[10px] text-slate-400">Chi nhánh</p>
                     <a href="{{ route('branches.select') }}"
@@ -104,22 +106,25 @@
                     <span id="cart-badge" class="absolute top-1 right-0.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">{{ $_cartCount }}</span>
                 </a>
                 @auth
-                {{-- Đã đăng nhập: hiện avatar + dropdown --}}
                 <div class="relative group">
                     <button class="p-2 hover:bg-slate-100 rounded-full transition cursor-pointer hidden sm:flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">
-                            {{ substr(auth()->user()->name, 0, 1) }}
+                        <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+                            @if (auth()->user()->avatar)
+                                <img src="{{ asset(auth()->user()->avatar) }}" class="w-full h-full object-cover" alt="">
+                            @else
+                                {{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}
+                            @endif
                         </div>
                     </button>
 
-                    {{-- Dropdown --}}
                     <div class="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 shadow-xl rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2">
                         <div class="px-4 py-2 border-b border-slate-100">
                             <p class="text-sm font-semibold text-slate-800 truncate">{{ auth()->user()->name }}</p>
                             <p class="text-xs text-slate-400 truncate">{{ auth()->user()->email }}</p>
                         </div>
-                        <a href="#" class="block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-red-500">👤 Tài khoản</a>
-                        <a href="#" class="block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-red-500">📦 Đơn hàng</a>
+                        <a href="{{ url('/profile') }}" class="block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-red-500">👤 Tài khoản</a>
+                        <a href="{{ url('/orders') }}" class="block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-red-500">📦 Đơn hàng</a>
+                        <a href="{{ url('/addresses') }}" class="block px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-red-500">📍 Địa chỉ</a>
                         <div class="border-t border-slate-100 mt-1 pt-1">
                             <form action="{{ route('logout') }}" method="POST">
                                 @csrf
@@ -131,13 +136,20 @@
                     </div>
                 </div>
                 @else
-                {{-- Chưa đăng nhập: hiện nút đăng nhập --}}
                 <a href="{{ route('login') }}"
                     class="hidden sm:flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold px-4 py-2 rounded-full transition cursor-pointer">
                     Đăng nhập
                 </a>
                 @endauth
-                <button class="p-2 hover:bg-slate-100 rounded-full transition cursor-pointer">☰</button>
+
+                {{-- NÚT 3 GẠCH: luôn hiện (cả điện thoại), bấm vào mở trang Menu tài khoản --}}
+                <a href="{{ url('/menu') }}" class="flex-shrink-0 p-2 hover:bg-slate-100 rounded-full transition cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </a>
             </div>
         </div>
     </header>
@@ -218,20 +230,21 @@
         <span id="toast-icon" class="text-xl">⚠️</span>
         <span id="toast-message" class="text-base"></span>
     </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
         new Swiper(".mySwiper", {
             spaceBetween: 30,
             centeredSlides: true,
             autoplay: {
-                delay: 3000, // 3 giây lướt 1 lần
+                delay: 3000, 
                 disableOnInteraction: false,
             },
             pagination: {
                 el: ".swiper-pagination",
                 clickable: true,
             },
-            loop: true, // Lặp lại vô tận
+            loop: true, 
         });
         new Swiper(".specialOffersSwiper", {
             loop: true,
@@ -269,9 +282,9 @@
             }
         });
 
-        // Custom smooth scroll với easing - mượt hơn behavior:'smooth' mặc định
+        // Custom smooth scroll
         document.getElementById('back-to-top').addEventListener('click', () => {
-            const duration = 600; // ms
+            const duration = 600; 
             const start = window.scrollY;
             const startTime = performance.now();
 
