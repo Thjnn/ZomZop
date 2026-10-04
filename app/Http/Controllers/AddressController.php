@@ -40,7 +40,7 @@ class AddressController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        return view('addresses', compact('addresses'));
+        return view('account.addresses', compact('addresses'));
     }
 
     public function store(Request $request)

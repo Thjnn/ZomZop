@@ -15,7 +15,7 @@ class AccountController extends Controller
         $user = $request->user();
         $addressCount = Address::where('user_id', $user->id)->count();
 
-        return view('profile', compact('user', 'addressCount'));
+        return view('account.profile', compact('user', 'addressCount'));
     }
 
     public function updateProfile(Request $request)

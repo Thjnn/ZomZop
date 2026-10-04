@@ -47,15 +47,15 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/menu', function () {
-    return view('menu');
+    return view('account.menu');
 });
 
 // Các trang thông tin & chính sách
-Route::get('/notifications', function () { return view('notifications'); })->name('notifications');
-Route::get('/coupons', function () { return view('coupons'); })->name('coupons');
-Route::get('/about-us', function () { return view('about-us'); })->name('about-us');
-Route::get('/support', function () { return view('support'); })->name('support');
-Route::get('/privacy-policy', function () { return view('privacy-policy'); })->name('privacy-policy');
+Route::get('/notifications', function () { return view('notifications.index'); })->name('notifications');
+Route::get('/coupons', function () { return view('coupons.index'); })->name('coupons');
+Route::get('/about-us', function () { return view('pages.about-us'); })->name('about-us');
+Route::get('/support', function () { return view('pages.support'); })->name('support');
+Route::get('/privacy-policy', function () { return view('pages.privacy-policy'); })->name('privacy-policy');
 
 // Các trang hồ sơ, đơn hàng, địa chỉ (yêu thích đã có ở trên)
 Route::middleware('auth')->group(function () {
@@ -66,7 +66,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile',       [AccountController::class, 'destroy'])->name('account.destroy');
 
     // Đơn hàng (đang là dữ liệu mẫu)
-    Route::view('/orders', 'orders')->name('orders');
+    Route::view('/orders', 'account.orders')->name('orders');
 
     // Địa chỉ
     Route::get('/addresses',                    [AddressController::class, 'index'])->name('addresses.index');
