@@ -13,7 +13,8 @@ class EnsureRole
     {
         $user = $request->user();
 
-        abort_unless($user && in_array($user->role, $roles, true), 403, 'Bạn không có quyền truy cập trang này.');
+        // is_active: tài khoản bị khoá giữa chừng vẫn còn session / remember-me cũ
+        abort_unless($user && $user->is_active && in_array($user->role, $roles, true), 403, 'Bạn không có quyền truy cập trang này.');
 
         return $next($request);
     }

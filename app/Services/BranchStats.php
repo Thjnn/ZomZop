@@ -14,14 +14,14 @@ class BranchStats
             ->whereDate('created_at', today())
             ->selectRaw("COUNT(*) as orders")
             ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END), 0) as revenue")
-            ->selectRaw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending")
             ->selectRaw("SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled")
             ->first();
 
         return [
             'revenue'   => (int) $row->revenue,
             'orders'    => (int) $row->orders,
-            'pending'   => (int) $row->pending,
+            // Đếm mọi đơn đang chờ (kể cả tồn từ hôm trước) cho khớp danh sách đơn chờ
+            'pending'   => Order::ofBranch($branchId)->pending()->count(),
             'cancelled' => (int) $row->cancelled,
         ];
     }

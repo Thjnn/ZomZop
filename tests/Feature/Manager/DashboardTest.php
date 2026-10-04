@@ -35,6 +35,18 @@ class DashboardTest extends TestCase
         );
     }
 
+    /** Ô "Chờ xác nhận" phải khớp danh sách đơn chờ bên dưới (gồm cả đơn tồn từ hôm trước) */
+    public function test_pending_count_includes_leftover_orders_from_previous_days(): void
+    {
+        $branch = $this->makeBranch();
+        $this->travelTo(Carbon::parse('2026-10-03 21:00'));
+        $this->makeOrder($branch, ['status' => 'pending']);
+        $this->travelTo(Carbon::parse('2026-10-04 09:00'));
+        $this->makeOrder($branch, ['status' => 'pending']);
+
+        $this->assertSame(2, (new BranchStats())->today($branch->id)['pending']);
+    }
+
     /** Review Focus #4: đơn lúc 6h sáng giờ VN vẫn là "hôm nay" */
     public function test_early_morning_vietnam_time_counts_as_today(): void
     {

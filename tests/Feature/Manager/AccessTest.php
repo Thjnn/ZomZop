@@ -36,6 +36,15 @@ class AccessTest extends TestCase
         $this->actingAs($this->makeUser('manager'))->get('/manager')->assertForbidden();
     }
 
+    public function test_locked_manager_with_existing_session_gets_403(): void
+    {
+        $branch  = $this->makeBranch();
+        $manager = $this->makeUser('manager', $branch);
+        $manager->forceFill(['is_active' => false])->save();
+
+        $this->actingAs($manager)->get('/manager')->assertForbidden();
+    }
+
     public function test_manager_with_branch_sees_dashboard(): void
     {
         $branch = $this->makeBranch('Chi nhánh Quận 7');
