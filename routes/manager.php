@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Manager\AttendanceController;
 use App\Http\Controllers\Manager\DashboardController;
 use App\Http\Controllers\Manager\MenuController;
 use App\Http\Controllers\Manager\OrderController;
@@ -31,4 +32,8 @@ Route::middleware(['auth', 'role:manager'])
         Route::post('/shifts', [ShiftController::class, 'store'])->name('shifts.store');
         Route::put('/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
         Route::delete('/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
+
+        Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
+        Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
+        Route::patch('/attendances/{attendance}/checkout', [AttendanceController::class, 'checkout'])->name('attendances.checkout');
     });
