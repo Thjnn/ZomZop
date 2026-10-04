@@ -64,7 +64,7 @@
             <div class="flex items-center justify-between py-2 text-sm {{ !$loop->last ? 'border-b border-slate-100' : '' }}">
                 <div class="min-w-0">
                     <p class="font-semibold">{{ $order->order_code }}</p>
-                    <p class="text-xs text-slate-400 truncate">{{ $order->user?->name }} · {{ $order->created_at->format('H:i') }} · {{ $order->type === 'delivery' ? 'Giao hàng' : 'Mang đi' }}</p>
+                    <p class="text-xs text-slate-400 truncate">{{ $order->user?->name }} · {{ $order->created_at->format($order->created_at->isToday() ? 'H:i' : 'H:i d/m') }} · {{ $order->type === 'delivery' ? 'Giao hàng' : 'Mang đi' }}</p>
                 </div>
                 <span class="font-semibold whitespace-nowrap">{{ $money($order->total) }}</span>
             </div>

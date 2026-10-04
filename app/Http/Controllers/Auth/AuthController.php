@@ -125,12 +125,20 @@ class AuthController extends Controller
     /** Redirect đúng trang theo role sau khi login */
     private function redirectByRole(User $user)
     {
+        // Lấy và xoá trang đã ghi nhớ trước khi đăng nhập; để lại trong session
+        // thì lần redirect()->intended() sau (vd. chọn chi nhánh) sẽ nhảy lung tung
+        $intended = session()->pull('url.intended');
+
+        // Khách quay lại trang đang xem dở, trừ khu vực nội bộ (sẽ bị 403)
+        $intendedPath    = $intended ? (parse_url($intended, PHP_URL_PATH) ?? '/') : null;
+        $customerTarget  = $intendedPath && !str_starts_with($intendedPath, '/manager') ? $intended : route('home');
+
         return match ($user->role) {
             'admin'   => redirect()->route('admin.dashboard'),
             'manager' => redirect()->route('manager.dashboard'),
             'staff'   => redirect()->route('staff.dashboard'),
             'kitchen' => redirect()->route('kitchen.dashboard'),
-            default   => redirect()->route('home'), // customer
+            default   => redirect()->to($customerTarget), // customer
         };
     }
 }

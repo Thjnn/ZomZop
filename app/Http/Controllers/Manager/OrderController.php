@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Manager;
 use App\Models\Order;
 use App\Services\OrderStatusService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 
@@ -12,14 +13,18 @@ class OrderController extends ManagerController
 {
     public function index(Request $request)
     {
-        $filters = $request->validate([
+        // Không dùng $request->validate(): lọc sai sẽ bị redirect về trang trước (thường là Tổng quan).
+        // Ở lại trang Đơn hàng, báo lỗi và chỉ áp dụng các bộ lọc hợp lệ.
+        $validator = Validator::make($request->only(['status', 'date', 'q']), [
             'status' => ['nullable', Rule::in(array_keys(OrderStatusService::LABELS))],
             'date'   => ['nullable', 'date_format:Y-m-d'],
             'q'      => ['nullable', 'string', 'max:50'],
         ], [
             'status.in'        => 'Trạng thái lọc không hợp lệ.',
             'date.date_format' => 'Ngày lọc không hợp lệ.',
+            'q.max'            => 'Từ khoá tìm kiếm tối đa 50 ký tự.',
         ]);
+        $filters = $validator->valid();
 
         $orders = Order::ofBranch($this->branchId())
             ->with('user')
@@ -38,7 +43,7 @@ class OrderController extends ManagerController
             'orders'  => $orders,
             'filters' => $filters,
             'labels'  => OrderStatusService::LABELS,
-        ]);
+        ])->withErrors($validator);
     }
 
     public function show(Order $order, OrderStatusService $service)

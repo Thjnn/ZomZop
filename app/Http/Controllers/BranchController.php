@@ -33,7 +33,7 @@ class BranchController extends Controller
             'selected_branch_name' => $branch->name,
         ]);
 
-        // Quay về trang trước hoặc trang chủ
-        return redirect()->intended(route('home'));
+        // Về trang chủ (không dùng intended: đó là trang chờ đăng nhập, không phải trang chờ chọn chi nhánh)
+        return redirect()->route('home');
     }
 }

@@ -47,6 +47,22 @@ class DashboardTest extends TestCase
         $this->assertSame(2, (new BranchStats())->today($branch->id)['pending']);
     }
 
+    /** Lỗi #2: đơn chờ từ hôm trước phải hiện cả ngày, không chỉ giờ */
+    public function test_pending_list_shows_date_for_orders_not_from_today(): void
+    {
+        $branch = $this->makeBranch();
+        $this->travelTo(Carbon::parse('2026-10-03 21:15'));
+        $this->makeOrder($branch, ['status' => 'pending', 'order_code' => 'ZZOLDPEND1']);
+        $this->travelTo(Carbon::parse('2026-10-04 09:30'));
+        $this->makeOrder($branch, ['status' => 'pending', 'order_code' => 'ZZNEWPEND1']);
+
+        $this->actingAs($this->makeUser('manager', $branch))
+            ->get('/manager')
+            ->assertSee('21:15 03/10')
+            ->assertSee('09:30')
+            ->assertDontSee('09:30 04/10');
+    }
+
     /** Review Focus #4: đơn lúc 6h sáng giờ VN vẫn là "hôm nay" */
     public function test_early_morning_vietnam_time_counts_as_today(): void
     {

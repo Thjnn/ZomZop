@@ -70,15 +70,20 @@ class OrderListTest extends TestCase
             ->assertSee('ZZFIND0001')->assertDontSee('ZZSKIP0001');
     }
 
-    /** Review Focus #5: tham số lọc bậy không gây lỗi 500 */
-    public function test_invalid_filters_show_validation_error_not_500(): void
+    /** Review Focus #5 + lỗi #3: lọc bậy → ở lại trang Đơn hàng, báo lỗi, bỏ qua giá trị sai */
+    public function test_invalid_filters_stay_on_list_with_errors(): void
     {
         $branch = $this->makeBranch();
+        $this->makeOrder($branch, ['order_code' => 'ZZKEEP0001', 'pickup_code' => 'K01']);
+        $this->makeOrder($branch, ['order_code' => 'ZZDROP0001', 'pickup_code' => 'D01']);
 
         $this->actingAs($this->makeUser('manager', $branch))
-            ->from('/manager/orders')
-            ->get('/manager/orders?status=xyz&date=khong-phai-ngay')
-            ->assertRedirect('/manager/orders')
-            ->assertSessionHasErrors(['status', 'date']);
+            ->from('/manager')
+            ->get('/manager/orders?status=xyz&date=khong-phai-ngay&q=KEEP')
+            ->assertOk()
+            ->assertSee('Trạng thái lọc không hợp lệ.')
+            ->assertSee('Ngày lọc không hợp lệ.')
+            ->assertSee('ZZKEEP0001')        // bộ lọc hợp lệ (q) vẫn được áp dụng
+            ->assertDontSee('ZZDROP0001');
     }
 }
