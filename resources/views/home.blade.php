@@ -4,6 +4,10 @@
 
 @section('content')
 
+@if (session('info'))
+    <div class="mb-4 px-4 py-3 rounded-xl bg-amber-50 text-amber-700 text-sm">{{ session('info') }}</div>
+@endif
+
 {{-- ===================== BANNER + CATEGORIES ===================== --}}
 <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-stretch">
 
