@@ -40,7 +40,7 @@ Chuỗi một thương hiệu gồm nhiều chi nhánh. Mỗi chi nhánh có men
 - **Dashboard Manager (giai đoạn 1):** `/manager` — tổng quan doanh thu/đơn hôm nay của chi nhánh, danh sách đơn có lọc, chi tiết đơn, xác nhận / chuyển trạng thái / huỷ đơn (ghi `order_histories`)
 - **Dashboard Manager (giai đoạn 2–4):** menu & giá theo chi nhánh (khách thấy đúng giá/món đang bán), quản lý tài khoản nhân viên/bếp (tạo, sửa, khoá, đặt lại mật khẩu), ca làm, chấm công thủ công theo ngày, báo cáo doanh thu theo khoảng ngày (theo ngày, hình thức, thanh toán, món bán chạy), xem đánh giá của khách
 - **Dashboard Manager (giai đoạn 5):** bảng lương theo giờ (thử việc 7 ngày, thưởng/phạt, chốt, đã trả), manager đặt lương từng nhân viên, xuất Excel (báo cáo, bảng lương, chấm công, đơn hàng), trả lời đánh giá
-- **Chấm công bằng khuôn mặt:** máy quầy (laptop có webcam) nhận diện bằng face-api.js trên trình duyệt, kiểm tra người thật (chớp mắt/quay đầu), tự chấm vào/ra theo ca, ảnh bằng chứng giữ 30 ngày; manager ghép thiết bị và đăng ký khuôn mặt — chi tiết `docs/cham-cong-khuon-mat.md`
+- **Chấm công bằng khuôn mặt:** máy tính bảng/laptop đặt ở quầy, nhân viên bấm **Chấm vào / Chấm ra / Ra ca sớm** rồi nhìn camera; nhận diện bằng face-api.js trên trình duyệt, kiểm tra người thật (chớp mắt/quay đầu), hỏi lý do đi trễ (> 5 phút) và ra sớm (> 10 phút), ảnh bằng chứng giữ 30 ngày; manager ghép thiết bị và đăng ký khuôn mặt — chi tiết `docs/cham-cong-khuon-mat.md`
 - **Cơ sở dữ liệu:** 24 model với quan hệ Eloquent đầy đủ, 28 migration, 21 seeder có dữ liệu mẫu (3 chi nhánh, 8 danh mục, 39 món...)
 
 ### 🚧 Đang phát triển / chưa hoàn thành
