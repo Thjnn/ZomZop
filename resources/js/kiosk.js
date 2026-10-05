@@ -1,18 +1,23 @@
-// Máy chấm công khuôn mặt đặt ở quầy.
-// Vòng lặp: chờ 1 khuôn mặt hợp lệ → kiểm tra người thật → tính descriptor + chụp ảnh → gửi server.
+// Máy chấm công khuôn mặt đặt ở quầy (máy tính bảng / laptop có webcam).
+// Luồng: bấm nút (Chấm vào / Chấm ra / Ra ca sớm) → quét mặt + kiểm tra người thật → gửi server.
+// Server cần lý do đi trễ / ra sớm thì hiện bảng chọn lý do rồi gửi lại (không phải quét lại).
 import { averageDescriptor, detectFaces, faceProblem, loadModels, sleep, snapshot, startCamera } from "./face/core";
 import { Liveness } from "./face/liveness";
+
+const REASONS = {
+    late: ["Kẹt xe", "Ốm", "Việc gia đình", "Quản lý cho phép"],
+    early: ["Ốm", "Việc gia đình", "Hết việc", "Quản lý cho phép"],
+};
+const SCAN_TIMEOUT = 20000; // không thấy ai trong 20 giây → về màn chờ
 
 const root = document.getElementById("kiosk");
 
 if (root) {
     const $ = (id) => document.getElementById(id);
     const video = $("kiosk-video");
-    const hint = $("kiosk-hint");
     const STORAGE_KEY = "zomzop_kiosk_token";
 
-    // Token ghép thiết bị: lấy từ link manager đưa (#device=...; phần sau # không bao giờ gửi lên server),
-    // cất vào máy rồi xoá khỏi thanh địa chỉ
+    // ── Ghép thiết bị: token trong link manager đưa (#device=...; phần sau # không gửi lên server) ──
     let token = new URLSearchParams(location.hash.slice(1)).get("device");
     try {
         if (token) localStorage.setItem(STORAGE_KEY, token);
@@ -29,108 +34,120 @@ if (root) {
             body,
         });
 
-    // Đồng hồ (giờ chấm thật luôn lấy theo server)
+    // ── Giao diện ──
     setInterval(() => {
         const now = new Date();
         $("kiosk-clock").textContent = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-        $("kiosk-date").textContent = now.toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
+        $("kiosk-date").textContent = now.toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit" });
     }, 1000);
 
+    $("kiosk-fullscreen").addEventListener("click", () => {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen?.().catch(() => {});
+    });
+
+    function show(screen) {
+        document.querySelectorAll("[data-screen]").forEach((s) => s.classList.toggle("hidden", s.dataset.screen !== screen));
+    }
+
+    function status(text) {
+        $("kiosk-status").textContent = text ?? "";
+        $("kiosk-status").classList.toggle("hidden", !text);
+    }
+
     const setHint = (text, good = false) => {
-        hint.textContent = text;
+        $("kiosk-hint").textContent = text;
         video.classList.toggle("border-emerald-400", good);
     };
 
-    let pendingConfirm = null;
-    let shown = 0; // mỗi lần hiện kết quả tăng 1; hẹn giờ cũ không được ẩn kết quả mới hơn
+    let ready = false; // camera + model đã sẵn sàng
+    let session = 0; // tăng mỗi lần bắt đầu/huỷ một lượt; vòng lặp cũ thấy khác số thì dừng
+    const alive = (s) => s === session;
 
-    async function showResult(kind, title, body, ms = 4000) {
-        const mine = ++shown;
-        const box = $("kiosk-result");
+    function cancel() {
+        session++;
+        show("idle");
+    }
+    document.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", cancel));
+
+    async function showResult(kind, title, body, extra = "") {
         const colors = { ok: "bg-emerald-600", warn: "bg-amber-600", err: "bg-red-700" };
-        box.className = `rounded-3xl p-6 text-center space-y-2 ${colors[kind]}`;
-        $("kiosk-result-title").textContent = title;
-        $("kiosk-result-body").textContent = body;
-        $("kiosk-confirm").classList.toggle("hidden", !pendingConfirm);
-        $("kiosk-confirm").classList.toggle("flex", !!pendingConfirm);
-        await sleep(ms);
-        if (mine === shown) box.className = "hidden";
+        $("result-card").className = `rounded-3xl p-8 sm:p-10 text-center space-y-3 ${colors[kind]}`;
+        $("result-title").textContent = title;
+        $("result-body").textContent = body;
+        $("result-extra").textContent = extra;
+        show("result");
+        const mine = session;
+        await sleep(kind === "ok" ? 4000 : 5000);
+        if (alive(mine)) show("idle");
     }
 
-    async function send(descriptor, photo, force = false) {
-        const form = new FormData();
-        descriptor.forEach((v) => form.append("descriptor[]", v));
-        if (photo) form.append("photo", photo, "photo.jpg");
-        if (force) form.append("force_checkout", "1");
+    /** Bảng chọn lý do. Trả về chuỗi lý do, hoặc null nếu bấm Huỷ */
+    function askReason(kind, title, sub) {
+        $("reason-title").textContent = title;
+        $("reason-sub").textContent = sub;
+        $("reason-other").classList.add("hidden");
+        $("reason-text").value = "";
 
-        const res = await api("punch", form);
-        if (res.status === 429) return showResult("err", "Thử lại sau ít phút", "Máy đang nhận quá nhiều lượt.");
-        if (res.status === 401) return unpaired();
-        if (!res.ok) return showResult("err", "Có lỗi", "Thử lại hoặc báo quản lý.");
+        const box = $("reason-options");
+        box.replaceChildren();
+        show("reason");
+        const mine = session;
 
-        const r = await res.json();
-        const hours = r.hours != null ? ` · ${String(r.hours).replace(".", ",")} giờ` : "";
-        switch (r.status) {
-            case "checked_in":
-                return showResult("ok", `Chào ${r.name}`, `Vào ${r.shift} lúc ${r.time}`);
-            case "checked_out":
-                return showResult("ok", `Tạm biệt ${r.name}`, `Ra ca lúc ${r.time}${hours}`);
-            case "duplicate":
-                return showResult("warn", r.name, `Bạn vừa chấm lúc ${r.time} rồi`);
-            case "no_shift":
-                return showResult("warn", r.name, "Không có ca nào lúc này — báo quản lý chấm tay");
-            case "confirm_checkout": {
-                const ask = (pendingConfirm = { descriptor, photo });
-                await showResult("warn", r.name, `Bạn mới vào ca lúc ${r.time}. Chấm ra luôn?`, 10000);
-                if (pendingConfirm === ask) pendingConfirm = null; // hết 10 giây không bấm → bỏ
-                return;
+        return new Promise((resolve) => {
+            // Bấm Huỷ: session đổi → báo null để luồng gọi dừng lại
+            const watch = setInterval(() => {
+                if (!alive(mine)) {
+                    clearInterval(watch);
+                    resolve(null);
+                }
+            }, 200);
+            const pick = (value) => {
+                if (!alive(mine)) return;
+                clearInterval(watch);
+                resolve(value);
+            };
+            for (const label of [...REASONS[kind], "Khác"]) {
+                const b = document.createElement("button");
+                b.className = "reason-chip";
+                b.textContent = label;
+                b.onclick = () => {
+                    if (label !== "Khác") return pick(label);
+                    $("reason-other").classList.remove("hidden");
+                    $("reason-text").focus();
+                };
+                box.append(b);
             }
-            default:
-                return showResult("err", "Chưa nhận ra bạn", "Thử lại, hoặc báo quản lý");
-        }
+            $("reason-send").onclick = () => {
+                const text = $("reason-text").value.trim();
+                if (text.length < 3) return $("reason-text").focus();
+                pick(text);
+            };
+        });
     }
 
-    $("kiosk-confirm-yes").addEventListener("click", async () => {
-        const p = pendingConfirm;
-        pendingConfirm = null;
-        if (!p) return;
-        try {
-            await send(p.descriptor, p.photo, true);
-        } catch {
-            showResult("err", "Mất kết nối", "Thử lại hoặc báo quản lý");
-        }
-    });
-    $("kiosk-confirm-no").addEventListener("click", () => {
-        pendingConfirm = null;
-        shown++;
-        $("kiosk-result").className = "hidden";
-    });
+    // ── Quét mặt ──
 
-    function unpaired() {
-        try {
-            localStorage.removeItem(STORAGE_KEY);
-        } catch {}
-        setHint("Thiết bị chưa được ghép hoặc đã bị thu hồi — liên hệ quản lý");
-        throw new Error("unpaired");
-    }
-
-    /** Đợi khuôn mặt hợp lệ đứng yên ~1 giây */
-    async function waitForFace() {
+    /** Đợi đúng 1 khuôn mặt hợp lệ đứng yên ~1 giây. false nếu hết giờ/huỷ */
+    async function waitForFace(mine) {
+        const until = Date.now() + SCAN_TIMEOUT;
         let steady = 0;
         while (steady < 3) {
-            const faces = await detectFaces(video);
-            const problem = faceProblem(faces, video);
+            if (!alive(mine) || Date.now() > until) return false;
+            const problem = faceProblem(await detectFaces(video), video);
             setHint(problem ?? "Giữ yên…", !problem);
             steady = problem ? 0 : steady + 1;
-            await sleep(300);
+            await sleep(250);
         }
+        return true;
     }
 
     /**
      * Người thật: làm theo yêu cầu (tối đa 5 giây + 1,5 giây để nhìn thẳng lại).
      * Chỉ gom descriptor từ khung "trung tính" (mắt mở, nhìn thẳng); lấy trung bình 3 khung gần nhất.
+     * Trả về descriptor; null nếu người rời đi; false nếu không làm theo yêu cầu.
      */
-    async function checkLiveness() {
+    async function checkLiveness(mine) {
         const live = new Liveness();
         const neutral = [];
         let deadline = Date.now() + 5000;
@@ -138,8 +155,9 @@ if (root) {
         setHint(live.prompt, true);
 
         while (Date.now() < deadline) {
+            if (!alive(mine)) return null;
             const faces = await detectFaces(video);
-            if (faceProblem(faces, video)) return null; // người rời đi giữa chừng
+            if (faceProblem(faces, video)) return null;
             const { landmarks, descriptor } = faces[0];
             if (!passed && live.update(landmarks)) {
                 passed = true;
@@ -154,37 +172,114 @@ if (root) {
         return averageDescriptor(neutral.slice(-3));
     }
 
-    /** Sau khi chấm: đợi người rời khỏi camera (tối đa 6 giây) để không quét lại liên tục */
-    async function waitForLeave() {
-        const until = Date.now() + 6000;
-        while (Date.now() < until && !faceProblem(await detectFaces(video), video)) await sleep(300);
-    }
-
-    async function loop() {
-        while (true) {
-            try {
-                if (pendingConfirm) {
-                    await sleep(300);
-                    continue;
-                }
-                await waitForFace();
-                const descriptor = await checkLiveness();
-                if (descriptor === null) continue;
-                if (descriptor === false) {
-                    await showResult("err", "Chưa xác nhận được", "Làm theo hướng dẫn trên màn hình nhé", 2500);
-                    continue;
-                }
-                setHint("Đang nhận diện…", true);
-                await send(descriptor, await snapshot(video));
-                await waitForLeave();
-            } catch (e) {
-                // Mất mạng/máy chủ khởi động lại: báo rồi thử tiếp, máy quầy không được đứng hẳn
-                if (e.message === "unpaired") throw e;
-                setHint("Mất kết nối máy chủ — đang thử lại…");
-                await sleep(3000);
+    /** Quét đến khi có descriptor (thử lại liveness nếu người còn đứng đó). null nếu hết giờ/huỷ */
+    async function scan(mine, title) {
+        $("scan-title").textContent = title;
+        setHint("Nhìn vào camera");
+        show("scan");
+        while (alive(mine)) {
+            if (!(await waitForFace(mine))) return null;
+            const descriptor = await checkLiveness(mine);
+            if (descriptor) return { descriptor, photo: await snapshot(video) };
+            if (descriptor === false) {
+                setHint("Chưa xác nhận được — làm lại nhé");
+                await sleep(1200);
             }
         }
+        return null;
     }
+
+    // ── Gửi server ──
+
+    async function send(action, scanResult, reason) {
+        const form = new FormData();
+        scanResult.descriptor.forEach((v) => form.append("descriptor[]", v));
+        if (scanResult.photo) form.append("photo", scanResult.photo, "photo.jpg");
+        form.append("action", action);
+        if (reason) form.append("reason", reason);
+
+        const res = await api("punch", form);
+        if (res.status === 401) unpaired();
+        if (res.status === 429) return { status: "throttled" };
+        if (!res.ok) return { status: "error" };
+        return res.json();
+    }
+
+    /** Một lượt chấm từ lúc bấm nút đến khi hiện kết quả */
+    async function run(button) {
+        if (!ready) return;
+        const mine = ++session;
+        const action = button === "in" ? "in" : "out";
+        let reason = null;
+
+        try {
+            if (button === "early") {
+                reason = await askReason("early", "Ra ca sớm", "Chọn lý do, sau đó nhìn vào camera");
+                if (!reason) return;
+            }
+
+            const scanned = await scan(mine, { in: "Chấm vào", out: "Chấm ra", early: "Ra ca sớm" }[button]);
+            if (!scanned) return alive(mine) && show("idle");
+            setHint("Đang nhận diện…", true);
+
+            let r = await send(action, scanned, reason);
+            if (r.status === "need_late_reason" || r.status === "need_early_reason") {
+                const late = r.status === "need_late_reason";
+                reason = await askReason(
+                    late ? "late" : "early",
+                    `${r.name} — ${late ? "đi trễ" : "ra sớm"} ${r.minutes} phút`,
+                    late ? "Chọn lý do đi trễ" : "Còn sớm so với giờ hết ca — chọn lý do",
+                );
+                if (!reason) return;
+                r = await send(action, scanned, reason);
+            }
+            if (alive(mine)) await result(r);
+        } catch (e) {
+            if (e.message === "unpaired") throw e;
+            if (alive(mine)) await showResult("err", "Mất kết nối máy chủ", "Thử lại sau giây lát, hoặc báo quản lý");
+        }
+    }
+
+    function result(r) {
+        const hours = r.hours != null ? `Làm ${String(r.hours).replace(".", ",")} giờ` : "";
+        switch (r.status) {
+            case "checked_in":
+                return showResult("ok", `Chào ${r.name}`, `Vào ${r.shift} lúc ${r.time}`,
+                    r.late_minutes > 0 ? `Trễ ${r.late_minutes} phút` : "Đúng giờ");
+            case "checked_out":
+                return showResult("ok", `Tạm biệt ${r.name}`, `Ra ca lúc ${r.time}`,
+                    [hours, r.early_minutes > 0 ? `Sớm ${r.early_minutes} phút` : ""].filter(Boolean).join(" · "));
+            case "already_in":
+                return showResult("warn", r.name, `Bạn đang trong ca từ ${r.time}`, "Muốn về thì bấm Chấm ra");
+            case "not_in":
+                return showResult("warn", r.name, "Bạn chưa chấm vào", "Bấm Chấm vào, hoặc báo quản lý");
+            case "duplicate":
+                return showResult("warn", r.name, `Bạn vừa chấm lúc ${r.time} rồi`);
+            case "no_shift":
+                return showResult("warn", r.name, "Không có ca nào lúc này", "Báo quản lý để chấm công tay");
+            case "not_recognized":
+                return showResult("err", "Chưa nhận ra bạn", "Thử lại, hoặc báo quản lý");
+            case "throttled":
+                return showResult("err", "Máy đang bận", "Thử lại sau ít phút");
+            default:
+                return showResult("err", "Có lỗi", "Thử lại, hoặc báo quản lý");
+        }
+    }
+
+    function unpaired() {
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+        } catch {}
+        ready = false;
+        session++;
+        show("idle");
+        status("Thiết bị chưa được ghép hoặc đã bị thu hồi — liên hệ quản lý");
+        throw new Error("unpaired");
+    }
+
+    document.querySelectorAll("[data-action]").forEach((b) =>
+        b.addEventListener("click", () => run(b.dataset.action).catch(() => {})),
+    );
 
     /** Hỏi server thiết bị đã ghép chưa; chỉ 401 mới là chưa ghép, lỗi khác thì thử lại (không xoá token) */
     async function connect() {
@@ -196,7 +291,7 @@ if (root) {
             } catch (e) {
                 if (e.message === "unpaired") throw e;
             }
-            setHint("Chưa kết nối được máy chủ — thử lại sau 10 giây…");
+            status("Chưa kết nối được máy chủ — thử lại sau 10 giây…");
             await sleep(10000);
         }
     }
@@ -206,14 +301,14 @@ if (root) {
             if (!token) unpaired();
             const s = await connect();
             $("kiosk-branch").textContent = `${s.branch} · ${s.device}`;
-
-            setHint("Đang bật camera…");
+            status("Đang bật camera…");
             await startCamera(video);
-            setHint("Đang tải mô hình nhận diện…");
+            status("Đang tải mô hình nhận diện…");
             await loadModels();
-            await loop();
+            status(null);
+            ready = true;
         } catch (e) {
-            if (e.message !== "unpaired") setHint(e.message || "Không mở được camera");
+            if (e.message !== "unpaired") status(e.message || "Không mở được camera");
         }
     })();
 }
