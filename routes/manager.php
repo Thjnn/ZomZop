@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Manager\AttendanceController;
 use App\Http\Controllers\Manager\DashboardController;
+use App\Http\Controllers\Manager\KioskController;
 use App\Http\Controllers\Manager\MenuController;
 use App\Http\Controllers\Manager\OrderController;
 use App\Http\Controllers\Manager\PayrollController;
@@ -42,7 +43,11 @@ Route::middleware(['auth', 'role:manager'])
         Route::post('/attendances',[AttendanceController::class, 'store'])->name('attendances.store');
         Route::patch('/attendances/{attendance}/checkout', [AttendanceController::class, 'checkout'])->name('attendances.checkout');
 
-        Route::get('/payrolls', [PayrollController::class, 'index'])->name('payrolls.index');
+        Route::get('/kiosks', [KioskController::class, 'index'])->name('kiosks.index');
+        Route::post('/kiosks', [KioskController::class, 'store'])->name('kiosks.store');
+        Route::patch('/kiosks/{kiosk}/revoke', [KioskController::class, 'revoke'])->name('kiosks.revoke');
+
+        Route::get('/payrolls',[PayrollController::class, 'index'])->name('payrolls.index');
         Route::get('/payrolls/export', [PayrollController::class, 'export'])->name('payrolls.export');
         Route::post('/payrolls/recalculate',[PayrollController::class, 'recalculate'])->name('payrolls.recalculate');
         Route::put('/payrolls/{payroll}', [PayrollController::class, 'update'])->name('payrolls.update');
