@@ -24,7 +24,7 @@
                     <tr class="border-b border-slate-50">
                         <td class="px-4 py-3 font-semibold">{{ $a->user?->name }}</td>
                         <td class="px-4 py-3">{{ $a->shift?->name }}</td>
-                        <td class="px-4 py-3">{{ $a->check_in->format('H:i') }}</td>
+                        <td class="px-4 py-3">{{ $a->check_in->toDateString() === $date ? $a->check_in->format('H:i') : $a->check_in->format('d/m H:i') }}</td>
                         <td class="px-4 py-3">
                             @if ($a->check_out)
                                 {{ $a->check_out->format('H:i') }}

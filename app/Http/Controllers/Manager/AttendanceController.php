@@ -20,7 +20,9 @@ class AttendanceController extends ManagerController
 
         $attendances = Attendance::ofBranch($branchId)
             ->with(['user', 'shift'])
-            ->whereDate('check_in', $date)
+            // Kèm cả lượt chưa chấm ra của ngày trước, để manager thấy và đóng được
+            ->where(fn ($q) => $q->whereDate('check_in', $date)
+                ->orWhere(fn ($q) => $q->whereNull('check_out')->whereDate('check_in', '<', $date)))
             ->orderBy('check_in')
             ->get();
 
@@ -39,8 +41,8 @@ class AttendanceController extends ManagerController
         $data = $request->validate([
             'user_id'   => ['required', Rule::exists('users', 'id')->where('branch_id', $branchId)->whereIn('role', ['staff', 'kitchen'])],
             'shift_id'  => ['required', Rule::exists('shifts', 'id')->where('branch_id', $branchId)],
-            'check_in'  => ['required', 'date_format:Y-m-d\TH:i'],
-            'check_out' => ['nullable', 'date_format:Y-m-d\TH:i', 'after:check_in'],
+            'check_in'  => ['required', 'date_format:Y-m-d\TH:i', 'before_or_equal:now'],
+            'check_out' => ['nullable', 'date_format:Y-m-d\TH:i', 'after:check_in', 'before_or_equal:now'],
             'note'      => ['nullable', 'string', 'max:255'],
         ], [
             'user_id.exists'        => 'Nhân viên không thuộc chi nhánh của bạn.',
@@ -48,6 +50,8 @@ class AttendanceController extends ManagerController
             'check_in.date_format'  => 'Giờ vào không hợp lệ.',
             'check_out.date_format' => 'Giờ ra không hợp lệ.',
             'check_out.after'       => 'Giờ ra phải sau giờ vào.',
+            'check_in.before_or_equal'  => 'Giờ vào không được ở tương lai.',
+            'check_out.before_or_equal' => 'Giờ ra không được ở tương lai.',
         ]);
 
         $onShift = Attendance::where('user_id', $data['user_id'])->whereNull('check_out')->exists();
@@ -74,6 +78,10 @@ class AttendanceController extends ManagerController
 
         if ($attendance->check_out) {
             return back()->withErrors(['attendance' => 'Lượt này đã chấm ra rồi.']);
+        }
+
+        if (now()->lte($attendance->check_in)) {
+            return back()->withErrors(['attendance' => 'Giờ vào của lượt này ở tương lai, không chấm ra được.']);
         }
 
         $attendance->update(['check_out' => now()]);

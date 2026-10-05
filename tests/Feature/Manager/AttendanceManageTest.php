@@ -93,6 +93,41 @@ class AttendanceManageTest extends TestCase
         $this->assertDatabaseCount('attendances', 1);
     }
 
+    /** Review fix #1: giờ vào/ra trong tương lai → chấm ra sẽ ra số giờ âm */
+    public function test_future_times_rejected_and_checkout_before_check_in_blocked(): void
+    {
+        $branch  = $this->makeBranch();
+        $shift   = $this->makeShift($branch);
+        $staff   = $this->makeUser('staff', $branch);
+        $manager = $this->makeUser('manager', $branch);
+
+        $this->actingAs($manager)->from('/manager/attendances')
+            ->post('/manager/attendances', ['user_id' => $staff->id, 'shift_id' => $shift->id, 'check_in' => '2026-10-06T08:00'])
+            ->assertSessionHasErrors('check_in');
+        $this->actingAs($manager)->from('/manager/attendances')
+            ->post('/manager/attendances', ['user_id' => $staff->id, 'shift_id' => $shift->id, 'check_in' => '2026-10-05T08:00', 'check_out' => '2026-10-05T18:00'])
+            ->assertSessionHasErrors('check_out');
+        $this->assertDatabaseCount('attendances', 0);
+
+        // Bản ghi cũ lỡ có giờ vào ở tương lai: không cho chấm ra
+        $att = Attendance::create(['user_id' => $staff->id, 'branch_id' => $branch->id, 'shift_id' => $shift->id, 'check_in' => now()->addHours(3), 'method' => 'manual']);
+        $this->actingAs($manager)->from('/manager/attendances')->patch("/manager/attendances/{$att->id}/checkout")
+            ->assertSessionHasErrors('attendance');
+        $this->assertNull($att->fresh()->check_out);
+    }
+
+    /** Review fix #2: lượt chưa chấm ra từ ngày trước phải hiện để manager đóng được */
+    public function test_open_attendance_from_earlier_day_is_listed(): void
+    {
+        $branch  = $this->makeBranch();
+        $staff   = $this->makeUser('staff', $branch);
+        Attendance::create(['user_id' => $staff->id, 'branch_id' => $branch->id, 'shift_id' => $this->makeShift($branch)->id,
+            'check_in' => Carbon::parse('2026-10-03 08:10'), 'method' => 'manual']);
+
+        $this->actingAs($this->makeUser('manager', $branch))->get('/manager/attendances?date=2026-10-05')
+            ->assertSee($staff->name)->assertSee('03/10 08:10')->assertSee('Chấm ra');
+    }
+
     public function test_checkout_twice_or_other_branch_rejected(): void
     {
         $a = $this->makeBranch('A');
