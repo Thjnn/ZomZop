@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Manager;
 
 use App\Models\Payroll;
 use App\Services\BranchPayroll;
+use App\Support\XlsxExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -35,16 +36,43 @@ class PayrollController extends ManagerController
         abort_if((int) $payroll->branch_id !== $this->branchId(), 404);
     }
 
-    public function index(Request $request, BranchPayroll $service)
+    /** Tháng chưa có dòng nào thì tính lần đầu */
+    private function ensureCalculated(int $branchId, Carbon $month): void
+    {
+        if (!Payroll::ofBranch($branchId)->ofMonth($month->month, $month->year)->exists()) {
+            app(BranchPayroll::class)->calculate($branchId, $month->month, $month->year);
+        }
+    }
+
+    public function index(Request $request)
     {
         $branchId = $this->branchId();
         $month    = $this->month($request);
-
-        if (!Payroll::ofBranch($branchId)->ofMonth($month->month, $month->year)->exists()) {
-            $service->calculate($branchId, $month->month, $month->year);
-        }
+        $this->ensureCalculated($branchId, $month);
 
         return view('manager.payrolls.index', ['month' => $month, 'payrolls' => $this->rows($branchId, $month), 'status' => self::STATUS]);
+    }
+
+    public function export(Request $request)
+    {
+        $branchId = $this->branchId();
+        $month    = $this->month($request);
+        $this->ensureCalculated($branchId, $month);
+
+        $rows = $this->rows($branchId, $month)->map(fn (Payroll $p) => [
+            $p->user->name,
+            StaffController::ROLES[$p->user->role] ?? $p->user->role,
+            (float) $p->total_hours,
+            $p->total_days,
+            $p->base_salary,
+            $p->bonus,
+            $p->deduction,
+            $p->total,
+            self::STATUS[$p->status],
+        ]);
+
+        return XlsxExport::download('bang-luong-' . $month->format('Y-m') . '.xlsx',
+            ['Nhân viên', 'Vai trò', 'Số giờ', 'Ngày công', 'Lương cơ bản', 'Thưởng', 'Phạt', 'Tổng', 'Trạng thái'], $rows);
     }
 
     public function recalculate(Request $request, BranchPayroll $service)

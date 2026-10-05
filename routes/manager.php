@@ -17,7 +17,8 @@ Route::middleware(['auth', 'role:manager'])
     ->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
-        Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+        Route::get('/orders/export', [OrderController::class, 'export'])->name('orders.export');
+        Route::get('/orders/{order}',[OrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status');
 
         Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
@@ -37,16 +38,19 @@ Route::middleware(['auth', 'role:manager'])
         Route::delete('/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
 
         Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
-        Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
+        Route::get('/attendances/export', [AttendanceController::class, 'export'])->name('attendances.export');
+        Route::post('/attendances',[AttendanceController::class, 'store'])->name('attendances.store');
         Route::patch('/attendances/{attendance}/checkout', [AttendanceController::class, 'checkout'])->name('attendances.checkout');
 
         Route::get('/payrolls', [PayrollController::class, 'index'])->name('payrolls.index');
-        Route::post('/payrolls/recalculate', [PayrollController::class, 'recalculate'])->name('payrolls.recalculate');
+        Route::get('/payrolls/export', [PayrollController::class, 'export'])->name('payrolls.export');
+        Route::post('/payrolls/recalculate',[PayrollController::class, 'recalculate'])->name('payrolls.recalculate');
         Route::put('/payrolls/{payroll}', [PayrollController::class, 'update'])->name('payrolls.update');
         Route::patch('/payrolls/{payroll}/confirm', [PayrollController::class, 'confirm'])->name('payrolls.confirm');
         Route::patch('/payrolls/{payroll}/pay', [PayrollController::class, 'pay'])->name('payrolls.pay');
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
         Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
         Route::put('/reviews/{review}/reply', [ReviewController::class, 'reply'])->name('reviews.reply');
     });

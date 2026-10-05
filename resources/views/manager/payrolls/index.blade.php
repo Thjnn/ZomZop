@@ -20,6 +20,7 @@
                 <input type="month" name="month" value="{{ $month->format('Y-m') }}" class="px-3 py-2 rounded-lg border border-slate-200">
                 <button class="px-3 py-2 rounded-lg bg-slate-800 text-white cursor-pointer">Xem</button>
             </form>
+            <a href="{{ route('manager.payrolls.export', ['month' => $month->format('Y-m')]) }}" class="px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">Xuất Excel</a>
             <form method="POST" action="{{ route('manager.payrolls.recalculate') }}">
                 @csrf <input type="hidden" name="month" value="{{ $month->format('Y-m') }}">
                 <button class="px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold cursor-pointer">Tính lại</button>

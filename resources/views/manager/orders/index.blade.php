@@ -5,7 +5,10 @@
 @section('content')
     @php $money = fn ($v) => number_format($v, 0, ',', '.') . 'đ'; @endphp
 
-    <h1 class="text-xl font-bold mb-4">Đơn hàng</h1>
+    <div class="flex items-center justify-between mb-4">
+        <h1 class="text-xl font-bold">Đơn hàng</h1>
+        <a href="{{ route('manager.orders.export', request()->only(['status', 'date', 'q'])) }}" class="px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">Xuất Excel</a>
+    </div>
 
     {{-- Bộ lọc --}}
     <form method="GET" class="bg-white rounded-2xl p-4 border border-slate-100 mb-4 flex flex-wrap gap-3 items-end text-sm">

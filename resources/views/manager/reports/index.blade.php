@@ -5,8 +5,8 @@
 @section('content')
     @php
         $money = fn ($v) => number_format($v, 0, ',', '.') . 'đ';
-        $typeLabel = ['takeaway' => 'Mang đi', 'delivery' => 'Giao hàng'];
-        $payLabel  = ['cash' => 'Tiền mặt', 'momo' => 'MoMo', 'vnpay' => 'VNPay'];
+        $typeLabel = \App\Http\Controllers\Manager\ReportController::TYPE_LABELS;
+        $payLabel  = \App\Http\Controllers\Manager\ReportController::PAY_LABELS;
         $max = max(1, max(array_column($daily, 'revenue') ?: [0]));
     @endphp
 
@@ -21,6 +21,7 @@
             <label class="flex flex-col gap-1"><span class="text-xs text-slate-400">Đến ngày</span>
                 <input type="date" name="to" value="{{ $to->toDateString() }}" class="px-3 py-2 rounded-lg border border-slate-200"></label>
             <button class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold cursor-pointer">Xem</button>
+            <a href="{{ route('manager.reports.export', ['from' => $from->toDateString(), 'to' => $to->toDateString()]) }}" class="px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">Xuất Excel</a>
         </form>
     </div>
 

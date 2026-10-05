@@ -10,6 +10,7 @@
         <form method="GET" class="flex items-center gap-2 text-sm">
             <input type="date" name="date" value="{{ $date }}" class="{{ $input }}">
             <button class="px-3 py-2 rounded-lg bg-slate-800 text-white cursor-pointer">Xem</button>
+            <a href="{{ route('manager.attendances.export', ['date' => $date]) }}" class="px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">Xuất Excel</a>
         </form>
     </div>
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Manager;
 use App\Models\Attendance;
 use App\Models\Shift;
 use App\Models\User;
+use App\Support\XlsxExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
@@ -12,26 +13,51 @@ use Illuminate\Validation\Rule;
 
 class AttendanceController extends ManagerController
 {
-    public function index(Request $request)
+    private function date(Request $request): string
     {
-        $branchId = $this->branchId();
-        $date = Validator::make($request->only('date'), ['date' => ['nullable', 'date_format:Y-m-d']])->valid()['date']
+        return Validator::make($request->only('date'), ['date' => ['nullable', 'date_format:Y-m-d']])->valid()['date']
             ?? today()->toDateString();
+    }
 
-        $attendances = Attendance::ofBranch($branchId)
+    private function attendancesOn(int $branchId, string $date)
+    {
+        return Attendance::ofBranch($branchId)
             ->with(['user', 'shift'])
             // Kèm cả lượt chưa chấm ra của ngày trước, để manager thấy và đóng được
             ->where(fn ($q) => $q->whereDate('check_in', $date)
                 ->orWhere(fn ($q) => $q->whereNull('check_out')->whereDate('check_in', '<', $date)))
             ->orderBy('check_in')
             ->get();
+    }
+
+    public function index(Request $request)
+    {
+        $branchId = $this->branchId();
+        $date = $this->date($request);
 
         return view('manager.attendances.index', [
             'date'        => $date,
-            'attendances' => $attendances,
+            'attendances' => $this->attendancesOn($branchId, $date),
             'staff'       => User::where('branch_id', $branchId)->whereIn('role', ['staff', 'kitchen'])->where('is_active', true)->orderBy('name')->get(),
             'shifts'      => Shift::ofBranch($branchId)->orderBy('start_time')->get(),
         ]);
+    }
+
+    public function export(Request $request)
+    {
+        $date = $this->date($request);
+
+        $rows = $this->attendancesOn($this->branchId(), $date)->map(fn (Attendance $a) => [
+            $a->user?->name,
+            $a->shift?->name,
+            $a->check_in->format('d/m/Y H:i'),
+            $a->check_out?->format('d/m/Y H:i'),
+            $a->check_out ? $a->working_hours : null,
+            $a->method === 'face' ? 'Khuôn mặt' : 'Thủ công',
+            $a->note,
+        ]);
+
+        return XlsxExport::download("cham-cong-{$date}.xlsx", ['Nhân viên', 'Ca', 'Giờ vào', 'Giờ ra', 'Số giờ', 'Cách chấm', 'Ghi chú'], $rows);
     }
 
     public function store(Request $request)
