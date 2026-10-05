@@ -101,6 +101,19 @@ class AttendancePhotoTest extends TestCase
         Storage::disk('local')->assertExists($new->photo_path);
     }
 
+    public function test_deleting_face_data_also_deletes_face_checkout_photo_of_manual_check_in(): void
+    {
+        // Manager chấm vào tay, nhân viên chấm ra ở máy quầy → ảnh "ra" nằm trên lượt manual
+        $a = Attendance::create(['user_id' => $this->staff->id, 'branch_id' => $this->branch->id,
+            'shift_id' => \App\Models\Shift::first()->id, 'check_in' => now()->subHours(3), 'method' => 'manual']);
+        $this->punch(UploadedFile::fake()->image('out.jpg'))->assertJson(['status' => 'checked_out']);
+        Storage::disk('local')->assertExists($a->fresh()->photoFile('out'));
+
+        $this->actingAs($this->makeUser('manager', $this->branch))->delete("/manager/staff/{$this->staff->id}/face");
+
+        Storage::disk('local')->assertMissing($a->fresh()->photoFile('out'));
+    }
+
     public function test_deleting_face_data_deletes_photos(): void
     {
         $this->punch(UploadedFile::fake()->image('in.jpg'));

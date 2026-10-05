@@ -11,16 +11,16 @@ if (root) {
     const hint = $("kiosk-hint");
     const STORAGE_KEY = "zomzop_kiosk_token";
 
-    // Token ghép thiết bị: lấy từ link manager đưa (?device=...), cất vào máy rồi xoá khỏi thanh địa chỉ
-    const params = new URLSearchParams(location.search);
-    let token = params.get("device");
+    // Token ghép thiết bị: lấy từ link manager đưa (#device=...; phần sau # không bao giờ gửi lên server),
+    // cất vào máy rồi xoá khỏi thanh địa chỉ
+    let token = new URLSearchParams(location.hash.slice(1)).get("device");
     try {
         if (token) localStorage.setItem(STORAGE_KEY, token);
         else token = localStorage.getItem(STORAGE_KEY);
     } catch {
         /* chế độ ẩn danh: dùng token trên URL cho phiên này */
     }
-    if (params.has("device")) history.replaceState(null, "", location.pathname);
+    if (location.hash) history.replaceState(null, "", location.pathname);
 
     const api = (path, body) =>
         fetch(`/kiosk/api/${path}`, {
@@ -42,8 +42,10 @@ if (root) {
     };
 
     let pendingConfirm = null;
+    let shown = 0; // mỗi lần hiện kết quả tăng 1; hẹn giờ cũ không được ẩn kết quả mới hơn
 
-    function showResult(kind, title, body, ms = 4000) {
+    async function showResult(kind, title, body, ms = 4000) {
+        const mine = ++shown;
         const box = $("kiosk-result");
         const colors = { ok: "bg-emerald-600", warn: "bg-amber-600", err: "bg-red-700" };
         box.className = `rounded-3xl p-6 text-center space-y-2 ${colors[kind]}`;
@@ -51,9 +53,8 @@ if (root) {
         $("kiosk-result-body").textContent = body;
         $("kiosk-confirm").classList.toggle("hidden", !pendingConfirm);
         $("kiosk-confirm").classList.toggle("flex", !!pendingConfirm);
-        return sleep(ms).then(() => {
-            if (!pendingConfirm) box.className = "hidden";
-        });
+        await sleep(ms);
+        if (mine === shown) box.className = "hidden";
     }
 
     async function send(descriptor, photo, force = false) {
@@ -78,12 +79,12 @@ if (root) {
                 return showResult("warn", r.name, `Bạn vừa chấm lúc ${r.time} rồi`);
             case "no_shift":
                 return showResult("warn", r.name, "Không có ca nào lúc này — báo quản lý chấm tay");
-            case "confirm_checkout":
-                pendingConfirm = { descriptor, photo };
-                return showResult("warn", r.name, `Bạn mới vào ca lúc ${r.time}. Chấm ra luôn?`, 10000).then(() => {
-                    pendingConfirm = null;
-                    $("kiosk-result").className = "hidden";
-                });
+            case "confirm_checkout": {
+                const ask = (pendingConfirm = { descriptor, photo });
+                await showResult("warn", r.name, `Bạn mới vào ca lúc ${r.time}. Chấm ra luôn?`, 10000);
+                if (pendingConfirm === ask) pendingConfirm = null; // hết 10 giây không bấm → bỏ
+                return;
+            }
             default:
                 return showResult("err", "Chưa nhận ra bạn", "Thử lại, hoặc báo quản lý");
         }
@@ -92,10 +93,16 @@ if (root) {
     $("kiosk-confirm-yes").addEventListener("click", async () => {
         const p = pendingConfirm;
         pendingConfirm = null;
-        if (p) await send(p.descriptor, p.photo, true);
+        if (!p) return;
+        try {
+            await send(p.descriptor, p.photo, true);
+        } catch {
+            showResult("err", "Mất kết nối", "Thử lại hoặc báo quản lý");
+        }
     });
     $("kiosk-confirm-no").addEventListener("click", () => {
         pendingConfirm = null;
+        shown++;
         $("kiosk-result").className = "hidden";
     });
 
@@ -119,51 +126,85 @@ if (root) {
         }
     }
 
-    /** Người thật: làm theo yêu cầu trong 5 giây, đồng thời gom descriptor */
+    /**
+     * Người thật: làm theo yêu cầu (tối đa 5 giây + 1,5 giây để nhìn thẳng lại).
+     * Chỉ gom descriptor từ khung "trung tính" (mắt mở, nhìn thẳng); lấy trung bình 3 khung gần nhất.
+     */
     async function checkLiveness() {
         const live = new Liveness();
-        const descriptors = [];
-        const until = Date.now() + 5000;
+        const neutral = [];
+        let deadline = Date.now() + 5000;
         let passed = false;
         setHint(live.prompt, true);
 
-        while (Date.now() < until) {
+        while (Date.now() < deadline) {
             const faces = await detectFaces(video);
             if (faceProblem(faces, video)) return null; // người rời đi giữa chừng
-            descriptors.push(Array.from(faces[0].descriptor));
-            if (!passed && live.update(faces[0].landmarks)) passed = true;
-            if (passed && descriptors.length >= 3) break;
+            const { landmarks, descriptor } = faces[0];
+            if (!passed && live.update(landmarks)) {
+                passed = true;
+                deadline = Date.now() + 1500;
+                setHint("Nhìn thẳng vào camera", true);
+            }
+            if (live.isNeutral(landmarks)) neutral.push(Array.from(descriptor));
+            if (passed && neutral.length >= 3 && live.isNeutral(landmarks)) break;
             await sleep(80);
         }
-        // Trung bình 3 khung cuối: lúc đó mặt đã quay lại nhìn thẳng sau khi chớp/quay
-        return passed ? averageDescriptor(descriptors.slice(-3)) : false;
+        if (!passed || neutral.length === 0) return false;
+        return averageDescriptor(neutral.slice(-3));
+    }
+
+    /** Sau khi chấm: đợi người rời khỏi camera (tối đa 6 giây) để không quét lại liên tục */
+    async function waitForLeave() {
+        const until = Date.now() + 6000;
+        while (Date.now() < until && !faceProblem(await detectFaces(video), video)) await sleep(300);
     }
 
     async function loop() {
         while (true) {
-            if (pendingConfirm) {
-                await sleep(300);
-                continue;
+            try {
+                if (pendingConfirm) {
+                    await sleep(300);
+                    continue;
+                }
+                await waitForFace();
+                const descriptor = await checkLiveness();
+                if (descriptor === null) continue;
+                if (descriptor === false) {
+                    await showResult("err", "Chưa xác nhận được", "Làm theo hướng dẫn trên màn hình nhé", 2500);
+                    continue;
+                }
+                setHint("Đang nhận diện…", true);
+                await send(descriptor, await snapshot(video));
+                await waitForLeave();
+            } catch (e) {
+                // Mất mạng/máy chủ khởi động lại: báo rồi thử tiếp, máy quầy không được đứng hẳn
+                if (e.message === "unpaired") throw e;
+                setHint("Mất kết nối máy chủ — đang thử lại…");
+                await sleep(3000);
             }
-            await waitForFace();
-            const descriptor = await checkLiveness();
-            if (descriptor === null) continue;
-            if (descriptor === false) {
-                await showResult("err", "Chưa xác nhận được", "Làm theo hướng dẫn trên màn hình nhé", 2500);
-                continue;
+        }
+    }
+
+    /** Hỏi server thiết bị đã ghép chưa; chỉ 401 mới là chưa ghép, lỗi khác thì thử lại (không xoá token) */
+    async function connect() {
+        while (true) {
+            try {
+                const res = await api("status");
+                if (res.status === 401) unpaired();
+                if (res.ok) return res.json();
+            } catch (e) {
+                if (e.message === "unpaired") throw e;
             }
-            setHint("Đang nhận diện…", true);
-            await send(descriptor, await snapshot(video));
-            await sleep(500);
+            setHint("Chưa kết nối được máy chủ — thử lại sau 10 giây…");
+            await sleep(10000);
         }
     }
 
     (async () => {
         try {
             if (!token) unpaired();
-            const res = await api("status");
-            if (!res.ok) unpaired();
-            const s = await res.json();
+            const s = await connect();
             $("kiosk-branch").textContent = `${s.branch} · ${s.device}`;
 
             setHint("Đang bật camera…");

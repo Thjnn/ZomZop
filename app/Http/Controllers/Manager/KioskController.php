@@ -26,7 +26,7 @@ class KioskController extends ManagerController
 
         // Token gốc chỉ hiện đúng 1 lần ở đây; DB chỉ giữ hash
         return redirect()->route('manager.kiosks.index')
-            ->with('kiosk_link', url('/kiosk?device=' . $token))
+            ->with('kiosk_link', url('/kiosk') . '#device=' . $token)   // # : token không bao giờ gửi lên server/log
             ->with('success', "Đã tạo thiết bị {$data['name']}. Mở link bên dưới trên máy quầy.");
     }
 

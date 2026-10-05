@@ -28,7 +28,7 @@ class KioskManageTest extends TestCase
         $device = KioskDevice::first();
         $this->assertSame($branch->id, (int) $device->branch_id);
         $link = session('kiosk_link');
-        $this->assertStringContainsString('/kiosk?device=', $link);
+        $this->assertStringContainsString('/kiosk#device=', $link);
         $this->assertTrue(KioskDevice::findByToken(substr($link, strpos($link, '=') + 1))->is($device));
 
         $this->actingAs($manager)->get('/manager/kiosks')->assertOk()->assertSee('Quầy thu ngân');

@@ -26,6 +26,16 @@ export class Liveness {
         this.baseYaw = null;
     }
 
+    /**
+     * Khung hình "trung tính" (mắt mở, mặt nhìn thẳng) — chỉ những khung này mới dùng để nhận diện,
+     * vì mẫu đăng ký chụp lúc mắt mở; khung đang nhắm mắt/quay đầu cho descriptor lệch.
+     */
+    isNeutral(landmarks) {
+        const eyesOpen = (ear(landmarks.getLeftEye()) + ear(landmarks.getRightEye())) / 2 > 0.25;
+        if (this.type === "blink" || this.baseYaw === null) return eyesOpen;
+        return eyesOpen && Math.abs(yawRatio(landmarks) - this.baseYaw) < 0.05;
+    }
+
     /** Đưa landmarks của từng khung hình vào; trả về true khi đã đạt */
     update(landmarks) {
         if (this.type === "blink") {

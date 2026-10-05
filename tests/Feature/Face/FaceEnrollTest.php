@@ -67,6 +67,21 @@ class FaceEnrollTest extends TestCase
         $this->actingAs($manager)->delete("/manager/staff/{$other->id}/face")->assertNotFound();
     }
 
+    public function test_staff_name_cannot_inject_script_into_page(): void
+    {
+        $this->withoutVite();
+        $branch = $this->makeBranch();
+        $staff  = $this->makeUser('staff', $branch);
+        $staff->update(['name' => "x');alert(1)//"]);   // nhân viên tự đổi tên ở trang hồ sơ
+        FaceDescriptor::create(['user_id' => $staff->id, 'descriptor' => $this->vec(0.0)]);
+
+        $html = $this->actingAs($this->makeUser('manager', $branch))
+            ->get("/manager/staff/{$staff->id}/face")->assertOk()->getContent();
+
+        // Tên không được nằm trong thuộc tính chạy JS (onsubmit/onclick)
+        $this->assertDoesNotMatchRegularExpression('/on\w+="[^"]*alert\(1\)/', $html);
+    }
+
     public function test_delete_all_samples(): void
     {
         $branch  = $this->makeBranch();

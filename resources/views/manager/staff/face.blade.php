@@ -32,7 +32,7 @@
             <p id="face-msg" class="text-sm"></p>
 
             @if ($count)
-                <form method="POST" action="{{ route('manager.staff.face.destroy', $user) }}" onsubmit="return confirm('Xoá toàn bộ mẫu khuôn mặt và ảnh chấm công của {{ $user->name }}?')">
+                <form method="POST" action="{{ route('manager.staff.face.destroy', $user) }}" data-msg="Xoá toàn bộ mẫu khuôn mặt và ảnh chấm công của {{ $user->name }}?" onsubmit="return confirm(this.dataset.msg)">
                     @csrf @method('DELETE')
                     <button class="text-red-500 hover:underline cursor-pointer">Xoá dữ liệu khuôn mặt</button>
                 </form>

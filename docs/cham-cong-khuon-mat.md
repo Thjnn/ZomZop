@@ -49,7 +49,7 @@ Phần chạy camera (JavaScript) không test tự động được → kiểm t
 ```
 Manager: Thiết bị quầy → "Tạo link ghép"
   → server tạo token ngẫu nhiên 40 ký tự, DB chỉ lưu SHA-256 của token
-  → hiện link https://<site>/kiosk?device=<token>  (chỉ hiện 1 lần)
+  → hiện link https://<site>/kiosk#device=<token>  (chỉ hiện 1 lần; phần sau # không bao giờ gửi lên server/log)
 Máy quầy: mở link
   → JS cất token vào localStorage, xoá token khỏi thanh địa chỉ
   → mọi lần gọi API gửi header X-Kiosk-Token
@@ -72,7 +72,7 @@ Manager mở trang khuôn mặt của nhân viên (camera trên máy manager)
 ```
 1. Chờ đúng 1 khuôn mặt, đủ to, đứng yên ~1 giây
 2. Kiểm tra người thật: yêu cầu ngẫu nhiên "chớp mắt" hoặc "quay đầu" (5 giây)
-3. Lấy trung bình 3 descriptor + chụp ảnh 320×240
+3. Lấy trung bình 3 descriptor của khung "trung tính" (mắt mở, nhìn thẳng) + chụp ảnh 320×240
 4. POST /kiosk/api/punch  (descriptor[128], photo, X-Kiosk-Token)
 5. Server: so khớp → nếu nhận ra: quyết định vào/ra → lưu ảnh → trả kết quả
 6. Màn hình hiện "Chào Ngân · Vào Ca sáng lúc 08:02" trong 4 giây, rồi chờ người tiếp theo
@@ -145,6 +145,16 @@ Chống giơ ảnh in hoặc điện thoại trước camera. Mỗi lượt ch�
   Nhìn thẳng ≈ 0.5. Đạt khi lệch khỏi giá trị ban đầu hơn **0.12**.
 
 Không đạt trong 5 giây → báo "Chưa xác nhận được", làm lại.
+
+Descriptor gửi đi **chỉ lấy từ khung "trung tính"** (`Liveness::isNeutral`): mắt mở (EAR > 0.25) và — với yêu cầu
+quay đầu — mặt đã về gần vị trí ban đầu (lệch < 0.05). Khung đang nhắm mắt hay đang quay đầu cho descriptor lệch,
+dễ bị "chưa nhận ra". Sau khi đạt yêu cầu có thêm 1,5 giây để nhìn thẳng lại.
+
+### 4.3b Độ bền của máy quầy (`resources/js/kiosk.js`)
+
+- Mỗi vòng lặp bọc `try/catch`: mất mạng hay máy chủ khởi động lại chỉ hiện "Mất kết nối — đang thử lại…" rồi chạy tiếp.
+- Lúc khởi động: **chỉ lỗi 401** mới xoá token (thiết bị bị thu hồi); lỗi 500/503/429 thì thử lại mỗi 10 giây.
+- Chấm xong thì đợi người rời camera (tối đa 6 giây) để không quét lại liên tục.
 
 ### 4.4 Quyết định chấm vào / chấm ra (`app/Services/FacePunch.php`)
 
@@ -298,4 +308,8 @@ hoặc tạo Windows Task Scheduler gọi `php artisan schedule:run` mỗi phút
 - Kiểm tra người thật dựa trên chớp mắt/quay đầu: chặn được ảnh tĩnh, **không** chặn được video quay sẵn.
 - So khớp tuần tự mọi mẫu của chi nhánh mỗi lần chấm (~150 mẫu, vài ms) — cần index vector nếu lên hàng nghìn mẫu.
 - File JS nhận diện nặng ~1.3 MB (TensorFlow.js) + model 6.8 MB — chỉ tải ở trang máy quầy và trang đăng ký, trình duyệt cache sau lần đầu.
+- Quên chấm ra rồi quay lại **trong vòng 16 giờ** (ví dụ vào 08:00, quên ra, 22:00 đến làm ca đêm): lần chấm 22:00 bị
+  hiểu là **chấm ra** (tính 14 giờ), không tạo lượt vào ca đêm. Manager sửa tay ở trang Chấm công. Đây là hệ quả của
+  quy tắc 16 giờ đã chốt; giảm `stale_hours` trong `config/attendance.php` nếu quán hay có ca gãy như vậy.
+- Chớp mắt tự nhiên rất nhanh (100–150 ms) có thể lọt giữa hai khung hình trên máy yếu → hướng dẫn nhân viên chớp chậm.
 - Đổi chi nhánh của nhân viên: mẫu khuôn mặt đi theo người, máy quầy chi nhánh mới nhận ra ngay; ảnh cũ vẫn nằm ở thư mục chi nhánh cũ.
