@@ -37,7 +37,7 @@ class StaffController extends ManagerController
             'email' => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user?->id)],
             'phone' => ['nullable', 'regex:/^(0|\+84)[0-9]{9,10}$/'],
             'role'  => ['required', Rule::in(array_keys(self::ROLES))],
-            'started_at'     => ['required', 'date_format:Y-m-d', 'before_or_equal:' . today()->addDays(30)->toDateString()],
+            'started_at'     => [$user ? 'nullable' : 'required', 'date_format:Y-m-d', 'before_or_equal:' . today()->addDays(30)->toDateString()],
             'probation_rate' => ['required', 'integer', 'min:1', 'max:999999999'],
             'salary_rate'    => ['required', 'integer', 'min:1', 'max:999999999'],
         ];
@@ -91,7 +91,7 @@ class StaffController extends ManagerController
         return redirect()->route('manager.staff.index')->with('success', "Đã cập nhật {$user->name}.");
     }
 
-    /** Đổi lương thì lưu mức mới hiệu lực từ hôm nay; giữ nguyên lịch sử cũ */
+    /** Đổi lương thì lưu mức mới hiệu lực từ hôm nay; mức đầu tiên tính từ ngày bắt đầu làm. Giữ nguyên lịch sử cũ */
     private function saveSalary(User $user, array $data): void
     {
         $current = $user->latestSalary()->first();
@@ -105,7 +105,7 @@ class StaffController extends ManagerController
             'type'           => 'hourly',
             'rate'           => $data['salary_rate'],
             'probation_rate' => $data['probation_rate'],
-            'effective_from' => today(),
+            'effective_from' => $current ? today() : min(today(), $user->started_at ?? today()),
         ]);
     }
 

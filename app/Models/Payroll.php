@@ -34,9 +34,10 @@ class Payroll extends Model
 
     // ── Relationships ────────────────────────────────────────
 
+    /** Gồm cả tài khoản đã xoá (soft delete): lương đã làm vẫn phải hiện */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     public function branch(): BelongsTo

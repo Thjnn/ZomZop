@@ -109,6 +109,35 @@ class PayrollPageTest extends TestCase
         $this->assertSame(150000, Payroll::where('user_id', $staff->id)->value('base_salary'));
     }
 
+    public function test_deleted_staff_still_listed_and_paid(): void
+    {
+        $branch = $this->makeBranch();
+        $staff  = $this->setupStaff($branch, 'Người Đã Nghỉ');
+        $staff->delete();   // khách/nhân viên tự xoá tài khoản (soft delete)
+
+        $this->actingAs($this->makeUser('manager', $branch))
+            ->get('/manager/payrolls?month=2026-10')
+            ->assertOk()
+            ->assertSee('Người Đã Nghỉ')
+            ->assertSee('100.000đ');
+    }
+
+    public function test_page_refreshes_drafts_and_skips_future_months(): void
+    {
+        $branch  = $this->makeBranch();
+        $manager = $this->makeUser('manager', $branch);
+        $staff   = $this->setupStaff($branch);
+        $this->actingAs($manager)->get('/manager/payrolls?month=2026-10');
+        Attendance::create(['user_id' => $staff->id, 'branch_id' => $branch->id, 'shift_id' => $this->makeShift($branch)->id,
+            'check_in' => '2026-10-03 08:00', 'check_out' => '2026-10-03 10:00', 'method' => 'manual']);
+
+        $this->actingAs($manager)->get('/manager/payrolls?month=2026-10')->assertSee('150.000đ');
+
+        $future = today()->addMonth()->format('Y-m');
+        $this->actingAs($manager)->get("/manager/payrolls?month={$future}")->assertOk();
+        $this->assertSame(0, Payroll::ofMonth(today()->addMonth()->month, today()->addMonth()->year)->count());
+    }
+
     /** Review Focus #3 */
     public function test_cannot_touch_other_branch_payroll(): void
     {

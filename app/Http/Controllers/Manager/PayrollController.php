@@ -36,10 +36,10 @@ class PayrollController extends ManagerController
         abort_if((int) $payroll->branch_id !== $this->branchId(), 404);
     }
 
-    /** Tháng chưa có dòng nào thì tính lần đầu */
+    /** Tính lại dòng nháp mỗi lần xem để số liệu không cũ; tháng tương lai chưa có gì để tính */
     private function ensureCalculated(int $branchId, Carbon $month): void
     {
-        if (!Payroll::ofBranch($branchId)->ofMonth($month->month, $month->year)->exists()) {
+        if ($month->lte(today()->startOfMonth())) {
             app(BranchPayroll::class)->calculate($branchId, $month->month, $month->year);
         }
     }

@@ -28,10 +28,11 @@ class BranchPayroll
 
         $existing = Payroll::ofBranch($branchId)->ofMonth($month, $year)->get()->keyBy('user_id');
 
-        // Người đang làm + người đã có giờ/dòng lương tháng này (kể cả đã bị khoá)
-        $users = User::where('branch_id', $branchId)
+        // Người đang làm + người đã có giờ/dòng lương tháng này (kể cả đã bị khoá hoặc đã xoá tài khoản)
+        $users = User::withTrashed()
+            ->where('branch_id', $branchId)
             ->whereIn('role', ['staff', 'kitchen'])
-            ->where(fn ($q) => $q->where('is_active', true)
+            ->where(fn ($q) => $q->where(fn ($q) => $q->where('is_active', true)->whereNull('deleted_at'))
                 ->orWhereIn('id', $attendances->keys())
                 ->orWhereIn('id', $existing->keys()))
             ->get();

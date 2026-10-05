@@ -63,7 +63,7 @@ Với mỗi user `role ∈ {staff, kitchen}`, `branch_id = $branchId`, `is_activ
 ### Trang `/manager/payrolls?month=YYYY-MM`
 
 - Mặc định tháng hiện tại; `month` sai định dạng → tháng hiện tại.
-- Lần đầu mở tháng chưa có dòng nào thì tự gọi `calculate` một lần.
+- Mỗi lần mở trang (hoặc xuất Excel) tự gọi `calculate` cho tháng đó — chỉ đụng dòng nháp, giữ thưởng/phạt — để số liệu không cũ. Tháng tương lai không tính.
 - Bảng: nhân viên, vai trò (kèm nhãn "Thử việc" nếu có ngày thử việc trong tháng), lương chính thức/giờ,
   giờ, ngày, cơ bản, thưởng, phạt, tổng, trạng thái.
   Dòng tổng cộng cuối bảng.
@@ -79,9 +79,9 @@ Với mỗi user `role ∈ {staff, kitchen}`, `branch_id = $branchId`, `is_activ
   - `started_at` — ngày bắt đầu làm (mặc định hôm nay khi tạo, không được ở tương lai quá 30 ngày).
   - `probation_rate` — lương thử việc/giờ (số nguyên 1–999.999.999).
   - `salary_rate` — lương chính thức/giờ (số nguyên 1–999.999.999).
-  - Cả ba bắt buộc khi tạo; khi sửa, hiện sẵn giá trị đang áp dụng.
+  - Cả ba bắt buộc khi tạo; khi sửa, hiện sẵn giá trị đang áp dụng. Khi sửa, `started_at` được để trống (nhân viên cũ chưa có ngày bắt đầu = chính thức).
 - Lưu: nếu `probation_rate` hoặc `salary_rate` khác config hiện tại (hoặc chưa có) → tạo
-  `salary_configs` mới (`type = hourly`, `effective_from = today()`). Trùng thì không tạo.
+  `salary_configs` mới (`type = hourly`, `effective_from = today()`; mức **đầu tiên** của người đó dùng `min(started_at, today)` để giờ làm bổ sung từ ngày bắt đầu không bị 0đ). Trùng thì không tạo.
   Đổi lương chỉ ảnh hưởng các lượt từ hôm nay trở đi; dòng lương nháp cập nhật khi bấm "Tính lại".
 - Danh sách nhân viên hiện lương chính thức/giờ và nhãn "Thử việc đến dd/mm" khi còn thử việc.
 - Seeder: `SalaryConfigSeeder` bỏ config `fixed` của manager, thêm `probation_rate`

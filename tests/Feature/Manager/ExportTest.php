@@ -57,6 +57,27 @@ class ExportTest extends TestCase
         $this->assertStringNotContainsString('ZZOTHER1', $this->flat($rows));
     }
 
+    public function test_text_starting_with_equals_is_not_a_formula(): void
+    {
+        $branch = $this->makeBranch();
+        $order  = $this->makeOrder($branch, ['order_code' => 'ZZFORMULA']);
+        $order->user->update(['name' => '=HYPERLINK("http://evil","Click")']);
+
+        $res = $this->actingAs($this->makeUser('manager', $branch))->get('/manager/orders/export');
+
+        // Ô công thức trong .xlsx được ghi bằng thẻ <f>; phải ghi thành chữ thường
+        $path = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($path, $res->streamedContent());
+        $zip = new \ZipArchive();
+        $zip->open($path);
+        $sheet = $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+        unlink($path);
+
+        $this->assertStringNotContainsString('<f>', $sheet);
+        $this->assertStringContainsString('HYPERLINK', $sheet);
+    }
+
     public function test_payroll_export(): void
     {
         $branch = $this->makeBranch();

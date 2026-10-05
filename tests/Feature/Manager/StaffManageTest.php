@@ -121,7 +121,7 @@ class StaffManageTest extends TestCase
         $this->assertSame(25000, (int) $config->rate);
         $this->assertSame(20000, (int) $config->probation_rate);
         $this->assertSame('hourly', $config->type);
-        $this->assertSame(today()->toDateString(), $config->effective_from->toDateString());
+        $this->assertSame('2026-10-01', $config->effective_from->toDateString());   // mức đầu tiên tính từ ngày bắt đầu
     }
 
     public function test_update_creates_new_salary_only_when_changed(): void
@@ -142,6 +142,31 @@ class StaffManageTest extends TestCase
         $this->actingAs($manager)->from("/manager/staff/{$staff->id}/edit")
             ->put("/manager/staff/{$staff->id}", $data + ['probation_rate' => 0, 'salary_rate' => 'abc'])
             ->assertSessionHasErrors(['probation_rate', 'salary_rate']);
+    }
+
+    public function test_editing_staff_without_start_date_keeps_them_official(): void
+    {
+        $branch = $this->makeBranch();
+        $staff  = $this->makeUser('staff', $branch);
+        SalaryConfig::create(['user_id' => $staff->id, 'type' => 'hourly', 'rate' => 25000, 'probation_rate' => 20000, 'effective_from' => '2026-01-01']);
+
+        $this->actingAs($this->makeUser('manager', $branch))
+            ->put("/manager/staff/{$staff->id}", ['name' => 'Đổi SĐT', 'email' => $staff->email, 'phone' => '0909999888', 'role' => 'staff',
+                'started_at' => '', 'probation_rate' => 20000, 'salary_rate' => 25000])
+            ->assertRedirect(route('manager.staff.index'));
+
+        $this->assertNull($staff->fresh()->started_at);
+        $this->assertFalse($staff->fresh()->isOnProbation(today()));
+    }
+
+    public function test_first_salary_covers_work_since_start_date(): void
+    {
+        $branch = $this->makeBranch();
+        $this->actingAs($this->makeUser('manager', $branch))
+            ->post('/manager/staff', $this->validData(['started_at' => today()->subDays(3)->toDateString()]));
+
+        $config = User::where('email', 'bep1@zomzop.com')->first()->latestSalary;
+        $this->assertSame(today()->subDays(3)->toDateString(), $config->effective_from->toDateString());
     }
 
     public function test_index_shows_rate_and_probation_badge(): void

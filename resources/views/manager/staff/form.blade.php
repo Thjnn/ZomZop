@@ -24,8 +24,8 @@
                 </select>
             </label>
             <label class="block">Ngày bắt đầu làm
-                <input type="date" name="started_at" value="{{ old('started_at', $user?->started_at?->toDateString() ?? today()->toDateString()) }}" class="{{ $input }} mt-1" required>
-                <span class="text-xs text-slate-400">7 ngày đầu tính lương thử việc.</span>
+                <input type="date" name="started_at" value="{{ old('started_at', $user ? $user->started_at?->toDateString() : today()->toDateString()) }}" class="{{ $input }} mt-1" @required(!$user)>
+                <span class="text-xs text-slate-400">7 ngày đầu tính lương thử việc.@if ($user && !$user->started_at) Để trống = đã chính thức.@endif</span>
             </label>
             <div class="grid grid-cols-2 gap-3">
                 <label class="block">Lương thử việc/giờ
