@@ -24,7 +24,7 @@ class KioskApiTest extends TestCase
     private function setupBranch(): array
     {
         $branch = $this->makeBranch('Chi nhánh Quận 1');
-        $this->makeShift($branch, '00:00', '23:59', 'Ca cả ngày');
+        $this->makeShift($branch, '08:00', '14:00', 'Ca sáng');
         [$device, $token] = KioskDevice::issue($branch->id, 'Quầy 1');
         $staff = $this->makeUser('staff', $branch);
         $staff->update(['name' => 'Nguyễn Thu Ngân']);
@@ -62,9 +62,9 @@ class KioskApiTest extends TestCase
         [, , $token, $staff] = $this->setupBranch();
         $this->travelTo('2026-10-06 08:00');
 
-        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.05)], ['X-Kiosk-Token' => $token])
+        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.05), 'action' => 'in'], ['X-Kiosk-Token' => $token])
             ->assertOk()
-            ->assertJson(['status' => 'checked_in', 'name' => 'Nguyễn Thu Ngân', 'shift' => 'Ca cả ngày', 'time' => '08:00']);
+            ->assertJson(['status' => 'checked_in', 'name' => 'Nguyễn Thu Ngân', 'shift' => 'Ca sáng', 'time' => '08:00']);
 
         $a = Attendance::first();
         $this->assertSame($staff->id, $a->user_id);
@@ -75,7 +75,7 @@ class KioskApiTest extends TestCase
     {
         [, , $token] = $this->setupBranch();
 
-        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.9)], ['X-Kiosk-Token' => $token])
+        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.9), 'action' => 'in'], ['X-Kiosk-Token' => $token])
             ->assertOk()->assertJson(['status' => 'not_recognized']);
         $this->assertSame(0, Attendance::count());
     }
@@ -87,7 +87,7 @@ class KioskApiTest extends TestCase
         $this->makeShift($other, '00:00', '23:59');
         [, $otherToken] = KioskDevice::issue($other->id, 'Quầy B');
 
-        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0)], ['X-Kiosk-Token' => $otherToken])
+        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0), 'action' => 'in'], ['X-Kiosk-Token' => $otherToken])
             ->assertJson(['status' => 'not_recognized']);
     }
 
@@ -102,15 +102,41 @@ class KioskApiTest extends TestCase
         $this->postJson('/kiosk/api/punch', [], $h)->assertStatus(422);
     }
 
+    public function test_action_is_required_and_reason_limited(): void
+    {
+        [, , $token] = $this->setupBranch();
+        $h = ['X-Kiosk-Token' => $token];
+
+        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0)], $h)->assertStatus(422)->assertJsonValidationErrors('action');
+        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0), 'action' => 'break'], $h)->assertStatus(422);
+        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0), 'action' => 'in', 'reason' => str_repeat('a', 256)], $h)
+            ->assertStatus(422)->assertJsonValidationErrors('reason');
+    }
+
+    public function test_late_check_in_asks_reason_then_records_it(): void
+    {
+        [, , $token] = $this->setupBranch();
+        $h = ['X-Kiosk-Token' => $token];
+        $this->travelTo('2026-10-06 08:20');
+
+        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0), 'action' => 'in'], $h)
+            ->assertJson(['status' => 'need_late_reason', 'minutes' => 20, 'name' => 'Nguyễn Thu Ngân']);
+        $this->assertSame(0, Attendance::count());
+
+        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0), 'action' => 'in', 'reason' => 'Kẹt xe'], $h)
+            ->assertJson(['status' => 'checked_in', 'late_minutes' => 20]);
+        $this->assertSame('Kẹt xe', Attendance::first()->late_reason);
+    }
+
     public function test_checkout_returns_hours(): void
     {
         [, , $token] = $this->setupBranch();
         $h = ['X-Kiosk-Token' => $token];
         $this->travelTo('2026-10-06 08:00');
-        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0)], $h);
+        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0), 'action' => 'in'], $h);
         $this->travelTo('2026-10-06 14:30');
 
-        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0)], $h)
+        $this->postJson('/kiosk/api/punch', ['descriptor' => $this->vec(0.0), 'action' => 'out'], $h)
             ->assertJson(['status' => 'checked_out', 'time' => '14:30', 'hours' => 6.5]);
     }
 }

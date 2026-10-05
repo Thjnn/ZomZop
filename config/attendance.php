@@ -9,7 +9,10 @@ return [
         'margin'            => (float) env('FACE_MARGIN', 0.08),
         'max_samples'       => 5,
         'cooldown_minutes'  => 2,
-        'min_shift_minutes' => 10,
+        // Vào trễ hơn chừng này phút so với giờ bắt đầu ca → hỏi lý do đi trễ
+        'late_minutes'      => 5,
+        // Ra trước giờ kết thúc ca hơn chừng này phút → hỏi lý do ra sớm
+        'early_minutes'     => 10,
         // Lượt chưa chấm ra quá chừng này giờ coi như quên chấm ra, không tự đóng
         'stale_hours'       => 16,
         'photo_days'        => (int) env('FACE_PHOTO_DAYS', 30),

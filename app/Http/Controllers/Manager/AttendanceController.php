@@ -56,9 +56,12 @@ class AttendanceController extends ManagerController
             $a->check_out ? $a->working_hours : null,
             $a->method === 'face' ? 'Khuôn mặt' : 'Thủ công',
             $a->note,
+            $a->late_reason ? "Trễ {$a->lateMinutes()}' · {$a->late_reason}" : null,
+            $a->early_reason ? "Sớm {$a->earlyMinutes()}' · {$a->early_reason}" : null,
         ]);
 
-        return XlsxExport::download("cham-cong-{$date}.xlsx", ['Nhân viên', 'Ca', 'Giờ vào', 'Giờ ra', 'Số giờ', 'Cách chấm', 'Ghi chú'], $rows);
+        return XlsxExport::download("cham-cong-{$date}.xlsx",
+            ['Nhân viên', 'Ca', 'Giờ vào', 'Giờ ra', 'Số giờ', 'Cách chấm', 'Ghi chú', 'Lý do trễ', 'Lý do ra sớm'], $rows);
     }
 
     public function store(Request $request)

@@ -35,9 +35,9 @@ class AttendancePhotoTest extends TestCase
         return array_fill(0, 128, 0.0);
     }
 
-    private function punch(?UploadedFile $photo)
+    private function punch(?UploadedFile $photo, string $action = 'in')
     {
-        return $this->post('/kiosk/api/punch', array_filter(['descriptor' => $this->vec(), 'photo' => $photo]),
+        return $this->post('/kiosk/api/punch', array_filter(['descriptor' => $this->vec(), 'photo' => $photo, 'action' => $action, 'reason' => 'Test']),
             ['X-Kiosk-Token' => $this->token, 'Accept' => 'application/json']);
     }
 
@@ -51,7 +51,7 @@ class AttendancePhotoTest extends TestCase
         Storage::disk('local')->assertExists($a->photo_path);
 
         $this->travelTo('2026-10-06 14:00');
-        $this->punch(UploadedFile::fake()->image('out.jpg', 320, 240))->assertJson(['status' => 'checked_out']);
+        $this->punch(UploadedFile::fake()->image('out.jpg', 320, 240), 'out')->assertJson(['status' => 'checked_out']);
         Storage::disk('local')->assertExists("{$dir}/{$a->id}-out.jpg");
     }
 
@@ -66,7 +66,7 @@ class AttendancePhotoTest extends TestCase
     {
         $v = $this->vec();
         $v[0] = 0.9;
-        $this->post('/kiosk/api/punch', ['descriptor' => $v, 'photo' => UploadedFile::fake()->image('a.jpg')],
+        $this->post('/kiosk/api/punch', ['descriptor' => $v, 'photo' => UploadedFile::fake()->image('a.jpg'), 'action' => 'in'],
             ['X-Kiosk-Token' => $this->token, 'Accept' => 'application/json'])->assertJson(['status' => 'not_recognized']);
 
         $this->assertSame([], Storage::disk('local')->allFiles());
@@ -106,7 +106,7 @@ class AttendancePhotoTest extends TestCase
         // Manager chấm vào tay, nhân viên chấm ra ở máy quầy → ảnh "ra" nằm trên lượt manual
         $a = Attendance::create(['user_id' => $this->staff->id, 'branch_id' => $this->branch->id,
             'shift_id' => \App\Models\Shift::first()->id, 'check_in' => now()->subHours(3), 'method' => 'manual']);
-        $this->punch(UploadedFile::fake()->image('out.jpg'))->assertJson(['status' => 'checked_out']);
+        $this->punch(UploadedFile::fake()->image('out.jpg'), 'out')->assertJson(['status' => 'checked_out']);
         Storage::disk('local')->assertExists($a->fresh()->photoFile('out'));
 
         $this->actingAs($this->makeUser('manager', $this->branch))->delete("/manager/staff/{$this->staff->id}/face");

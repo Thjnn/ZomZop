@@ -17,6 +17,8 @@ class Attendance extends Model
         'method',
         'face_confidence',
         'photo_path',
+        'late_reason',
+        'early_reason',
         'note',
     ];
 
@@ -50,6 +52,24 @@ class Attendance extends Model
     {
         if (!$this->check_out) return 0;
         return round($this->check_in->diffInMinutes($this->check_out) / 60, 2);
+    }
+
+    /** Số phút vào trễ so với giờ bắt đầu ca (0 nếu đúng giờ/sớm) */
+    public function lateMinutes(): int
+    {
+        if (!$this->shift) return 0;
+        [$start] = $this->shift->occurrenceAround($this->check_in);
+
+        return $this->check_in->gt($start) ? (int) floor($start->diffInMinutes($this->check_in)) : 0;
+    }
+
+    /** Số phút ra trước giờ kết thúc ca (0 nếu chưa ra / ra đúng giờ) */
+    public function earlyMinutes(): int
+    {
+        if (!$this->shift || !$this->check_out) return 0;
+        [, $end] = $this->shift->occurrenceAround($this->check_in);
+
+        return $this->check_out->lt($end) ? (int) floor($this->check_out->diffInMinutes($end)) : 0;
     }
 
     /** Đường dẫn ảnh bằng chứng (disk 'local', riêng tư) — $kind: in | out */

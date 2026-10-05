@@ -50,6 +50,12 @@
                                 Thủ công
                             @endif
                             @if ($a->note) · {{ $a->note }} @endif
+                            @if ($a->late_reason)
+                                <span class="block text-xs text-amber-700">Trễ {{ $a->lateMinutes() }}' · {{ $a->late_reason }}</span>
+                            @endif
+                            @if ($a->early_reason)
+                                <span class="block text-xs text-amber-700">Ra sớm {{ $a->earlyMinutes() }}' · {{ $a->early_reason }}</span>
+                            @endif
                         </td>
                     </tr>
                 @empty

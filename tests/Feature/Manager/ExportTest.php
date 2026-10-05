@@ -110,6 +110,8 @@ class ExportTest extends TestCase
 
         $this->assertSame('Nhân viên', $rows[0][0]);
         $this->assertSame('Lê Thu Ngân', $rows[1][0]);
+        $this->assertContains('Lý do trễ', $rows[0]);
+        $this->assertContains('Lý do ra sớm', $rows[0]);
     }
 
     public function test_report_export(): void

@@ -33,7 +33,10 @@ class KioskController extends Controller
 
     public function punch(Request $request, FaceMatcher $matcher, FacePunch $punch)
     {
-        $data   = $request->validate(self::DESCRIPTOR_RULES + ['force_checkout' => ['nullable', 'boolean']]);
+        $data = $request->validate(self::DESCRIPTOR_RULES + [
+            'action' => ['required', 'in:in,out'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
         $device = $this->device($request);
 
         $match = $matcher->match($device->branch_id, array_map('floatval', $data['descriptor']));
@@ -41,7 +44,7 @@ class KioskController extends Controller
             return response()->json(['status' => 'not_recognized']);
         }
 
-        $result = $punch->punch($device, $match['user'], $match['confidence'], (bool) ($data['force_checkout'] ?? false));
+        $result = $punch->punch($device, $match['user'], $match['confidence'], $data['action'], $data['reason'] ?? null);
         $a      = $result['attendance'];
 
         if (in_array($result['status'], ['checked_in', 'checked_out'], true)) {
@@ -53,12 +56,13 @@ class KioskController extends Controller
             'name'       => $match['user']->name,
             'confidence' => $match['confidence'],
             'shift'      => $a?->shift?->name,
-            'time'       => match ($result['status']) {
-                'checked_out' => $a->check_out->format('H:i'),
-                'checked_in', 'confirm_checkout', 'duplicate' => ($a->check_out ?? $a->check_in)->format('H:i'),
-                default => now()->format('H:i'),
-            },
+            // Giờ của lượt liên quan: giờ ra nếu đã ra, không thì giờ vào; chưa có lượt thì giờ hiện tại
+            'time'       => ($a?->check_out ?? $a?->check_in ?? now())->format('H:i'),
             'hours'      => $a?->check_out ? $a->working_hours : null,
+            // Số phút trễ/sớm khi cần hỏi lý do (need_*_reason)
+            'minutes'    => $result['minutes'] ?? null,
+            'late_minutes'  => $result['status'] === 'checked_in' ? $a->lateMinutes() : null,
+            'early_minutes' => $result['status'] === 'checked_out' ? $a->earlyMinutes() : null,
         ]);
     }
 
