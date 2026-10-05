@@ -5,6 +5,7 @@ use App\Http\Controllers\Manager\DashboardController;
 use App\Http\Controllers\Manager\MenuController;
 use App\Http\Controllers\Manager\OrderController;
 use App\Http\Controllers\Manager\ReportController;
+use App\Http\Controllers\Manager\ReviewController;
 use App\Http\Controllers\Manager\ShiftController;
 use App\Http\Controllers\Manager\StaffController;
 use Illuminate\Support\Facades\Route;
@@ -39,4 +40,5 @@ Route::middleware(['auth', 'role:manager'])
         Route::patch('/attendances/{attendance}/checkout', [AttendanceController::class, 'checkout'])->name('attendances.checkout');
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
     });

@@ -17,6 +17,7 @@
             ['route' => 'manager.shifts.index', 'match' => 'manager.shifts.*',  'label' => 'Ca làm',     'icon' => '🕒'],
             ['route' => 'manager.attendances.index', 'match' => 'manager.attendances.*', 'label' => 'Chấm công', 'icon' => '✅'],
             ['route' => 'manager.reports.index', 'match' => 'manager.reports.*', 'label' => 'Báo cáo',   'icon' => '📈'],
+            ['route' => 'manager.reviews.index', 'match' => 'manager.reviews.*', 'label' => 'Đánh giá',  'icon' => '⭐'],
         ];
     @endphp
 
