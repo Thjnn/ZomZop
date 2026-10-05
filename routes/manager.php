@@ -4,6 +4,7 @@ use App\Http\Controllers\Manager\AttendanceController;
 use App\Http\Controllers\Manager\DashboardController;
 use App\Http\Controllers\Manager\MenuController;
 use App\Http\Controllers\Manager\OrderController;
+use App\Http\Controllers\Manager\PayrollController;
 use App\Http\Controllers\Manager\ReportController;
 use App\Http\Controllers\Manager\ReviewController;
 use App\Http\Controllers\Manager\ShiftController;
@@ -38,6 +39,12 @@ Route::middleware(['auth', 'role:manager'])
         Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
         Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
         Route::patch('/attendances/{attendance}/checkout', [AttendanceController::class, 'checkout'])->name('attendances.checkout');
+
+        Route::get('/payrolls', [PayrollController::class, 'index'])->name('payrolls.index');
+        Route::post('/payrolls/recalculate', [PayrollController::class, 'recalculate'])->name('payrolls.recalculate');
+        Route::put('/payrolls/{payroll}', [PayrollController::class, 'update'])->name('payrolls.update');
+        Route::patch('/payrolls/{payroll}/confirm', [PayrollController::class, 'confirm'])->name('payrolls.confirm');
+        Route::patch('/payrolls/{payroll}/pay', [PayrollController::class, 'pay'])->name('payrolls.pay');
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');

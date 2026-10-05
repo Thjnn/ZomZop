@@ -20,7 +20,8 @@
             'shifts' => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
             'check'  => '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 5-6"/>',
             'report' => '<path d="M4 19V5M4 19h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/>',
-            'star'   => '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3Z"/>',
+            'money'  => '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 9.5v5M17 9.5v5"/>',
+            'star'   =>'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3Z"/>',
         ];
         $_nav = [
             'Tổng quan' => [
@@ -34,6 +35,7 @@
                 ['route' => 'manager.staff.index',  'match' => 'manager.staff.*',   'label' => 'Nhân viên',  'icon' => 'staff'],
                 ['route' => 'manager.shifts.index', 'match' => 'manager.shifts.*',  'label' => 'Ca làm',     'icon' => 'shifts'],
                 ['route' => 'manager.attendances.index', 'match' => 'manager.attendances.*', 'label' => 'Chấm công', 'icon' => 'check'],
+                ['route' => 'manager.payrolls.index', 'match' => 'manager.payrolls.*', 'label' => 'Bảng lương', 'icon' => 'money'],
             ],
             'Báo cáo' => [
                 ['route' => 'manager.reports.index', 'match' => 'manager.reports.*', 'label' => 'Doanh thu', 'icon' => 'report'],
