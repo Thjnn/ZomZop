@@ -13,6 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             // Khu vực quản lý chi nhánh, tách file để không đụng routes/web.php
             Route::middleware('web')->group(base_path('routes/manager.php'));
+            // Máy chấm công khuôn mặt ở quầy (API riêng, không qua nhóm 'web')
+            Route::group([], base_path('routes/kiosk.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -21,7 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureRole::class,
+            'role'  => \App\Http\Middleware\EnsureRole::class,
+            'kiosk' => \App\Http\Middleware\AuthenticateKiosk::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
