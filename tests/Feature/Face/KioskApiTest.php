@@ -33,6 +33,16 @@ class KioskApiTest extends TestCase
         return [$branch, $device, $token, $staff];
     }
 
+    public function test_kiosk_page_and_face_enroll_page_render(): void
+    {
+        $this->withoutVite();
+        [$branch, , , $staff] = $this->setupBranch();
+
+        $this->get('/kiosk')->assertOk()->assertSee('kiosk-video', false);
+        $this->actingAs($this->makeUser('manager', $branch))
+            ->get("/manager/staff/{$staff->id}/face")->assertOk()->assertSee('1</b>/5', false);
+    }
+
     public function test_status_needs_valid_token(): void
     {
         [, $device, $token] = $this->setupBranch();

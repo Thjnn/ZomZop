@@ -11,3 +11,6 @@ Route::prefix('kiosk/api')
         Route::get('/status', [KioskController::class, 'status']);
         Route::post('/punch', [KioskController::class, 'punch']);
     });
+
+// Trang máy quầy (không cần đăng nhập; thiết bị được ghép bằng token trong link manager đưa)
+Route::middleware('web')->get('/kiosk', fn () => view('kiosk.index'))->name('kiosk');
