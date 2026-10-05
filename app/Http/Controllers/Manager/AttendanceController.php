@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\XlsxExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -96,6 +97,17 @@ class AttendanceController extends ManagerController
         ]);
 
         return back()->with('success', 'Đã chấm công.');
+    }
+
+    /** Ảnh bằng chứng chấm công khuôn mặt (thư mục riêng tư, không có link trực tiếp) */
+    public function photo(Attendance $attendance, string $kind)
+    {
+        abort_if((int) $attendance->branch_id !== $this->branchId(), 404);
+
+        $path = $attendance->photoFile($kind);
+        abort_unless(Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path);
     }
 
     public function checkout(Attendance $attendance)

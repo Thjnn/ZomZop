@@ -44,7 +44,9 @@ Route::middleware(['auth', 'role:manager'])
 
         Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
         Route::get('/attendances/export', [AttendanceController::class, 'export'])->name('attendances.export');
-        Route::post('/attendances',[AttendanceController::class, 'store'])->name('attendances.store');
+        Route::get('/attendances/{attendance}/photo/{kind}', [AttendanceController::class, 'photo'])
+            ->whereIn('kind', ['in', 'out'])->name('attendances.photo');
+        Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
         Route::patch('/attendances/{attendance}/checkout', [AttendanceController::class, 'checkout'])->name('attendances.checkout');
 
         Route::get('/kiosks', [KioskController::class, 'index'])->name('kiosks.index');

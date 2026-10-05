@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attendance;
 use App\Models\KioskDevice;
 use App\Services\FaceMatcher;
 use App\Services\FacePunch;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 /** Trang chấm công khuôn mặt chạy trên máy quầy + API của nó */
 class KioskController extends Controller
@@ -41,6 +44,10 @@ class KioskController extends Controller
         $result = $punch->punch($device, $match['user'], $match['confidence'], (bool) ($data['force_checkout'] ?? false));
         $a      = $result['attendance'];
 
+        if (in_array($result['status'], ['checked_in', 'checked_out'], true)) {
+            $this->savePhoto($request, $a, $result['status'] === 'checked_in' ? 'in' : 'out');
+        }
+
         return response()->json([
             'status'     => $result['status'],
             'name'       => $match['user']->name,
@@ -53,5 +60,21 @@ class KioskController extends Controller
             },
             'hours'      => $a?->check_out ? $a->working_hours : null,
         ]);
+    }
+
+    /** Ảnh bằng chứng: ảnh lỗi/thiếu thì bỏ qua, không bắt nhân viên chấm lại */
+    private function savePhoto(Request $request, Attendance $attendance, string $kind): void
+    {
+        $ok = Validator::make($request->only('photo'), ['photo' => ['required', 'image', 'mimes:jpeg,jpg', 'max:200']])->passes();
+        if (!$ok) {
+            return;
+        }
+
+        $path = $attendance->photoFile($kind);
+        Storage::disk('local')->putFileAs(dirname($path), $request->file('photo'), basename($path));
+
+        if ($kind === 'in') {
+            $attendance->update(['photo_path' => $path]);
+        }
     }
 }

@@ -50,7 +50,8 @@ class FaceController extends ManagerController
         $this->ensureOwnStaff($user);
 
         $user->faceDescriptors()->delete();
+        $user->attendances()->where('method', 'face')->get()->each->deletePhotos();
 
-        return back()->with('success', "Đã xoá dữ liệu khuôn mặt của {$user->name}.");
+        return back()->with('success', "Đã xoá dữ liệu khuôn mặt và ảnh chấm công của {$user->name}.");
     }
 }

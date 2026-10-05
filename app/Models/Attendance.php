@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class Attendance extends Model
 {
@@ -49,6 +50,19 @@ class Attendance extends Model
     {
         if (!$this->check_out) return 0;
         return round($this->check_in->diffInMinutes($this->check_out) / 60, 2);
+    }
+
+    /** Đường dẫn ảnh bằng chứng (disk 'local', riêng tư) — $kind: in | out */
+    public function photoFile(string $kind): string
+    {
+        return "attendance-photos/{$this->branch_id}/{$this->check_in->toDateString()}/{$this->id}-{$kind}.jpg";
+    }
+
+    /** Xoá cả ảnh vào lẫn ảnh ra */
+    public function deletePhotos(): void
+    {
+        Storage::disk('local')->delete([$this->photoFile('in'), $this->photoFile('out')]);
+        $this->update(['photo_path' => null]);
     }
 
     public function isFaceMethod(): bool
