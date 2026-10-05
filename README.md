@@ -110,7 +110,7 @@ Tài khoản mẫu (mật khẩu đều là `12345678`):
 
 Ngoài ra: `admin@zomzop.com` (admin), `customer@zomzop.com` (khách). Mỗi quản lý chỉ thấy và thao tác dữ liệu chi nhánh của mình.
 
-**Đã có database cũ, sau khi `git pull`** (không mất dữ liệu đang có):
+**Đã có database cũ, sau khi `git pull`** (không mất dữ liệu đang có — hướng dẫn đầy đủ, cách tránh xung đột: `docs/huong-dan-cap-nhat-code-cho-nhom.md`):
 
 ```bash
 composer install && npm install && npm run build
