@@ -16,13 +16,39 @@ export function loadModels() {
 
 export async function startCamera(video) {
     if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("Trình duyệt không cho dùng camera. Hãy mở trang bằng HTTPS hoặc localhost.");
+        throw new Error("Trình duyệt không cho dùng camera ở địa chỉ này. Hãy mở trang bằng https:// hoặc http://localhost.");
     }
-    video.srcObject = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: "user" },
-        audio: false,
-    });
+    try {
+        video.srcObject = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480, facingMode: "user" },
+            audio: false,
+        });
+    } catch (e) {
+        throw new Error(cameraErrorMessage(e));
+    }
     await video.play();
+}
+
+/** Tắt camera để nơi khác (tab khác, ứng dụng khác) dùng được */
+export function stopCamera(video) {
+    video.srcObject?.getTracks().forEach((t) => t.stop());
+    video.srcObject = null;
+}
+
+function cameraErrorMessage(e) {
+    switch (e?.name) {
+        case "NotAllowedError":
+        case "SecurityError":
+            return "Camera bị chặn — bấm biểu tượng camera/ổ khoá trên thanh địa chỉ, chọn Cho phép rồi tải lại trang.";
+        case "NotReadableError":
+        case "AbortError":
+            return "Camera đang được dùng ở nơi khác (tab máy chấm công, Zoom, Camera…) — đóng nơi đó rồi tải lại trang.";
+        case "NotFoundError":
+        case "OverconstrainedError":
+            return "Không tìm thấy camera trên máy này.";
+        default:
+            return `Không mở được camera (${e?.name ?? "lỗi lạ"}).`;
+    }
 }
 
 const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });

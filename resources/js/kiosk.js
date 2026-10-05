@@ -1,7 +1,7 @@
 // Máy chấm công khuôn mặt đặt ở quầy (máy tính bảng / laptop có webcam).
 // Luồng: bấm nút (Chấm vào / Chấm ra / Ra ca sớm) → quét mặt + kiểm tra người thật → gửi server.
 // Server cần lý do đi trễ / ra sớm thì hiện bảng chọn lý do rồi gửi lại (không phải quét lại).
-import { averageDescriptor, detectFaces, faceProblem, loadModels, sleep, snapshot, startCamera } from "./face/core";
+import { averageDescriptor, detectFaces, faceProblem, loadModels, sleep, snapshot, startCamera, stopCamera } from "./face/core";
 import { Liveness } from "./face/liveness";
 
 const REASONS = {
@@ -180,18 +180,30 @@ if (root) {
     /** Quét đến khi có descriptor (thử lại liveness nếu người còn đứng đó). null nếu hết giờ/huỷ */
     async function scan(mine, title) {
         $("scan-title").textContent = title;
-        setHint("Nhìn vào camera");
+        setHint("Đang bật camera…");
         show("scan");
-        while (alive(mine)) {
-            if (!(await waitForFace(mine))) return null;
-            const descriptor = await checkLiveness(mine);
-            if (descriptor) return { descriptor, photo: await snapshot(video) };
-            if (descriptor === false) {
-                setHint("Chưa xác nhận được — làm lại nhé");
-                await sleep(1200);
-            }
+        // Chỉ giữ camera trong lúc quét: lúc chờ thì nhả ra cho tab/ứng dụng khác (VD trang đăng ký khuôn mặt)
+        try {
+            await startCamera(video);
+        } catch (e) {
+            await showResult("err", "Không mở được camera", e.message);
+            return null;
         }
-        return null;
+        try {
+            setHint("Nhìn vào camera");
+            while (alive(mine)) {
+                if (!(await waitForFace(mine))) return null;
+                const descriptor = await checkLiveness(mine);
+                if (descriptor) return { descriptor, photo: await snapshot(video) };
+                if (descriptor === false) {
+                    setHint("Chưa xác nhận được — làm lại nhé");
+                    await sleep(1200);
+                }
+            }
+            return null;
+        } finally {
+            stopCamera(video);
+        }
     }
 
     // ── Gửi server ──
@@ -306,8 +318,6 @@ if (root) {
             if (!token) unpaired();
             const s = await connect();
             $("kiosk-branch").textContent = `${s.branch} · ${s.device}`;
-            status("Đang bật camera…");
-            await startCamera(video);
             status("Đang tải mô hình nhận diện…");
             await loadModels();
             status(null);

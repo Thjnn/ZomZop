@@ -85,6 +85,7 @@ if (root) {
             preview();
         } catch (e) {
             hint.textContent = e.message || "Không mở được camera.";
+            say(e.message || "Không mở được camera.");
         }
     })();
 }
