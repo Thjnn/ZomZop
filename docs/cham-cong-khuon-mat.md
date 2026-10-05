@@ -247,6 +247,12 @@ Chấm ra (action = out — cả nút "Chấm ra" và "Ra ca sớm"):
 - Lúc khởi động: **chỉ lỗi 401** mới xoá token (thiết bị bị thu hồi); lỗi 500/503/429 thì thử lại mỗi 10 giây.
 - Mỗi lượt có số `session`; bấm **Huỷ** hoặc lượt mới bắt đầu thì vòng quét cũ tự dừng, hẹn giờ cũ không che kết quả mới.
 - Quét quá 20 giây không thấy ai → về màn chờ.
+- **Camera chỉ bật trong lúc quét** (sau khi bấm nút), quét xong tắt ngay. Lúc ở màn chờ, máy quầy không giữ webcam,
+  nên trang đăng ký khuôn mặt hay ứng dụng khác trên cùng máy vẫn mở được camera.
+- Lỗi camera được báo rõ theo loại: bị chặn quyền, đang bị nơi khác dùng, không tìm thấy camera, địa chỉ không phải https/localhost.
+- Nút "Chép" link ghép: trên địa chỉ `http://` thường trình duyệt chặn chép tự động → dùng cách chép dự phòng;
+  vẫn không được thì báo đỏ "bấm Ctrl+C" (tránh dán nhầm link cũ còn trong bộ nhớ tạm).
+- Dán link ghép mới vào tab `/kiosk` đang mở → trang tự tải lại để nhận mã mới.
 
 ---
 
