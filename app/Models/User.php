@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 
 class User extends Authenticatable
 {
@@ -23,6 +25,7 @@ class User extends Authenticatable
         'address',
         'avatar',
         'is_active',
+        'started_at',
     ];
 
     protected $hidden = [
@@ -34,6 +37,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
         'is_active'         => 'boolean',
+        'started_at'        => 'date',
     ];
 
     // ── Relationships ────────────────────────────────────────
@@ -102,6 +106,25 @@ class User extends Authenticatable
     public function salaryConfigs(): HasMany
     {
         return $this->hasMany(SalaryConfig::class);
+    }
+
+    /** Mức lương đang áp dụng */
+    public function latestSalary(): HasOne
+    {
+        return $this->hasOne(SalaryConfig::class)->ofMany(['effective_from' => 'max', 'id' => 'max']);
+    }
+
+    /** Ngày cuối thử việc (thử việc 7 ngày kể cả ngày bắt đầu) */
+    public function probationEndsAt(): ?Carbon
+    {
+        return $this->started_at?->copy()->addDays(6);
+    }
+
+    public function isOnProbation(Carbon $at): bool
+    {
+        $end = $this->probationEndsAt();
+
+        return $end !== null && $at->toDateString() <= $end->toDateString();
     }
 
     // ── Role Helpers ─────────────────────────────────────────

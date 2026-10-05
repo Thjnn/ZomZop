@@ -11,11 +11,13 @@ class SalaryConfig extends Model
         'user_id',
         'type',
         'rate',
+        'probation_rate',
         'effective_from',
     ];
 
     protected $casts = [
         'rate'           => 'decimal:0',
+        'probation_rate' => 'decimal:0',
         'effective_from' => 'date',
     ];
 
