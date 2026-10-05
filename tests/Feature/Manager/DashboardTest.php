@@ -17,7 +17,7 @@ class DashboardTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_today_counts_only_own_branch_and_completed_revenue(): void
+    public function test_status_counts_only_own_branch_and_completed_revenue(): void
     {
         $this->travelTo(Carbon::parse('2026-10-04 12:00'));
         $mine  = $this->makeBranch('Mine');
@@ -26,105 +26,113 @@ class DashboardTest extends TestCase
         $this->makeOrder($mine, ['status' => 'completed', 'total' => 120000]);
         $this->makeOrder($mine, ['status' => 'completed', 'total' => 80000]);
         $this->makeOrder($mine, ['status' => 'pending',   'total' => 999000]);
+        $this->makeOrder($mine, ['status' => 'cooking']);
         $this->makeOrder($mine, ['status' => 'cancelled', 'total' => 50000]);
         $this->makeOrder($other, ['status' => 'completed', 'total' => 777000]);
 
-        $this->assertSame(
-            ['revenue' => 200000, 'orders' => 4, 'pending' => 1, 'cancelled' => 1],
-            (new BranchStats())->today($mine->id)
-        );
+        $this->assertSame([
+            'pending' => 1, 'confirmed' => 0, 'cooking' => 1, 'ready' => 0,
+            'completed' => 2, 'cancelled' => 1,
+            'total' => 5, 'revenue' => 200000,
+        ], (new BranchStats())->statusCounts($mine->id, 'all'));
     }
 
-    /** Ô "Chờ xác nhận" phải khớp danh sách đơn chờ bên dưới (gồm cả đơn tồn từ hôm trước) */
-    public function test_pending_count_includes_leftover_orders_from_previous_days(): void
+    public function test_status_counts_filter_by_period(): void
     {
         $branch = $this->makeBranch();
-        $this->travelTo(Carbon::parse('2026-10-03 21:00'));
-        $this->makeOrder($branch, ['status' => 'pending']);
-        $this->travelTo(Carbon::parse('2026-10-04 09:00'));
-        $this->makeOrder($branch, ['status' => 'pending']);
+        $this->travelTo(Carbon::parse('2026-09-20 10:00'));
+        $this->makeOrder($branch, ['status' => 'completed', 'total' => 10000]);
+        $this->travelTo(Carbon::parse('2026-10-01 10:00'));
+        $this->makeOrder($branch, ['status' => 'completed', 'total' => 20000]);
+        $this->travelTo(Carbon::parse('2026-10-04 06:30')); // sáng sớm giờ VN vẫn là hôm nay
+        $this->makeOrder($branch, ['status' => 'completed', 'total' => 40000]);
+        $this->travelTo(Carbon::parse('2026-10-04 20:00'));
 
-        $this->assertSame(2, (new BranchStats())->today($branch->id)['pending']);
+        $stats = new BranchStats();
+        $this->assertSame(40000, $stats->statusCounts($branch->id, 'today')['revenue']);
+        $this->assertSame(60000, $stats->statusCounts($branch->id, 'month')['revenue']);
+        $this->assertSame(70000, $stats->statusCounts($branch->id, 'all')['revenue']);
     }
 
-    /** Lỗi #2: đơn chờ từ hôm trước phải hiện cả ngày, không chỉ giờ */
-    public function test_pending_list_shows_date_for_orders_not_from_today(): void
+    public function test_series_week_fills_missing_days_with_zero(): void
     {
         $branch = $this->makeBranch();
-        $this->travelTo(Carbon::parse('2026-10-03 21:15'));
-        $this->makeOrder($branch, ['status' => 'pending', 'order_code' => 'ZZOLDPEND1']);
-        $this->travelTo(Carbon::parse('2026-10-04 09:30'));
-        $this->makeOrder($branch, ['status' => 'pending', 'order_code' => 'ZZNEWPEND1']);
-
-        $this->actingAs($this->makeUser('manager', $branch))
-            ->get('/manager')
-            ->assertSee('21:15 03/10')
-            ->assertSee('09:30')
-            ->assertDontSee('09:30 04/10');
-    }
-
-    /** Review Focus #4: đơn lúc 6h sáng giờ VN vẫn là "hôm nay" */
-    public function test_early_morning_vietnam_time_counts_as_today(): void
-    {
-        $branch = $this->makeBranch();
-
-        $this->travelTo(Carbon::parse('2026-10-04 06:30', 'Asia/Ho_Chi_Minh'));
-        $this->makeOrder($branch, ['status' => 'completed', 'total' => 100000]);
-
-        $this->travelTo(Carbon::parse('2026-10-04 20:00', 'Asia/Ho_Chi_Minh'));
-        $this->assertSame(100000, (new BranchStats())->today($branch->id)['revenue']);
-    }
-
-    public function test_revenue_last_days_fills_missing_days_with_zero(): void
-    {
-        $branch = $this->makeBranch();
-
-        $this->travelTo(Carbon::parse('2026-10-02 10:00'));
+        $this->travelTo(Carbon::parse('2026-09-28 10:00'));
         $this->makeOrder($branch, ['status' => 'completed', 'total' => 50000]);
+        $this->makeOrder($branch, ['status' => 'cancelled', 'total' => 99000]);
         $this->travelTo(Carbon::parse('2026-10-04 10:00'));
         $this->makeOrder($branch, ['status' => 'completed', 'total' => 70000]);
 
-        $this->assertSame([
-            '2026-10-02' => 50000,
-            '2026-10-03' => 0,
-            '2026-10-04' => 70000,
-        ], (new BranchStats())->revenueLastDays($branch->id, 3));
+        $week = (new BranchStats())->series($branch->id, 'week');
+
+        $this->assertSame(['28/09', '29/09', '30/09', '01/10', '02/10', '03/10', '04/10'], $week['labels']);
+        $this->assertSame([2, 0, 0, 0, 0, 0, 1], $week['orders']);
+        $this->assertSame([50000, 0, 0, 0, 0, 0, 70000], $week['revenue']);
     }
 
-    public function test_top_items_today_sums_quantity(): void
+    public function test_series_year_groups_by_month(): void
     {
-        $this->travelTo(Carbon::parse('2026-10-04 12:00'));
         $branch = $this->makeBranch();
-        $burger = $this->makeMenuItem('Burger Bò');
-        $coke   = $this->makeMenuItem('Coca');
+        $this->travelTo(Carbon::parse('2025-12-31 10:00')); // năm trước, không tính
+        $this->makeOrder($branch, ['status' => 'completed']);
+        $this->travelTo(Carbon::parse('2026-02-03 10:00'));
+        $this->makeOrder($branch, ['status' => 'completed', 'total' => 30000]);
+        $this->travelTo(Carbon::parse('2026-02-25 10:00'));
+        $this->makeOrder($branch, ['status' => 'completed', 'total' => 45000]);
+        $this->travelTo(Carbon::parse('2026-10-04 10:00'));
 
-        $o1 = $this->makeOrder($branch, ['status' => 'completed']);
-        $this->addItem($o1, $burger, 2);
-        $this->addItem($o1, $coke, 1, 15000);
-        $o2 = $this->makeOrder($branch, ['status' => 'completed']);
-        $this->addItem($o2, $burger, 3);
-        $cancelled = $this->makeOrder($branch, ['status' => 'cancelled']);
-        $this->addItem($cancelled, $coke, 10, 15000);
+        $year = (new BranchStats())->series($branch->id, 'year');
 
-        $top = (new BranchStats())->topItemsToday($branch->id);
-
-        $this->assertSame('Burger Bò', $top[0]->name);
-        $this->assertSame(5, (int) $top[0]->qty);
-        $this->assertSame(250000, (int) $top[0]->revenue);
-        $this->assertSame(1, (int) $top[1]->qty); // đơn huỷ không tính
+        $this->assertCount(12, $year['labels']);
+        $this->assertSame('T2', $year['labels'][1]);
+        $this->assertSame(2, $year['orders'][1]);
+        $this->assertSame(75000, $year['revenue'][1]);
+        $this->assertSame(2, array_sum($year['orders']));
     }
 
-    public function test_dashboard_page_shows_numbers(): void
+    public function test_series_month_has_one_point_per_day(): void
+    {
+        $branch = $this->makeBranch();
+        $this->travelTo(Carbon::parse('2026-09-15 10:00'));
+        $this->makeOrder($branch, ['status' => 'completed', 'total' => 30000]);
+
+        $month = (new BranchStats())->series($branch->id, 'month');
+
+        $this->assertCount(30, $month['labels']);
+        $this->assertSame(1, $month['orders'][14]);
+        $this->assertSame(30000, $month['revenue'][14]);
+    }
+
+    public function test_dashboard_page_shows_numbers_and_recent_orders(): void
     {
         $this->travelTo(Carbon::parse('2026-10-04 12:00'));
-        $branch = $this->makeBranch();
+        $branch = $this->makeBranch('Quận 1');
         $this->makeOrder($branch, ['status' => 'completed', 'total' => 125000]);
         $this->makeOrder($branch, ['status' => 'pending', 'order_code' => 'ZZPENDING1']);
 
         $this->actingAs($this->makeUser('manager', $branch))
             ->get('/manager')
             ->assertOk()
+            ->assertSee('Quận 1')
             ->assertSee('125.000đ')
             ->assertSee('ZZPENDING1');
+    }
+
+    public function test_dashboard_period_filter(): void
+    {
+        $branch = $this->makeBranch();
+        $this->travelTo(Carbon::parse('2026-09-01 10:00'));
+        $this->makeOrder($branch, ['status' => 'completed', 'total' => 111000]);
+        $this->travelTo(Carbon::parse('2026-10-04 12:00'));
+        $manager = $this->makeUser('manager', $branch);
+
+        $revenue = fn (int $expected) => fn ($counts) => $counts['revenue'] === $expected;
+
+        $this->actingAs($manager)->get('/manager')->assertViewHas('counts', $revenue(111000));
+        $this->actingAs($manager)->get('/manager?period=today')->assertViewHas('counts', $revenue(0));
+        $this->actingAs($manager)->get('/manager?period=bogus')
+            ->assertOk()
+            ->assertViewHas('period', 'all')
+            ->assertViewHas('counts', $revenue(111000));
     }
 }

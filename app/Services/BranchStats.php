@@ -3,60 +3,91 @@
 namespace App\Services;
 
 use App\Models\Order;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class BranchStats
 {
-    public function today(int $branchId): array
+    public const PERIODS = [
+        'all'   => 'Tổng',
+        'today' => 'Hôm nay',
+        'month' => 'Tháng này',
+    ];
+
+    /**
+     * Số đơn theo từng trạng thái + tổng đơn + doanh thu (chỉ đơn hoàn thành) trong kỳ.
+     * $period: all | today | month
+     */
+    public function statusCounts(int $branchId, string $period = 'all'): array
     {
-        $row = Order::ofBranch($branchId)
-            ->whereDate('created_at', today())
-            ->selectRaw("COUNT(*) as orders")
-            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END), 0) as revenue")
-            ->selectRaw("SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled")
-            ->first();
+        $query = Order::ofBranch($branchId);
 
-        return [
-            'revenue'   => (int) $row->revenue,
-            'orders'    => (int) $row->orders,
-            // Đếm mọi đơn đang chờ (kể cả tồn từ hôm trước) cho khớp danh sách đơn chờ
-            'pending'   => Order::ofBranch($branchId)->pending()->count(),
-            'cancelled' => (int) $row->cancelled,
-        ];
-    }
+        if ($period === 'today') {
+            $query->whereDate('created_at', today());
+        } elseif ($period === 'month') {
+            $query->where('created_at', '>=', today()->startOfMonth());
+        }
 
-    public function revenueLastDays(int $branchId, int $days = 7): array
-    {
-        $from = today()->subDays($days - 1);
-
-        $rows = Order::ofBranch($branchId)
-            ->where('status', 'completed')
-            ->where('created_at', '>=', $from)
-            ->selectRaw('DATE(created_at) as day, SUM(total) as revenue')
-            ->groupBy('day')
-            ->pluck('revenue', 'day');
+        $rows = $query->selectRaw('status, COUNT(*) as orders, SUM(total) as revenue')
+            ->groupBy('status')
+            ->get()
+            ->keyBy('status');
 
         $result = [];
-        for ($i = 0; $i < $days; $i++) {
-            $day = $from->copy()->addDays($i)->toDateString();
-            $result[$day] = (int) ($rows[$day] ?? 0);
+        foreach (array_keys(OrderStatusService::LABELS) as $status) {
+            $result[$status] = (int) ($rows[$status]->orders ?? 0);
         }
+        $result['total']   = array_sum($result);
+        $result['revenue'] = (int) ($rows['completed']->revenue ?? 0);
 
         return $result;
     }
 
-    public function topItemsToday(int $branchId, int $limit = 5): Collection
+    /**
+     * Số đơn + doanh thu theo từng điểm thời gian cho biểu đồ, thiếu thì điền 0.
+     * $range: year (12 tháng năm nay) | month (từng ngày tháng này) | week (7 ngày gần nhất)
+     */
+    public function series(int $branchId, string $range): array
     {
-        return DB::table('order_items')
-            ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->where('orders.branch_id', $branchId)
-            ->where('orders.status', 'completed')
-            ->whereDate('orders.created_at', today())
-            ->groupBy('order_items.menu_item_id', 'order_items.name_snapshot')
-            ->selectRaw('order_items.name_snapshot as name, SUM(order_items.quantity) as qty, SUM(order_items.subtotal) as revenue')
-            ->orderByDesc('qty')
-            ->limit($limit)
+        [$from, $to, $keyOf, $points] = match ($range) {
+            'year'  => [
+                today()->startOfYear(), today()->endOfYear(),
+                fn (Carbon $d) => $d->month,
+                collect(range(1, 12))->mapWithKeys(fn ($m) => [$m => "T$m"]),
+            ],
+            'month' => [
+                today()->startOfMonth(), today()->endOfMonth(),
+                fn (Carbon $d) => $d->day,
+                collect(range(1, today()->daysInMonth))->mapWithKeys(fn ($d) => [$d => (string) $d]),
+            ],
+            default => [
+                today()->subDays(6), today()->endOfDay(),
+                fn (Carbon $d) => $d->toDateString(),
+                collect(range(6, 0))->mapWithKeys(fn ($i) => [
+                    today()->subDays($i)->toDateString() => today()->subDays($i)->format('d/m'),
+                ]),
+            ],
+        };
+
+        // Gom theo ngày bằng SQL (chạy được cả MySQL lẫn SQLite), rồi gộp tiếp theo tháng ở PHP
+        $days = Order::ofBranch($branchId)
+            ->whereBetween('created_at', [$from, $to])
+            ->selectRaw('DATE(created_at) as day, COUNT(*) as orders')
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END), 0) as revenue")
+            ->groupBy('day')
             ->get();
+
+        $orders  = $points->map(fn () => 0)->all();
+        $revenue = $orders;
+        foreach ($days as $row) {
+            $key = $keyOf(Carbon::parse($row->day));
+            $orders[$key]  += (int) $row->orders;
+            $revenue[$key] += (int) $row->revenue;
+        }
+
+        return [
+            'labels'  => $points->values()->all(),
+            'orders'  => array_values($orders),
+            'revenue' => array_values($revenue),
+        ];
     }
 }

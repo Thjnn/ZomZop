@@ -2,74 +2,149 @@
 
 @section('title', 'Tổng quan')
 
+@push('scripts')
+    @vite('resources/js/manager-dashboard.js')
+@endpush
+
 @section('content')
-    @php $money = fn ($v) => number_format($v, 0, ',', '.') . 'đ'; @endphp
+    @php
+        $money  = fn ($v) => number_format($v, 0, ',', '.') . 'đ';
+        $labels = \App\Services\OrderStatusService::LABELS;
+        // Màu khớp partials/status-badge + biểu đồ donut
+        $colors = [
+            'pending'   => '#f59e0b',
+            'confirmed' => '#3b82f6',
+            'cooking'   => '#f97316',
+            'ready'     => '#a855f7',
+            'completed' => '#22c55e',
+            'cancelled' => '#94a3b8',
+        ];
+        $icons = [
+            'pending'   => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+            'confirmed' => '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+            'cooking'   => '<path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 0-7.5Z"/><path d="M5 21h14"/>',
+            'ready'     => '<path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+        ];
+        $chartData = [
+            'series' => $series,
+            'status' => collect($labels)->map(fn ($label, $status) => [
+                'label' => $label,
+                'count' => $counts[$status],
+                'color' => $colors[$status],
+            ])->values(),
+        ];
+    @endphp
 
-    <h1 class="text-xl font-bold mb-1">Tổng quan</h1>
-    <p class="text-sm text-slate-500 mb-6">{{ $branch->name }} · {{ now()->format('d/m/Y') }}</p>
+    <div class="mb-6">
+        <h1 class="text-xl font-bold text-red-500">Chào mừng đến chi nhánh {{ $branch->name }}</h1>
+        <p class="text-sm text-slate-600">Theo dõi tình hình kinh doanh và số liệu của chi nhánh</p>
+    </div>
 
-    {{-- 4 ô số liệu hôm nay --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        @foreach ([
-            ['Doanh thu hôm nay', $money($today['revenue']), 'text-green-600'],
-            ['Tổng đơn hôm nay', $today['orders'], 'text-slate-800'],
-            ['Chờ xác nhận', $today['pending'], 'text-amber-600'],
-            ['Đã huỷ', $today['cancelled'], 'text-slate-500'],
-        ] as [$label, $value, $color])
-            <div class="bg-white rounded-2xl p-4 border border-slate-100">
-                <p class="text-xs text-slate-400">{{ $label }}</p>
-                <p class="text-2xl font-bold mt-1 {{ $color }}">{{ $value }}</p>
+    {{-- Phân tích kinh doanh --}}
+    <section class="bg-white rounded-2xl border border-slate-100 p-5 mb-6">
+        <div class="flex items-center justify-between gap-3 mb-5">
+            <h2 class="font-semibold flex items-center gap-2">
+                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg>
+                Phân tích kinh doanh
+            </h2>
+            <form method="GET">
+                <select name="period" onchange="this.form.submit()"
+                        class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-red-100">
+                    @foreach (\App\Services\BranchStats::PERIODS as $value => $label)
+                        <option value="{{ $value }}" @selected($period === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </form>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            @foreach ($icons as $status => $icon)
+                <a href="{{ route('manager.orders.index', ['status' => $status]) }}"
+                   class="relative rounded-xl border border-slate-200 p-5 hover:shadow-md transition">
+                    <span class="absolute top-4 right-4 w-9 h-9 rounded-full grid place-items-center"
+                          style="background: {{ $colors[$status] }}1a; color: {{ $colors[$status] }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">{!! $icon !!}</svg>
+                    </span>
+                    <p class="text-sm font-medium text-slate-600 mt-4">{{ $labels[$status] }}</p>
+                    <p class="text-2xl font-bold mt-1">{{ $counts[$status] }}</p>
+                </a>
+            @endforeach
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-4 mt-4">
+            @foreach ([
+                [$labels['completed'], $counts['completed'], 'text-green-600'],
+                [$labels['cancelled'], $counts['cancelled'], 'text-red-500'],
+                ['Doanh thu', $money($counts['revenue']), 'text-blue-600'],
+            ] as [$label, $value, $color])
+                <div class="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-4">
+                    <span class="text-sm font-medium text-slate-600">{{ $label }}</span>
+                    <span class="text-lg font-bold {{ $color }}">{{ $value }}</span>
+                </div>
+            @endforeach
+        </div>
+    </section>
+
+    {{-- Số liệu cho biểu đồ (đọc ở resources/js/manager-dashboard.js) --}}
+    <script type="application/json" id="dashboard-data">@json($chartData)</script>
+
+    <div class="grid lg:grid-cols-3 gap-6 mb-6">
+        {{-- Thống kê đơn hàng --}}
+        <section class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5" data-chart-card="orders">
+            <div class="flex items-center justify-between gap-3 mb-2">
+                <h2 class="font-semibold">Thống kê đơn hàng</h2>
+                @include('manager.partials.range-tabs')
             </div>
-        @endforeach
+            <div id="orders-chart"></div>
+        </section>
+
+        {{-- Tỉ lệ trạng thái --}}
+        <section class="bg-white rounded-2xl border border-slate-100 p-5">
+            <h2 class="font-semibold mb-2">Tỉ lệ trạng thái đơn</h2>
+            @if ($counts['total'] > 0)
+                <div id="status-chart"></div>
+                <div class="flex flex-wrap gap-x-4 gap-y-2 mt-3 text-xs text-slate-600">
+                    @foreach ($labels as $status => $label)
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full" style="background: {{ $colors[$status] }}"></span>
+                            {{ $label }} ({{ $counts[$status] }})
+                        </span>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-sm text-slate-400 py-16 text-center">Chưa có đơn trong kỳ này.</p>
+            @endif
+        </section>
     </div>
 
     <div class="grid lg:grid-cols-3 gap-6">
-        {{-- Doanh thu 7 ngày: thanh div, cao theo % ngày lớn nhất --}}
-        <section class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-100">
-            <h2 class="font-semibold mb-4">Doanh thu 7 ngày gần nhất</h2>
-            @php $max = max(1, max($revenue7)); @endphp
-            <div class="flex items-end gap-2 h-48">
-                @foreach ($revenue7 as $day => $value)
-                    <div class="flex-1 flex flex-col items-center justify-end h-full" title="{{ $money($value) }}">
-                        <div class="w-full rounded-t-md bg-red-400" style="height: {{ round($value / $max * 100) }}%"></div>
-                        <span class="text-[10px] text-slate-400 mt-1">{{ \Illuminate\Support\Carbon::parse($day)->format('d/m') }}</span>
-                    </div>
-                @endforeach
+        {{-- Thống kê doanh thu --}}
+        <section class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-5" data-chart-card="revenue">
+            <div class="flex items-center justify-between gap-3 mb-2">
+                <h2 class="font-semibold">Thống kê doanh thu</h2>
+                @include('manager.partials.range-tabs')
             </div>
+            <div id="revenue-chart"></div>
         </section>
 
-        {{-- Món bán chạy hôm nay --}}
-        <section class="bg-white rounded-2xl p-5 border border-slate-100">
-            <h2 class="font-semibold mb-4">Món bán chạy hôm nay</h2>
-            @forelse ($topItems as $i => $item)
-                <div class="flex items-center justify-between py-2 text-sm {{ !$loop->last ? 'border-b border-slate-100' : '' }}">
-                    <span class="truncate">{{ $i + 1 }}. {{ $item->name }}</span>
-                    <span class="text-slate-500 whitespace-nowrap">{{ $item->qty }} phần</span>
-                </div>
+        {{-- Đơn gần đây --}}
+        <section class="bg-white rounded-2xl border border-slate-100 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-semibold">Đơn gần đây</h2>
+                <a href="{{ route('manager.orders.index') }}" class="text-sm text-red-500 hover:underline">Xem tất cả</a>
+            </div>
+            @forelse ($recentOrders as $order)
+                <a href="{{ route('manager.orders.show', $order) }}"
+                   class="flex items-center justify-between gap-3 py-3 {{ !$loop->last ? 'border-b border-slate-100' : '' }} hover:bg-slate-50 -mx-2 px-2 rounded-lg">
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold">Đơn #{{ $order->order_code }}</p>
+                        <p class="text-xs text-slate-400">{{ $order->created_at->format('H:i d/m/Y') }} · {{ $money($order->total) }}</p>
+                    </div>
+                    @include('manager.partials.status-badge', ['status' => $order->status])
+                </a>
             @empty
-                <p class="text-sm text-slate-400">Chưa có đơn hoàn thành hôm nay.</p>
+                <p class="text-sm text-slate-400">Chưa có đơn nào.</p>
             @endforelse
         </section>
     </div>
-
-    {{-- Đơn đang chờ xác nhận --}}
-    <section class="bg-white rounded-2xl p-5 border border-slate-100 mt-6">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="font-semibold">Đơn chờ xác nhận</h2>
-            @if (Route::has('manager.orders.index'))
-                <a href="{{ route('manager.orders.index', ['status' => 'pending']) }}" class="text-sm text-red-500 hover:underline">Xem tất cả →</a>
-            @endif
-        </div>
-        @forelse ($pendingOrders as $order)
-            <div class="flex items-center justify-between py-2 text-sm {{ !$loop->last ? 'border-b border-slate-100' : '' }}">
-                <div class="min-w-0">
-                    <p class="font-semibold">{{ $order->order_code }}</p>
-                    <p class="text-xs text-slate-400 truncate">{{ $order->user?->name }} · {{ $order->created_at->format($order->created_at->isToday() ? 'H:i' : 'H:i d/m') }} · {{ $order->type === 'delivery' ? 'Giao hàng' : 'Mang đi' }}</p>
-                </div>
-                <span class="font-semibold whitespace-nowrap">{{ $money($order->total) }}</span>
-            </div>
-        @empty
-            <p class="text-sm text-slate-400">Không có đơn nào đang chờ. 🎉</p>
-        @endforelse
-    </section>
 @endsection
