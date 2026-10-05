@@ -10,24 +10,23 @@ class SalaryConfigSeeder extends Seeder
 {
     public function run(): void
     {
-        // Cấu hình lương theo role
+        // Lương theo giờ: [thử việc, chính thức]
         $salaryByRole = [
-            'manager' => ['type' => 'fixed',  'rate' => 12000000], // 12 triệu/tháng
-            'staff'   => ['type' => 'hourly', 'rate' => 25000],    // 25k/giờ
-            'kitchen' => ['type' => 'hourly', 'rate' => 22000],    // 22k/giờ
+            'staff'   => [20000, 25000],
+            'kitchen' => [18000, 22000],
         ];
+        $startedAt = now()->subMonth()->startOfMonth();
 
-        $staffUsers = User::whereIn('role', ['manager', 'staff', 'kitchen'])->get();
-
-        foreach ($staffUsers as $user) {
-            $config = $salaryByRole[$user->role] ?? null;
-            if (!$config) continue;
+        foreach (User::whereIn('role', array_keys($salaryByRole))->get() as $user) {
+            [$probation, $rate] = $salaryByRole[$user->role];
+            $user->update(['started_at' => $startedAt]);
 
             SalaryConfig::create([
                 'user_id'        => $user->id,
-                'type'           => $config['type'],
-                'rate'           => $config['rate'],
-                'effective_from' => now()->startOfMonth(),
+                'type'           => 'hourly',
+                'rate'           => $rate,
+                'probation_rate' => $probation,
+                'effective_from' => $startedAt,
             ]);
         }
     }
