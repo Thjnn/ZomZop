@@ -118,6 +118,35 @@ class DashboardTest extends TestCase
             ->assertSee('ZZPENDING1');
     }
 
+    public function test_dashboard_lists_pending_orders_with_approve_action(): void
+    {
+        $branch = $this->makeBranch();
+        $other  = $this->makeBranch('Other');
+        $mine   = $this->makeOrder($branch, ['status' => 'pending', 'order_code' => 'ZZWAIT0001']);
+        $this->makeOrder($branch, ['status' => 'confirmed', 'order_code' => 'ZZCONF0001']);
+        $this->makeOrder($other, ['status' => 'pending', 'order_code' => 'ZZOTHER001']);
+
+        $this->actingAs($this->makeUser('manager', $branch))
+            ->get('/manager')
+            ->assertViewHas('pendingOrders', fn ($orders) => $orders->pluck('order_code')->all() === ['ZZWAIT0001'])
+            ->assertSee(route('manager.orders.status', $mine), false)
+            ->assertSee('Duyệt');
+    }
+
+    public function test_approving_from_dashboard_returns_to_dashboard(): void
+    {
+        $branch = $this->makeBranch();
+        $order  = $this->makeOrder($branch, ['status' => 'pending']);
+
+        $this->actingAs($this->makeUser('manager', $branch))
+            ->from('/manager')
+            ->patch(route('manager.orders.status', $order), ['status' => 'confirmed'])
+            ->assertRedirect('/manager')
+            ->assertSessionHas('success');
+
+        $this->assertSame('confirmed', $order->fresh()->status);
+    }
+
     public function test_dashboard_period_filter(): void
     {
         $branch = $this->makeBranch();

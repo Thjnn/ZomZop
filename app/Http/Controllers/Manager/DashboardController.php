@@ -25,6 +25,8 @@ class DashboardController extends ManagerController
                 'week'  => $stats->series($branchId, 'week'),
             ],
             'recentOrders' => Order::ofBranch($branchId)->latest()->limit(5)->get(),
+            // Đơn chờ lâu nhất lên trước, gồm cả đơn tồn từ hôm trước
+            'pendingOrders' => Order::ofBranch($branchId)->pending()->with('user')->oldest()->limit(5)->get(),
         ]);
     }
 }

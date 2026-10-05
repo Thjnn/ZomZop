@@ -85,6 +85,51 @@
         </div>
     </section>
 
+    {{-- Đơn chờ xác nhận: duyệt/huỷ nhanh, gửi về route đổi trạng thái có sẵn rồi quay lại đây --}}
+    @if ($pendingOrders->isNotEmpty())
+        <section class="bg-white rounded-2xl border border-amber-200 p-5 mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-semibold flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    Đơn chờ xác nhận
+                </h2>
+                <a href="{{ route('manager.orders.index', ['status' => 'pending']) }}" class="text-sm text-red-500 hover:underline">Xem tất cả</a>
+            </div>
+
+            @foreach ($pendingOrders as $order)
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 {{ !$loop->last ? 'border-b border-slate-100' : '' }}">
+                    <a href="{{ route('manager.orders.show', $order) }}" class="min-w-0 flex-1 hover:text-red-500">
+                        <p class="text-sm font-semibold">Đơn #{{ $order->order_code }}</p>
+                        <p class="text-xs text-slate-400 truncate">
+                            {{ $order->user?->name }} · {{ $order->created_at->format($order->created_at->isToday() ? 'H:i' : 'H:i d/m') }}
+                            · {{ $order->type === 'delivery' ? 'Giao hàng' : 'Mang đi' }}
+                        </p>
+                    </a>
+                    <span class="text-sm font-semibold whitespace-nowrap">{{ $money($order->total) }}</span>
+
+                    <div class="flex items-start gap-2">
+                        <form method="POST" action="{{ route('manager.orders.status', $order) }}">
+                            @csrf @method('PATCH')
+                            <input type="hidden" name="status" value="confirmed">
+                            <button class="px-4 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold cursor-pointer">Duyệt</button>
+                        </form>
+                        <details class="relative">
+                            <summary class="list-none [&::-webkit-details-marker]:hidden px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm cursor-pointer">Huỷ</summary>
+                            <form method="POST" action="{{ route('manager.orders.status', $order) }}"
+                                  class="absolute right-0 z-10 mt-2 w-64 bg-white rounded-xl border border-slate-100 shadow-lg p-3">
+                                @csrf @method('PATCH')
+                                <input type="hidden" name="status" value="cancelled">
+                                <input type="text" name="note" required maxlength="255" placeholder="Lý do huỷ (bắt buộc)"
+                                       class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm mb-2">
+                                <button class="w-full px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-sm cursor-pointer">Xác nhận huỷ</button>
+                            </form>
+                        </details>
+                    </div>
+                </div>
+            @endforeach
+        </section>
+    @endif
+
     {{-- Số liệu cho biểu đồ (đọc ở resources/js/manager-dashboard.js) --}}
     <script type="application/json" id="dashboard-data">@json($chartData)</script>
 
