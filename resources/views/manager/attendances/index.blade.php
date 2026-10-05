@@ -37,7 +37,20 @@
                             @endif
                         </td>
                         <td class="px-4 py-3">{{ $a->check_out ? number_format($a->working_hours, 2, ',', '.') : '—' }}</td>
-                        <td class="px-4 py-3 text-slate-500">{{ $a->method === 'face' ? 'Khuôn mặt' : 'Thủ công' }}@if ($a->note) · {{ $a->note }} @endif</td>
+                        <td class="px-4 py-3 text-slate-500">
+                            @if ($a->method === 'face')
+                                <span class="{{ $a->face_confidence !== null && $a->face_confidence < 30 ? 'text-orange-600 font-semibold' : '' }}">Khuôn mặt · {{ round((float) $a->face_confidence) }}%</span>
+                                @if ($a->photo_path)
+                                    · <a href="{{ route('manager.attendances.photo', [$a, 'in']) }}" target="_blank" class="text-red-500 hover:underline">Ảnh vào</a>
+                                @endif
+                                @if ($a->check_out)
+                                    · <a href="{{ route('manager.attendances.photo', [$a, 'out']) }}" target="_blank" class="text-red-500 hover:underline">Ảnh ra</a>
+                                @endif
+                            @else
+                                Thủ công
+                            @endif
+                            @if ($a->note) · {{ $a->note }} @endif
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Chưa có chấm công ngày này.</td></tr>

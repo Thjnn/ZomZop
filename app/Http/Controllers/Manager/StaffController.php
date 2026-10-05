@@ -47,7 +47,7 @@ class StaffController extends ManagerController
     {
         $staff = User::where('branch_id', $this->branchId())
             ->whereIn('role', array_keys(self::ROLES))
-            ->with('latestSalary')
+            ->with('latestSalary')->withCount('faceDescriptors')
             ->orderByDesc('is_active')->orderBy('name')
             ->get();
 
