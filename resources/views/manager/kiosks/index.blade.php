@@ -10,12 +10,33 @@
         <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 text-sm">
             <p class="font-semibold">Link ghép thiết bị — chỉ hiện một lần, hãy mở ngay trên máy quầy:</p>
             <div class="flex gap-2 mt-2">
-                <input id="kiosk-link" readonly value="{{ session('kiosk_link') }}" class="flex-1 px-3 py-2 rounded-lg border border-amber-200 bg-white font-mono text-xs">
-                <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('kiosk-link').value); this.textContent = 'Đã chép'"
-                        class="px-3 py-2 rounded-lg bg-slate-800 text-white cursor-pointer">Chép</button>
+                <input id="kiosk-link" readonly value="{{ session('kiosk_link') }}" onfocus="this.select()" class="flex-1 px-3 py-2 rounded-lg border border-amber-200 bg-white font-mono text-xs">
+                <button type="button" id="kiosk-copy" class="px-3 py-2 rounded-lg bg-slate-800 text-white cursor-pointer">Chép</button>
             </div>
-            <p class="text-xs text-slate-500 mt-2">Camera chỉ chạy trên HTTPS hoặc localhost. Mất link thì thu hồi và tạo thiết bị mới.</p>
+            <p id="kiosk-copy-msg" class="text-xs text-slate-500 mt-2">Camera chỉ chạy trên HTTPS hoặc localhost. Mất link thì thu hồi và tạo thiết bị mới.</p>
         </div>
+        <script>
+            // Trang http thường (VD http://zomzop.test) bị trình duyệt chặn navigator.clipboard → dùng execCommand dự phòng;
+            // vẫn không được thì báo rõ, tránh dán nhầm link cũ còn trong bộ nhớ tạm
+            document.getElementById('kiosk-copy').addEventListener('click', async (e) => {
+                const input = document.getElementById('kiosk-link');
+                const msg = document.getElementById('kiosk-copy-msg');
+                let ok = false;
+                try {
+                    await navigator.clipboard.writeText(input.value);
+                    ok = true;
+                } catch {
+                    input.focus();
+                    input.select();
+                    try { ok = document.execCommand('copy'); } catch {}
+                }
+                e.target.textContent = ok ? 'Đã chép' : 'Chép tay';
+                if (!ok) {
+                    msg.textContent = 'Trình duyệt không cho chép tự động — link đã được bôi đen, hãy bấm Ctrl+C.';
+                    msg.className = 'text-xs text-red-600 font-semibold mt-2';
+                }
+            });
+        </script>
     @endif
 
     <div class="grid lg:grid-cols-3 gap-6">
