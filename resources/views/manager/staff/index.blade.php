@@ -39,6 +39,7 @@
                         </td>
                         <td class="px-4 py-3">{{ $u->is_active ? 'Đang làm' : 'Đã khoá' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-right">
+                            <a href="{{ route('manager.staff.face', $u) }}" class="inline-block px-2 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 mr-3">📷 {{ $u->face_descriptors_count ? 'Khuôn mặt' : 'Chụp khuôn mặt' }}</a>
                             <a href="{{ route('manager.staff.edit', $u) }}" class="text-red-500 hover:underline mr-3">Sửa</a>
                             <form method="POST" action="{{ route('manager.staff.lock', $u) }}" class="inline">
                                 @csrf @method('PATCH')
