@@ -98,6 +98,24 @@ DB_PASSWORD=
 php artisan migrate --seed
 ```
 
+Tài khoản mẫu (mật khẩu đều là `12345678`):
+
+| Vai trò | Mỹ Tho 1 | Bến Tre | Mỹ Tho 2 |
+|---|---|---|---|
+| Quản lý 1 | `manager@zomzop.com` | `ql1.bentre@zomzop.com` | `ql1.mytho2@zomzop.com` |
+| Quản lý 2 | `ql2.mytho1@zomzop.com` | `ql2.bentre@zomzop.com` | `ql2.mytho2@zomzop.com` |
+| Nhân viên | `staff@zomzop.com`, `nv2.mytho1@zomzop.com` | `nv1.bentre@…`, `nv2.bentre@…` | `nv1.mytho2@…`, `nv2.mytho2@…` |
+| Bếp | `kitchen@zomzop.com` | `bep.bentre@zomzop.com` | `bep.mytho2@zomzop.com` |
+
+Ngoài ra: `admin@zomzop.com` (admin), `customer@zomzop.com` (khách). Mỗi quản lý chỉ thấy và thao tác dữ liệu chi nhánh của mình.
+
+Thêm quản lý cho chi nhánh mà **không xoá dữ liệu** (chưa có trang Admin):
+
+```bash
+php artisan zomzop:manager "Bến Tre" ten.moi@zomzop.com --name="Trần Văn A"
+# Bỏ --password thì hệ thống tạo mật khẩu ngẫu nhiên và in ra màn hình; dùng ID chi nhánh cũng được: zomzop:manager 2 ...
+```
+
 ### 4. Chạy development
 
 ```bash
