@@ -8,14 +8,17 @@ Ngày: 2026-10-05 · Nhánh dự kiến: tách nhánh mới từ `manager-dashbo
 ## 1. Mục tiêu
 
 - Nhân viên (staff/kitchen) **chấm vào / chấm ra bằng khuôn mặt** trên một thiết bị đặt tại quầy chi nhánh
-  (tablet hoặc laptop có webcam), không cần đăng nhập.
+  (laptop/PC có webcam), không cần đăng nhập.
 - Manager **đăng ký khuôn mặt** cho nhân viên của chi nhánh mình, xem và xoá được.
 - Lượt chấm bằng khuôn mặt đi chung bảng `attendances` (`method = 'face'`, có `face_confidence`),
   nên bảng chấm công, bảng lương và xuất Excel đã làm ở giai đoạn 5 **dùng được ngay**, không phải sửa.
 - Chấm công thủ công của manager vẫn giữ nguyên làm phương án dự phòng.
 
+- Mỗi lượt chấm bằng khuôn mặt lưu **1 ảnh nhỏ làm bằng chứng, giữ 30 ngày** rồi tự xoá (mục 4.5).
+  Ảnh này **không** dùng để nhận diện — nhận diện chỉ dùng descriptor.
+
 **Không làm:** nhận diện nhiều người cùng lúc, chấm công từ điện thoại cá nhân, chấm công theo GPS,
-lưu ảnh khuôn mặt.
+nhân viên tự đăng ký khuôn mặt, trang chỉnh ngưỡng nhận diện (chỉnh trong `.env`), tự đóng lượt quên chấm ra.
 
 ## 2. Hiện trạng trong code (đã có sẵn)
 
@@ -82,16 +85,39 @@ lưu ảnh khuôn mặt.
 - `method = 'face'`, `face_confidence` = độ tin cậy (%) — xem cách tính ở mục 6.
 - `shift_id` bắt buộc → server tự chọn ca (mục 7).
 - `note`: ghi `Thiết bị: <tên kiosk>` để truy vết.
+- **Migration thêm cột** `photo_path` (string, nullable): đường dẫn ảnh bằng chứng; về `null` khi ảnh đã bị xoá.
 
 ### 4.4 Cấu hình (`config/attendance.php`, đọc từ `.env`)
 
-| Khoá | Mặc định | Ý nghĩa |
+Ngưỡng chỉ chỉnh trong `.env` (không có trang cài đặt). Sau khi sửa `.env` chạy `php artisan config:clear`.
+
+| Khoá (`.env`) | Mặc định | Ý nghĩa |
 |---|---|---|
-| `face.threshold` | `0.45` | Khoảng cách Euclid tối đa để coi là khớp (face-api khuyến nghị 0.6; chọn chặt hơn vì sai người là ghi sai lương) |
+| `face.threshold` (`FACE_THRESHOLD`) | `0.45` | Khoảng cách Euclid tối đa để coi là khớp (face-api khuyến nghị 0.6; chọn chặt hơn vì sai người là ghi sai lương) |
+| `face.photo_days` (`FACE_PHOTO_DAYS`) | `30` | Số ngày giữ ảnh bằng chứng |
 | `face.margin` | `0.08` | Người gần nhất phải gần hơn người thứ hai ít nhất chừng này, nếu không → "không chắc", từ chối |
 | `face.max_samples` | `5` | Số mẫu tối đa mỗi người |
 | `face.cooldown_minutes` | `2` | Chấm liên tiếp trong khoảng này → bỏ qua, trả lại kết quả lần trước (tránh đứng trước camera bị chấm vào rồi ra ngay) |
 | `face.min_shift_minutes` | `10` | Chấm ra khi mới vào chưa được chừng này phút → hỏi lại trên màn hình, không tự chấm ra |
+
+### 4.5 Ảnh bằng chứng
+
+- **Chụp:** lúc gửi `POST /kiosk/punch`, trình duyệt gửi kèm 1 khung hình JPEG thu nhỏ **320×240, chất lượng 0.6
+  (~15–25 KB)**, dạng file trong `multipart/form-data` (trường `photo`).
+- **Lưu:** chỉ khi kết quả là `checked_in` hoặc `checked_out`. Không lưu khi `not_recognized`, `duplicate`, `no_shift`.
+  - Disk `local` (thư mục **riêng tư** `storage/app/private`, không public), đường dẫn
+    `attendance-photos/{branch_id}/{Y-m-d}/{attendance_id}-{in|out}.jpg`.
+  - Lượt chấm ra lưu ảnh thứ hai → cột `photo_path` giữ ảnh **chấm vào**; ảnh chấm ra cùng thư mục, tên `-out`.
+    *(ponytail: suy tên file ảnh ra thay vì thêm cột thứ hai; thêm cột `photo_out_path` nếu cần tìm kiếm riêng)*
+  - Validate: `image`, `mimes:jpeg`, tối đa **200 KB**; sai thì vẫn chấm công nhưng bỏ ảnh (không bắt nhân viên chấm lại).
+- **Xem:** chỉ manager của chi nhánh, qua `GET /manager/attendances/{attendance}/photo/{in|out}` (stream file,
+  chặn chi nhánh khác → 404, ảnh đã xoá → 404). Không có link trực tiếp tới file.
+- **Xoá sau 30 ngày:** lệnh `php artisan attendance:prune-photos` xoá thư mục ngày cũ hơn `photo_days` và đặt
+  `photo_path = null` cho các lượt đó. Đăng ký chạy hằng ngày trong `routes/console.php`
+  (`Schedule::command('attendance:prune-photos')->daily()`).
+  - Chạy local (Laragon): scheduler chỉ chạy khi có `php artisan schedule:work` đang mở, hoặc tạo Windows Task
+    Scheduler gọi `php artisan schedule:run` mỗi phút. Không bật thì ảnh không tự xoá — chạy tay lệnh trên cũng được.
+- **Xoá theo người:** "Xoá dữ liệu khuôn mặt" của một nhân viên xoá luôn ảnh bằng chứng của người đó.
 
 ## 5. Các luồng
 
@@ -132,7 +158,7 @@ Trang `/kiosk` (không cần đăng nhập, layout toàn màn hình, chữ lớn
 2. Bật webcam, vòng lặp ~5 lần/giây phát hiện khuôn mặt (tiny face detector, `inputSize 320`).
 3. Khi có **đúng 1** khuôn mặt đủ lớn, đứng yên ~1 giây → chạy kiểm tra người thật (mục 8).
 4. Đạt → tính descriptor (trung bình 3 khung hình liên tiếp cho ổn định) → `POST /kiosk/punch`
-   `{descriptor}` kèm header `X-Kiosk-Token`.
+   `{descriptor, photo}` (ảnh bằng chứng, mục 4.5) kèm header `X-Kiosk-Token`.
 5. Server trả về một trong các kết quả:
    - `checked_in` — "Chào Ngân · Vào ca sáng lúc 08:02";
    - `checked_out` — "Tạm biệt Ngân · Ra ca lúc 14:05 · 6,05 giờ";
@@ -187,17 +213,20 @@ Service `App\Services\FacePunch::punch(KioskDevice $device, User $user, bool $fo
 |---|---|
 | Giơ ảnh/điện thoại có mặt người khác | **Liveness chủ động** trên trình duyệt: yêu cầu ngẫu nhiên "chớp mắt" hoặc "quay đầu sang trái/phải", kiểm bằng 68 điểm landmark (tỉ lệ mắt EAR giảm rồi tăng lại; góc yaw đổi > 15°). Hết 5 giây không đạt → thử lại. |
 | Gọi thẳng API `/kiosk/punch` với descriptor tự chế | Bắt buộc token thiết bị hợp lệ (không thu hồi); rate limit **10 lần/phút/thiết bị** và **30 lần/phút/IP**; descriptor phải hợp lệ; không bao giờ trả descriptor ra ngoài. Trường hợp kẻ gian có cả token lẫn descriptor của người khác thì không chặn được hoàn toàn — chấp nhận ở mức quán ăn, bù bằng mục kế tiếp. |
-| Chấm hộ | Manager xem `face_confidence` + thiết bị trên trang chấm công; lượt có confidence < 30% tô màu cảnh báo. Có thể bật **lưu ảnh chụp nhỏ** làm bằng chứng — *mặc định tắt*, xem câu hỏi Q3. |
+| Chấm hộ | Manager xem `face_confidence` + thiết bị trên trang chấm công; lượt có confidence < 30% tô màu cảnh báo. Mỗi lượt có **ảnh bằng chứng** (giữ 30 ngày) để manager xem khi nghi chấm hộ. |
 | Lộ token khi dán link | Token chỉ hiện 1 lần, lưu dạng hash; xoá khỏi URL sau khi lưu; manager thu hồi được. |
 | Nhận nhầm người giống nhau | `threshold` chặt + `margin`; chống đăng ký trùng ở mục 5.2. |
 
 ## 9. Quyền riêng tư
 
-- Chỉ lưu **descriptor 128 số**, không lưu ảnh (trừ khi bật Q3).
-- Có bước xác nhận đồng ý khi đăng ký (mục 5.2.5); thêm một đoạn ngắn vào nội quy/hợp đồng nhân viên.
-- Nhân viên nghỉ việc: khi manager khoá tài khoản, hiện gợi ý "Xoá dữ liệu khuôn mặt?".
-- Webcam chỉ chạy khi mở trang kiosk/đăng ký; trình duyệt yêu cầu **HTTPS** (hoặc `localhost`) mới cho dùng camera
-  → khi chạy thật cần HTTPS (Laragon: bật SSL cho `zomzop.test`).
+- Để nhận diện chỉ lưu **descriptor 128 số**, không lưu ảnh lúc đăng ký.
+- Ảnh bằng chứng lúc chấm công: thư mục riêng tư, chỉ manager chi nhánh xem, **tự xoá sau 30 ngày** (mục 4.5).
+- Có bước xác nhận đồng ý khi đăng ký (mục 5.2.5), câu chữ ghi rõ cả hai việc: "lưu đặc trưng khuôn mặt để chấm công
+  và lưu ảnh chụp lúc chấm công trong 30 ngày"; thêm một đoạn ngắn vào nội quy/hợp đồng nhân viên.
+- Nhân viên nghỉ việc: khi manager khoá tài khoản, hiện gợi ý "Xoá dữ liệu khuôn mặt?" (xoá cả mẫu lẫn ảnh).
+- Webcam chỉ chạy khi mở trang kiosk/đăng ký; trình duyệt chỉ cho dùng camera trên **HTTPS** hoặc `localhost`.
+  Dự án chạy local/demo: bật SSL cho `zomzop.test` trong Laragon (Menu → Apache → SSL → Enabled) và mở
+  `https://zomzop.test/kiosk`; trình duyệt sẽ cảnh báo chứng chỉ tự ký — bấm tiếp tục một lần.
 
 ## 10. Giao diện
 
@@ -205,7 +234,9 @@ Service `App\Services\FacePunch::punch(KioskDevice $device, User $user, bool $fo
   - Danh sách nhân viên: thêm cột "Khuôn mặt" (số mẫu `3/5` hoặc "Chưa đăng ký") + nút "Khuôn mặt".
   - Trang đăng ký: khung video, viền xanh khi khuôn mặt hợp lệ, 3 ô hướng dẫn góc chụp, danh sách mẫu đã có.
   - Sidebar "Nhân sự": thêm mục **Thiết bị quầy** (`/manager/kiosks`): danh sách, thêm, thu hồi, lần dùng cuối.
-  - Trang chấm công: cột "Cách chấm" hiện `Khuôn mặt · 87%`, tô cam khi < 30%.
+  - Trang chấm công: cột "Cách chấm" hiện `Khuôn mặt · 87%`, tô cam khi < 30%; nút "Ảnh" mở ảnh vào/ra
+    trong cửa sổ nhỏ (ảnh đã quá 30 ngày → "Ảnh đã xoá").
+  - Quên chấm ra: giữ như hiện tại — manager đóng tay ở trang chấm công.
 - **Kiosk** (`resources/views/kiosk/index.blade.php`, layout riêng không sidebar): đồng hồ lớn, tên chi nhánh,
   khung video có lớp phủ hướng dẫn ("Nhìn vào camera", "Hãy chớp mắt"), thẻ kết quả to rõ, nút "Báo quản lý"
   (chỉ hiện hướng dẫn chấm tay).
@@ -217,12 +248,15 @@ Service `App\Services\FacePunch::punch(KioskDevice $device, User $user, bool $fo
 | `database/migrations/xxxx_create_kiosk_devices_table.php` | Bảng thiết bị |
 | `app/Models/KioskDevice.php` | Model, `scopeActive`, `findByToken(string)` |
 | `app/Models/FaceDescriptor.php` | Bỏ `$timestamps = false` |
-| `config/attendance.php` | Ngưỡng, cooldown… |
+| `config/attendance.php` | Ngưỡng, cooldown, số ngày giữ ảnh |
+| `database/migrations/xxxx_add_photo_path_to_attendances_table.php` | Cột `photo_path` |
+| `app/Console/Commands/PruneAttendancePhotos.php` + `routes/console.php` | Xoá ảnh quá hạn, lịch chạy hằng ngày |
 | `app/Services/FaceMatcher.php` | So khớp (mục 6) |
 | `app/Services/FacePunch.php` | Chấm vào/ra, chọn ca (mục 7) |
 | `app/Http/Middleware/KioskDevice.php` | Đọc `X-Kiosk-Token`, gắn `$request->attributes['kiosk']`, cập nhật `last_used_at` |
 | `app/Http/Controllers/Manager/KioskController.php` | Thêm/thu hồi thiết bị |
 | `app/Http/Controllers/Manager/FaceController.php` | Đăng ký/xoá mẫu |
+| `app/Http/Controllers/Manager/AttendanceController.php` | Thêm `photo()` xem ảnh bằng chứng |
 | `app/Http/Controllers/KioskController.php` | Trang kiosk, `status`, `punch` |
 | `routes/kiosk.php` (đăng ký trong `bootstrap/app.php` như `routes/manager.php`) | Route kiosk + `throttle` |
 | `resources/js/face/camera.js` | Bật webcam, vòng lặp phát hiện |
@@ -233,8 +267,8 @@ Service `App\Services\FacePunch::punch(KioskDevice $device, User $user, bool $fo
 
 ## 12. Các task triển khai (mỗi task: test fail → code → test pass → commit)
 
-1. **Dữ liệu + config:** migration `kiosk_devices`, model `KioskDevice`, sửa `FaceDescriptor`, `config/attendance.php`.
-   Test: tạo thiết bị, `findByToken` đúng/sai/đã thu hồi.
+1. **Dữ liệu + config:** migration `kiosk_devices` + cột `attendances.photo_path`, model `KioskDevice`,
+   sửa `FaceDescriptor`, `config/attendance.php`. Test: tạo thiết bị, `findByToken` đúng/sai/đã thu hồi.
 2. **`FaceMatcher`:** test với vector tự tạo (không cần ảnh thật): khớp đúng người; vượt `threshold` → null;
    2 người quá sát nhau (không đủ `margin`) → null; nhân viên bị khoá/chi nhánh khác không được so; nhiều mẫu lấy min.
 3. **`FacePunch`:** test chấm vào chọn đúng ca; ca qua đêm; không có ca → `no_shift`; chấm ra; vào chưa đủ 10 phút →
@@ -245,31 +279,37 @@ Service `App\Services\FacePunch::punch(KioskDevice $device, User $user, bool $fo
    test token sai/thu hồi → 401, descriptor sai → 422, khớp → ghi lượt, chi nhánh của thiết bị quyết định phạm vi so khớp.
 6. **Đăng ký khuôn mặt (server):** `POST/DELETE /manager/staff/{user}/face`; tối đa 5 mẫu; chống trùng người khác;
    bắt buộc xác nhận đồng ý; chặn nhân viên chi nhánh khác.
-7. **Frontend đăng ký:** cài `@vladmandic/face-api`, chép model vào `public/models/face`, trang đăng ký có camera.
+7. **Ảnh bằng chứng (server):** lưu ảnh khi `punch` thành công (`Storage::fake('local')` trong test); ảnh sai định dạng/
+   quá 200 KB → vẫn chấm, không lưu ảnh; route xem ảnh chặn chi nhánh khác + 404 khi đã xoá; lệnh
+   `attendance:prune-photos` xoá ảnh > 30 ngày và đặt `photo_path = null` (dùng `travelTo` trong test);
+   xoá dữ liệu khuôn mặt của nhân viên xoá luôn ảnh.
+8. **Frontend đăng ký:** cài `@vladmandic/face-api`, chép model vào `public/models/face`, trang đăng ký có camera.
    Kiểm thử tay trên trình duyệt (checklist mục 13).
-8. **Frontend kiosk + liveness:** trang `/kiosk`, vòng lặp phát hiện, liveness, gọi API, hiện kết quả.
-   Kiểm thử tay.
-9. **Hiển thị:** cột khuôn mặt ở danh sách nhân viên, `Khuôn mặt · 87%` + cảnh báo ở trang chấm công,
-   mục sidebar "Thiết bị quầy", README.
+9. **Frontend kiosk + liveness:** trang `/kiosk`, vòng lặp phát hiện, liveness, chụp ảnh 320×240 gửi kèm,
+   gọi API, hiện kết quả. Kiểm thử tay.
+10. **Hiển thị:** cột khuôn mặt ở danh sách nhân viên, `Khuôn mặt · 87%` + cảnh báo + nút "Ảnh" ở trang chấm công,
+    mục sidebar "Thiết bị quầy", README (cách bật SSL Laragon, scheduler xoá ảnh, biến `.env`).
 
-Task 1–6 test tự động hoàn toàn (vector giả lập). Task 7–8 là JavaScript chạy camera → kiểm thử tay.
+Task 1–7 test tự động hoàn toàn (vector giả lập, ảnh giả). Task 8–9 là JavaScript chạy camera → kiểm thử tay.
 
-## 13. Checklist kiểm thử tay (task 7–8)
+## 13. Checklist kiểm thử tay (task 8–9)
 
-- [ ] Chrome trên laptop + Chrome trên tablet Android, HTTPS.
+- [ ] Chrome trên laptop có webcam, `https://zomzop.test` (SSL Laragon).
 - [ ] Đăng ký 3 mẫu cho 3 người; người thứ 4 chưa đăng ký đứng trước kiosk → "Chưa nhận ra".
 - [ ] Mỗi người chấm vào → đúng tên, đúng ca; chấm lại ngay → "Vừa chấm"; sau 10 phút → chấm ra.
 - [ ] Giơ ảnh in / ảnh trên điện thoại → không qua được liveness.
 - [ ] Đeo kính, đội mũ, ánh sáng yếu → ghi lại tỉ lệ nhận đúng; chỉnh `threshold` nếu cần.
 - [ ] Thu hồi thiết bị → kiosk báo chưa ghép.
-- [ ] Lượt chấm hiện trên trang chấm công, vào bảng lương sau khi "Tính lại".
+- [ ] Lượt chấm hiện trên trang chấm công (bảng lương tự cập nhật khi mở lại trang).
+- [ ] Nút "Ảnh" hiện đúng ảnh vào/ra; đổi giờ máy hoặc chạy `attendance:prune-photos` sau 30 ngày → "Ảnh đã xoá".
 
-## 14. Câu hỏi cần chốt trước khi làm
+## 14. Quyết định đã chốt (2026-10-05)
 
-- **Q1.** Thiết bị quầy là gì (tablet Android / laptop / iPad)? Ảnh hưởng tốc độ model và cách đặt camera.
-- **Q2.** Site có chạy HTTPS ở môi trường thật chưa? (bắt buộc để dùng camera)
-- **Q3.** Có muốn lưu **ảnh chụp nhỏ** (~20 KB, giữ 30 ngày) làm bằng chứng khi có tranh chấp không? Mặc định: không.
-- **Q4.** Nhân viên quên chấm ra: giữ cách hiện tại (manager đóng tay) hay tự đóng ở giờ kết thúc ca?
-- **Q5.** Ngưỡng `0.45` là điểm khởi đầu; có muốn có trang để manager tự chỉnh không, hay chỉ sửa trong `.env`?
-- **Q6.** Có cho phép nhân viên tự đăng ký khuôn mặt lần đầu tại kiosk (manager duyệt sau) không? Mặc định: không,
-  chỉ manager đăng ký.
+| # | Câu hỏi | Chốt |
+|---|---|---|
+| Q1 | Thiết bị quầy | **Laptop/PC có webcam**, Chrome. Webcam đặt ngang tầm mặt. |
+| Q2 | HTTPS | **Chạy local/demo**: bật SSL Laragon cho `zomzop.test`. |
+| Q3 | Ảnh bằng chứng | **Lưu ảnh mỗi lượt chấm thành công, giữ 30 ngày** rồi tự xoá (mục 4.5). |
+| Q4 | Quên chấm ra | **Manager đóng tay** như hiện tại. |
+| Q5 | Ngưỡng nhận diện | **Chỉnh trong `.env`** (`FACE_THRESHOLD`), không làm trang cài đặt. |
+| Q6 | Ai đăng ký khuôn mặt | **Chỉ manager.** |
