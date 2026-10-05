@@ -12,11 +12,11 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Kiểm tra nếu đã có user thì không chèn thêm (tránh trùng lặp khi chạy lại)
-        if (User::count() > 0) return;
+        // Chạy lại được trên DB đang có dữ liệu: chỉ tạo tài khoản còn thiếu (theo email), không sửa tài khoản đã có.
+        // Thành viên nhóm cập nhật: php artisan db:seed --class=UserSeeder && php artisan db:seed --class=SalaryConfigSeeder
 
         $password = Hash::make('12345678');
-        $make = fn (array $attrs) => User::create($attrs + ['password' => $password, 'is_active' => true]);
+        $make = fn (array $attrs) => User::withTrashed()->firstOrCreate(['email' => $attrs['email']], $attrs + ['password' => $password, 'is_active' => true]);
 
         $make(['name' => 'Admin ZomZop', 'email' => 'admin@zomzop.com', 'role' => 'admin']);
         $make(['name' => 'Khách hàng mẫu', 'email' => 'customer@zomzop.com', 'role' => 'customer', 'phone' => '0901234567']);

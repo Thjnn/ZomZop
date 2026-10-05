@@ -109,6 +109,18 @@ Tài khoản mẫu (mật khẩu đều là `12345678`):
 
 Ngoài ra: `admin@zomzop.com` (admin), `customer@zomzop.com` (khách). Mỗi quản lý chỉ thấy và thao tác dữ liệu chi nhánh của mình.
 
+**Đã có database cũ, sau khi `git pull`** (không mất dữ liệu đang có):
+
+```bash
+composer install && npm install && npm run build
+php artisan migrate                              # cập nhật cấu trúc bảng
+php artisan db:seed --class=UserSeeder           # thêm tài khoản mẫu còn thiếu (theo email)
+php artisan db:seed --class=SalaryConfigSeeder   # thêm mức lương cho nhân viên/bếp chưa có
+```
+
+Hai seeder trên chạy lại bao nhiêu lần cũng được: tài khoản/mức lương đã có thì giữ nguyên.
+Muốn làm lại toàn bộ dữ liệu mẫu từ đầu: `php artisan migrate:fresh --seed` (**xoá sạch** dữ liệu hiện có).
+
 Thêm quản lý cho chi nhánh mà **không xoá dữ liệu** (chưa có trang Admin):
 
 ```bash

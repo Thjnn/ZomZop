@@ -3,8 +3,10 @@
 namespace Tests\Feature\Manager;
 
 use App\Models\Branch;
+use App\Models\SalaryConfig;
 use App\Models\User;
 use Database\Seeders\BranchSeeder;
+use Database\Seeders\SalaryConfigSeeder;
 use Database\Seeders\UserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -33,6 +35,25 @@ class BranchManagersTest extends TestCase
         $this->assertTrue(Hash::check('12345678', User::where('email', 'manager@zomzop.com')->value('password')));
         $this->assertSame(1, User::where('role', 'admin')->count());
         $this->assertSame(1, User::where('email', 'customer@zomzop.com')->count());
+    }
+
+    public function test_seeders_can_rerun_on_existing_data_and_only_fill_gaps(): void
+    {
+        $this->seed(BranchSeeder::class);
+        $branch = Branch::orderBy('id')->first();
+        // DB cũ của thành viên: đã có manager@ (đổi tên) + 1 khách
+        $old = $this->makeUser('manager', $branch);
+        $old->update(['email' => 'manager@zomzop.com', 'name' => 'Tên tự đặt']);
+
+        $this->seed([UserSeeder::class, SalaryConfigSeeder::class]);
+        $this->seed([UserSeeder::class, SalaryConfigSeeder::class]);   // chạy lần 2 không nhân đôi
+
+        $this->assertSame('Tên tự đặt', $old->fresh()->name);
+        $this->assertSame(6, User::where('role', 'manager')->count());
+        $this->assertSame(9, User::whereIn('role', ['staff', 'kitchen'])->count());
+        foreach (User::whereIn('role', ['staff', 'kitchen'])->get() as $u) {
+            $this->assertSame(1, SalaryConfig::where('user_id', $u->id)->count(), $u->email);
+        }
     }
 
     public function test_command_creates_manager_by_branch_id_or_name(): void
