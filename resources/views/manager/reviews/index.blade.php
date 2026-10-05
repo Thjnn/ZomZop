@@ -38,6 +38,22 @@
                 </div>
                 @if ($r->comment) <p class="mt-2">{{ $r->comment }}</p> @endif
                 @if ($r->delivery_rating) <p class="mt-1 text-xs text-slate-500">Giao hàng: {{ $r->delivery_rating }} ★</p> @endif
+                @if ($r->reply)
+                    <div class="mt-3 pl-3 border-l-2 border-red-200 text-slate-600">
+                        <p class="text-xs text-slate-400">Chi nhánh trả lời · {{ $r->replied_at?->format('H:i d/m/Y') }}</p>
+                        <p>{{ $r->reply }}</p>
+                    </div>
+                @endif
+                <details class="mt-2" @if ($errors->has('reply') && old('review_id') == $r->id) open @endif>
+                    <summary class="text-xs text-red-500 cursor-pointer">{{ $r->reply ? 'Sửa trả lời' : 'Trả lời' }}</summary>
+                    <form method="POST" action="{{ route('manager.reviews.reply', $r) }}" class="mt-2 space-y-2">
+                        @csrf @method('PUT')
+                        <input type="hidden" name="review_id" value="{{ $r->id }}">
+                        <textarea name="reply" rows="2" maxlength="1000" required class="w-full px-3 py-2 rounded-lg border border-slate-200">{{ old('review_id') == $r->id ? old('reply') : $r->reply }}</textarea>
+                        @if (old('review_id') == $r->id) @error('reply') <p class="text-xs text-red-600">{{ $message }}</p> @enderror @endif
+                        <button class="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold cursor-pointer">Lưu trả lời</button>
+                    </form>
+                </details>
             </div>
         @empty
             <p class="text-slate-400 text-sm">Chưa có đánh giá nào.</p>

@@ -56,4 +56,33 @@ class ReviewPageTest extends TestCase
         $this->actingAs($manager)->get('/manager/reviews?rating=9')
             ->assertOk()->assertSee('Năm sao')->assertSee('Một sao');
     }
+
+    public function test_reply_and_edit_reply(): void
+    {
+        $branch  = $this->makeBranch();
+        $manager = $this->makeUser('manager', $branch);
+        $review  = $this->review($branch, 2, 'Giao hơi chậm');
+
+        $this->actingAs($manager)->put("/manager/reviews/{$review->id}/reply", ['reply' => 'Xin lỗi anh/chị, lần sau tụi em giao nhanh hơn.'])
+            ->assertSessionHas('success');
+        $this->assertSame('Xin lỗi anh/chị, lần sau tụi em giao nhanh hơn.', $review->fresh()->reply);
+        $this->assertNotNull($review->fresh()->replied_at);
+
+        $this->actingAs($manager)->put("/manager/reviews/{$review->id}/reply", ['reply' => 'Đã sửa lời đáp']);
+        $this->actingAs($manager)->get('/manager/reviews')->assertSee('Đã sửa lời đáp');
+
+        $this->actingAs($manager)->put("/manager/reviews/{$review->id}/reply", ['reply' => ''])->assertSessionHasErrors('reply');
+        $this->actingAs($manager)->put("/manager/reviews/{$review->id}/reply", ['reply' => str_repeat('a', 1001)])->assertSessionHasErrors('reply');
+        $this->assertSame('Đã sửa lời đáp', $review->fresh()->reply);
+    }
+
+    public function test_cannot_reply_other_branch_review(): void
+    {
+        $review = $this->review($this->makeBranch('B'), 1, 'Chê');
+
+        $this->actingAs($this->makeUser('manager', $this->makeBranch('A')))
+            ->put("/manager/reviews/{$review->id}/reply", ['reply' => 'Hack'])
+            ->assertNotFound();
+        $this->assertNull($review->fresh()->reply);
+    }
 }

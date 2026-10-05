@@ -28,4 +28,18 @@ class ReviewController extends ManagerController
 
         return view('manager.reviews.index', compact('stats', 'distribution', 'reviews', 'rating'));
     }
+
+    public function reply(Request $request, Review $review)
+    {
+        abort_if((int) $review->branch_id !== $this->branchId(), 404);
+
+        $data = $request->validate(['reply' => ['required', 'string', 'max:1000']], [
+            'reply.required' => 'Vui lòng nhập nội dung trả lời.',
+            'reply.max'      => 'Trả lời tối đa 1000 ký tự.',
+        ]);
+
+        $review->update(['reply' => $data['reply'], 'replied_at' => now()]);
+
+        return back()->with('success', 'Đã lưu trả lời.');
+    }
 }

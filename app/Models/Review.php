@@ -16,11 +16,14 @@ class Review extends Model
         'rating',
         'delivery_rating',
         'comment',
+        'reply',
+        'replied_at',
     ];
 
     protected $casts = [
         'rating'          => 'integer',
         'delivery_rating' => 'integer',
+        'replied_at'      => 'datetime',
     ];
 
     public function order(): BelongsTo

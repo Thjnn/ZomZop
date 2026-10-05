@@ -48,4 +48,5 @@ Route::middleware(['auth', 'role:manager'])
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
+        Route::put('/reviews/{review}/reply', [ReviewController::class, 'reply'])->name('reviews.reply');
     });
