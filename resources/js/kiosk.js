@@ -26,6 +26,11 @@ if (root) {
         /* chế độ ẩn danh: dùng token trên URL cho phiên này */
     }
     if (location.hash) history.replaceState(null, "", location.pathname);
+    // Dán link ghép mới vào tab đang mở /kiosk: trình duyệt chỉ đổi phần sau # mà không tải lại trang
+    // → tự tải lại để đọc token mới
+    window.addEventListener("hashchange", () => {
+        if (location.hash.includes("device=")) location.reload();
+    });
 
     const api = (path, body) =>
         fetch(`/kiosk/api/${path}`, {
