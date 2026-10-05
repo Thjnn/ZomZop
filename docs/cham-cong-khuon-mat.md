@@ -35,7 +35,7 @@ Làm theo TDD: mỗi bước viết test trước, chạy thấy fail, viết co
 | 8–9 | `206e485` | Giao diện: trang đăng ký có camera, trang máy quầy, kiểm tra người thật |
 | 10 | `072cf8d` | Hiển thị số mẫu, độ tin cậy, link ảnh |
 
-Kết quả test: **38 test mới** trong `tests/Feature/Face/`, toàn bộ bộ test 152/153 pass
+Kết quả test: **40 test mới** trong `tests/Feature/Face/`, toàn bộ bộ test 154/155 pass
 (`ExampleTest` fail từ commit đầu tiên của dự án, không liên quan).
 
 Phần chạy camera (JavaScript) không test tự động được → kiểm thử tay theo checklist ở mục 7.
@@ -243,7 +243,7 @@ resources/
         └── attendances/index.blade.php      # (+ độ tin cậy, link ảnh)
 
 public/models/face/                          # 3 model face-api (~6.8 MB), chép từ node_modules
-tests/Feature/Face/                          # 38 test: KioskDevice, FaceMatcher, FacePunch, KioskManage,
+tests/Feature/Face/                          # 40 test: KioskDevice, FaceMatcher, FacePunch, KioskManage,
                                              #          KioskApi, FaceEnroll, AttendancePhoto, FaceDisplay
 ```
 
