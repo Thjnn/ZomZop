@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Manager\AttendanceController;
 use App\Http\Controllers\Manager\DashboardController;
+use App\Http\Controllers\Manager\FaceController;
 use App\Http\Controllers\Manager\KioskController;
 use App\Http\Controllers\Manager\MenuController;
 use App\Http\Controllers\Manager\OrderController;
@@ -32,6 +33,9 @@ Route::middleware(['auth', 'role:manager'])
         Route::put('/staff/{user}', [StaffController::class, 'update'])->name('staff.update');
         Route::patch('/staff/{user}/lock', [StaffController::class, 'toggleLock'])->name('staff.lock');
         Route::put('/staff/{user}/password', [StaffController::class, 'resetPassword'])->name('staff.password');
+        Route::get('/staff/{user}/face', [FaceController::class, 'show'])->name('staff.face');
+        Route::post('/staff/{user}/face', [FaceController::class, 'store'])->name('staff.face.store');
+        Route::delete('/staff/{user}/face', [FaceController::class, 'destroy'])->name('staff.face.destroy');
 
         Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
         Route::post('/shifts', [ShiftController::class, 'store'])->name('shifts.store');
