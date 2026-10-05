@@ -23,6 +23,17 @@
                     @endforeach
                 </select>
             </label>
+            <label class="block">Ngày bắt đầu làm
+                <input type="date" name="started_at" value="{{ old('started_at', $user?->started_at?->toDateString() ?? today()->toDateString()) }}" class="{{ $input }} mt-1" required>
+                <span class="text-xs text-slate-400">7 ngày đầu tính lương thử việc.</span>
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="block">Lương thử việc/giờ
+                    <input type="number" name="probation_rate" min="1" step="1" value="{{ old('probation_rate', $user?->latestSalary?->probation_rate) }}" class="{{ $input }} mt-1" required></label>
+                <label class="block">Lương chính thức/giờ
+                    <input type="number" name="salary_rate" min="1" step="1" value="{{ old('salary_rate', $user?->latestSalary?->rate) }}" class="{{ $input }} mt-1" required></label>
+            </div>
+            @if ($user) <p class="text-xs text-slate-400">Đổi lương sẽ áp dụng cho giờ làm từ hôm nay.</p> @endif
             @unless ($user)
                 <label class="block">Mật khẩu <input type="password" name="password" class="{{ $input }} mt-1" required minlength="8"></label>
                 <label class="block">Nhập lại mật khẩu <input type="password" name="password_confirmation" class="{{ $input }} mt-1" required></label>

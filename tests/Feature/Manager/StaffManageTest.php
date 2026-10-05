@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Manager;
 
+use App\Models\SalaryConfig;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -22,6 +23,7 @@ class StaffManageTest extends TestCase
         return array_merge([
             'name' => 'Nguyễn Văn Bếp', 'email' => 'bep1@zomzop.com', 'phone' => '0901111222',
             'role' => 'kitchen', 'password' => 'matkhau123', 'password_confirmation' => 'matkhau123',
+            'started_at' => '2026-10-01', 'probation_rate' => 20000, 'salary_rate' => 25000,
         ], $over);
     }
 
@@ -91,7 +93,7 @@ class StaffManageTest extends TestCase
         $manager = $this->makeUser('manager', $branch);
 
         $this->actingAs($manager)
-            ->put("/manager/staff/{$staff->id}", ['name' => 'Tên Mới', 'email' => $staff->email, 'phone' => '', 'role' => 'kitchen'])
+            ->put("/manager/staff/{$staff->id}", ['name' => 'Tên Mới', 'email' => $staff->email, 'phone' => '', 'role' => 'kitchen', 'started_at' => '2026-10-01', 'probation_rate' => 20000, 'salary_rate' => 25000])
             ->assertRedirect(route('manager.staff.index'));
         $this->assertSame('Tên Mới', $staff->fresh()->name);
         $this->assertSame('kitchen', $staff->fresh()->role);
@@ -105,6 +107,53 @@ class StaffManageTest extends TestCase
             ->put("/manager/staff/{$staff->id}/password", ['password' => 'moi12345678', 'password_confirmation' => 'moi12345678'])
             ->assertSessionHas('success');
         $this->assertTrue(Hash::check('moi12345678', $staff->fresh()->password));
+    }
+
+    public function test_create_saves_start_date_and_salary(): void
+    {
+        $branch = $this->makeBranch();
+
+        $this->actingAs($this->makeUser('manager', $branch))->post('/manager/staff', $this->validData());
+
+        $user = User::where('email', 'bep1@zomzop.com')->first();
+        $this->assertSame('2026-10-01', $user->started_at->toDateString());
+        $config = $user->latestSalary;
+        $this->assertSame(25000, (int) $config->rate);
+        $this->assertSame(20000, (int) $config->probation_rate);
+        $this->assertSame('hourly', $config->type);
+        $this->assertSame(today()->toDateString(), $config->effective_from->toDateString());
+    }
+
+    public function test_update_creates_new_salary_only_when_changed(): void
+    {
+        $branch  = $this->makeBranch();
+        $manager = $this->makeUser('manager', $branch);
+        $staff   = $this->makeUser('staff', $branch);
+        SalaryConfig::create(['user_id' => $staff->id, 'type' => 'hourly', 'rate' => 25000, 'probation_rate' => 20000, 'effective_from' => '2026-01-01']);
+        $data = ['name' => $staff->name, 'email' => $staff->email, 'role' => 'staff', 'started_at' => '2026-01-01'];
+
+        $this->actingAs($manager)->put("/manager/staff/{$staff->id}", $data + ['probation_rate' => 20000, 'salary_rate' => 25000]);
+        $this->assertSame(1, SalaryConfig::where('user_id', $staff->id)->count());
+
+        $this->actingAs($manager)->put("/manager/staff/{$staff->id}", $data + ['probation_rate' => 20000, 'salary_rate' => 30000]);
+        $this->assertSame(2, SalaryConfig::where('user_id', $staff->id)->count());
+        $this->assertSame(30000, (int) $staff->fresh()->latestSalary->rate);
+
+        $this->actingAs($manager)->from("/manager/staff/{$staff->id}/edit")
+            ->put("/manager/staff/{$staff->id}", $data + ['probation_rate' => 0, 'salary_rate' => 'abc'])
+            ->assertSessionHasErrors(['probation_rate', 'salary_rate']);
+    }
+
+    public function test_index_shows_rate_and_probation_badge(): void
+    {
+        $branch = $this->makeBranch();
+        $staff  = $this->makeUser('staff', $branch);
+        $staff->update(['started_at' => today()->subDays(2)]);
+        SalaryConfig::create(['user_id' => $staff->id, 'type' => 'hourly', 'rate' => 25000, 'probation_rate' => 20000, 'effective_from' => today()]);
+
+        $this->actingAs($this->makeUser('manager', $branch))->get('/manager/staff')
+            ->assertSee('25.000đ/giờ')
+            ->assertSee('Thử việc đến ' . today()->addDays(4)->format('d/m'));
     }
 
     /** Review Focus #1 */
