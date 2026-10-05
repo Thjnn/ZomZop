@@ -17,9 +17,12 @@ class SalaryConfigSeeder extends Seeder
         ];
         $startedAt = now()->subMonth()->startOfMonth();
 
-        foreach (User::whereIn('role', array_keys($salaryByRole))->get() as $user) {
+        // Chạy lại được: chỉ thêm lương cho người chưa có, không đụng mức lương manager đã đặt
+        $users = User::whereIn('role', array_keys($salaryByRole))->whereDoesntHave('salaryConfigs')->get();
+
+        foreach ($users as $user) {
             [$probation, $rate] = $salaryByRole[$user->role];
-            $user->update(['started_at' => $startedAt]);
+            $user->started_at ?? $user->update(['started_at' => $startedAt]);
 
             SalaryConfig::create([
                 'user_id'        => $user->id,
