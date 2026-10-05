@@ -15,6 +15,7 @@ class Attendance extends Model
         'check_out',
         'method',
         'face_confidence',
+        'photo_path',
         'note',
     ];
 

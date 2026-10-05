@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FaceDescriptor extends Model
 {
-    public $timestamps = false; // bảng chỉ có created_at
 
     protected $fillable = [
         'user_id',
