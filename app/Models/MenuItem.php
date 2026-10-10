@@ -160,6 +160,20 @@ class MenuItem extends Model
         return number_format($this->base_price, 0, ',', '.') . ' đ';
     }
 
+    /**
+     * Tag dạng mảng. MenuItemSeeder cũ ghi json_encode(...) vào cột có cast 'array'
+     * nên dữ liệu seed bị mã hoá 2 lần → đọc ra là chuỗi JSON, giải mã thêm một lần.
+     */
+    public function tagList(): array
+    {
+        $tags = $this->tags;
+        if (is_string($tags)) {
+            $tags = json_decode($tags, true);
+        }
+
+        return is_array($tags) ? array_values($tags) : [];
+    }
+
     // ── Scopes ───────────────────────────────────────────────
 
     /**

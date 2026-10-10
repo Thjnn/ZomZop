@@ -15,15 +15,23 @@
     <div class="lg:col-span-2 relative w-full overflow-hidden rounded-2xl shadow-xl h-[220px] sm:h-[280px] lg:h-full lg:min-h-[320px]">
         <div class="swiper mySwiper h-full w-full">
             <div class="swiper-wrapper">
-                <div class="swiper-slide h-full">
-                    <img src="{{ asset('images/banners/banner-1.jpeg') }}" class="h-full w-full object-cover object-center" alt="Banner khuyến mãi 1">
-                </div>
-                <div class="swiper-slide h-full">
-                    <img src="{{ asset('images/banners/banner-2.jpeg') }}" class="h-full w-full object-cover object-center" alt="Banner khuyến mãi 2">
-                </div>
-                <div class="swiper-slide h-full">
-                    <img src="{{ asset('images/banners/banner-3.jpg') }}" class="h-full w-full object-cover object-center" alt="Banner khuyến mãi 3">
-                </div>
+                @forelse ($banners as $banner)
+                    <div class="swiper-slide h-full">
+                        @if ($banner->link)
+                            <a href="{{ $banner->link }}" class="block h-full">
+                                <img src="{{ $banner->image_url }}" class="h-full w-full object-cover object-center" alt="{{ $banner->title }}">
+                            </a>
+                        @else
+                            <img src="{{ $banner->image_url }}" class="h-full w-full object-cover object-center" alt="{{ $banner->title }}">
+                        @endif
+                    </div>
+                @empty
+                    @foreach (['banner-1.jpeg', 'banner-2.jpeg', 'banner-3.jpg'] as $i => $file)
+                        <div class="swiper-slide h-full">
+                            <img src="{{ asset('images/banners/' . $file) }}" class="h-full w-full object-cover object-center" alt="Banner khuyến mãi {{ $i + 1 }}">
+                        </div>
+                    @endforeach
+                @endforelse
             </div>
         </div>
     </div>

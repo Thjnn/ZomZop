@@ -55,6 +55,7 @@ class AccountController extends Controller
             unset($data['avatar']);
         }
 
+        $data['email_opted_in'] = $request->boolean('email_opted_in');
         $user->forceFill($data)->save();
 
         return back()->with('success', 'Đã lưu thông tin cá nhân.');

@@ -24,6 +24,10 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+// Link huỷ nhận email trong thư (đã ký, không cần đăng nhập)
+Route::get('/unsubscribe/{user}', \App\Http\Controllers\UnsubscribeController::class)
+    ->middleware('signed')->name('unsubscribe');
+
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
 
 Route::get('/branches/select', [BranchController::class, 'select'])->name('branches.select');
@@ -52,7 +56,15 @@ Route::get('/menu', function () {
 
 // Các trang thông tin & chính sách
 Route::get('/notifications', function () { return view('notifications.index'); })->name('notifications');
-Route::get('/coupons', function () { return view('coupons.index'); })->name('coupons');
+Route::get('/coupons', function () {
+    $coupons = \App\Models\Coupon::active()
+        ->where('is_public', true)
+        ->where(fn ($q) => $q->where('max_uses', 0)->orWhereColumn('used_count', '<', 'max_uses'))
+        ->orderByRaw('expired_at IS NULL, expired_at')
+        ->get();
+
+    return view('coupons.index', compact('coupons'));
+})->name('coupons');
 Route::get('/about-us', function () { return view('pages.about-us'); })->name('about-us');
 Route::get('/support', function () { return view('pages.support'); })->name('support');
 Route::get('/privacy-policy', function () { return view('pages.privacy-policy'); })->name('privacy-policy');

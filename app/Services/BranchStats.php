@@ -17,9 +17,9 @@ class BranchStats
      * Số đơn theo từng trạng thái + tổng đơn + doanh thu (chỉ đơn hoàn thành) trong kỳ.
      * $period: all | today | month
      */
-    public function statusCounts(int $branchId, string $period = 'all'): array
+    public function statusCounts(?int $branchId, string $period = 'all'): array
     {
-        $query = Order::ofBranch($branchId);
+        $query = Order::query()->when($branchId, fn ($q, $id) => $q->ofBranch($id));
 
         if ($period === 'today') {
             $query->whereDate('created_at', today());
@@ -46,7 +46,7 @@ class BranchStats
      * Số đơn + doanh thu theo từng điểm thời gian cho biểu đồ, thiếu thì điền 0.
      * $range: year (12 tháng năm nay) | month (từng ngày tháng này) | week (7 ngày gần nhất)
      */
-    public function series(int $branchId, string $range): array
+    public function series(?int $branchId, string $range): array
     {
         [$from, $to, $keyOf, $points] = match ($range) {
             'year'  => [
@@ -69,7 +69,7 @@ class BranchStats
         };
 
         // Gom theo ngày bằng SQL (chạy được cả MySQL lẫn SQLite), rồi gộp tiếp theo tháng ở PHP
-        $days = Order::ofBranch($branchId)
+        $days = Order::query()->when($branchId, fn ($q, $id) => $q->ofBranch($id))
             ->whereBetween('created_at', [$from, $to])
             ->selectRaw('DATE(created_at) as day, COUNT(*) as orders')
             ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END), 0) as revenue")

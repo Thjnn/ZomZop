@@ -55,6 +55,10 @@ class OrderStatusService
             }
             $fresh->save();
 
+            if ($to === 'cancelled') {
+                app(CouponService::class)->release($fresh);
+            }
+
             OrderHistory::create([
                 'order_id'    => $fresh->id,
                 'from_status' => $from,

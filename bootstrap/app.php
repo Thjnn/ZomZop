@@ -13,6 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             // Khu vực quản lý chi nhánh, tách file để không đụng routes/web.php
             Route::middleware('web')->group(base_path('routes/manager.php'));
+            // Khu vực quản trị toàn chuỗi
+            Route::middleware('web')->group(base_path('routes/admin.php'));
             // Máy chấm công khuôn mặt ở quầy (API riêng, không qua nhóm 'web')
             Route::group([], base_path('routes/kiosk.php'));
         },

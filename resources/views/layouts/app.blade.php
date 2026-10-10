@@ -199,10 +199,10 @@
                 <div class="space-y-3">
                     <h4 class="font-bold text-slate-800 text-sm tracking-wide uppercase">Thông Tin Liên Hệ</h4>
                     <ul class="space-y-2 text-xs text-slate-500">
-                        <li class="flex items-center gap-1.5"><span>📞</span> <strong class="text-slate-700">Hotline:</strong> 1900 xxxx</li>
-                        <li class="flex items-center gap-1.5"><span>✉️</span> <strong class="text-slate-700">Email:</strong> contact@zomzop.com</li>
-                        <li class="flex items-center gap-1.5"><span>⏰</span> <strong class="text-slate-700">Giờ mở cửa:</strong> 09:00 - 22:00</li>
-                        <li class="flex items-start gap-1.5"><span class="mt-0.5">📍</span> <span><strong class="text-slate-700">Trụ sở:</strong> Toà nhà ZomZop, Quận 1, TP. Hồ Chí Minh</span></li>
+                        <li class="flex items-center gap-1.5"><span>📞</span> <strong class="text-slate-700">Hotline:</strong> {{ \App\Models\Setting::get('hotline', '1900 1234') }}</li>
+                        <li class="flex items-center gap-1.5"><span>✉️</span> <strong class="text-slate-700">Email:</strong> {{ \App\Models\Setting::get('email', 'contact@zomzop.vn') }}</li>
+                        <li class="flex items-center gap-1.5"><span>⏰</span> <strong class="text-slate-700">Giờ mở cửa:</strong> {{ \App\Models\Setting::get('open_hours', '09:00 - 22:00') }}</li>
+                        <li class="flex items-start gap-1.5"><span class="mt-0.5">📍</span> <span><strong class="text-slate-700">Trụ sở:</strong> {{ \App\Models\Setting::get('address', 'Toà nhà ZomZop, Quận 1, TP. Hồ Chí Minh') }}</span></li>
                     </ul>
                 </div>
             </div>

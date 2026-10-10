@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class BranchController extends Controller
 {
@@ -23,7 +24,9 @@ class BranchController extends Controller
     public function confirm(Request $request)
     {
         $request->validate([
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => ['required', Rule::exists('branches', 'id')->where('is_active', true)],
+        ], [
+            'branch_id.exists' => 'Chi nhánh này đang tạm đóng, vui lòng chọn chi nhánh khác.',
         ]);
 
         $branch = Branch::findOrFail($request->branch_id);

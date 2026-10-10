@@ -96,6 +96,11 @@
             </div>
         </div>
  
+        <label class="flex items-center gap-2 text-sm text-slate-600 mt-4">
+            <input type="checkbox" name="email_opted_in" value="1" @checked(old('email_opted_in', $user->email_opted_in)) class="accent-red-500">
+            Nhận mã giảm giá và ưu đãi qua email
+        </label>
+
         <button type="submit" class="mt-6 px-6 py-2.5 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition">
             Lưu thay đổi
         </button>

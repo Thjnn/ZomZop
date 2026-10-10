@@ -132,7 +132,7 @@ class AuthController extends Controller
 
         // Khách quay lại trang đang xem dở, trừ khu vực nội bộ (sẽ bị 403)
         $intendedPath    = $intended ? (parse_url($intended, PHP_URL_PATH) ?? '/') : null;
-        $customerTarget  = $intendedPath && !str_starts_with($intendedPath, '/manager') ? $intended : route('home');
+        $customerTarget  = $intendedPath && !str_starts_with($intendedPath, '/manager') && !str_starts_with($intendedPath, '/admin') ? $intended : route('home');
 
         if ($user->role === 'customer' || !in_array($user->role, ['admin', 'manager', 'staff', 'kitchen'], true)) {
             return redirect()->to($customerTarget);

@@ -15,6 +15,7 @@
     {{-- ========== FORM ========== --}}
     <form action="{{ route('checkout.store') }}" method="POST" class="lg:col-span-3 space-y-6">
         @csrf
+        <input type="hidden" name="coupon_code" value="{{ $couponCode }}">
 
         <div>
             <h1 class="text-2xl font-bold text-slate-800">Thanh Toán</h1>
@@ -57,30 +58,36 @@
         <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs space-y-4">
             <h3 class="font-bold text-slate-700 text-sm">Phương thức thanh toán</h3>
             <div class="space-y-2">
+                @if (in_array('cash', $paymentMethods))
                 <label class="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-200 has-checked:border-red-500 transition cursor-pointer">
-                    <input type="radio" name="payment_method" value="cash" checked class="accent-red-500">
+                    <input type="radio" name="payment_method" value="cash" @checked($paymentMethods[0] === 'cash') class="accent-red-500">
                     <span class="text-lg">💵</span>
                     <div>
                         <p class="text-sm font-semibold text-slate-700">Tiền mặt</p>
                         <p class="text-xs text-slate-400">Thanh toán khi nhận hàng</p>
                     </div>
                 </label>
+                @endif
+                @if (in_array('momo', $paymentMethods))
                 <label class="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-200 has-checked:border-red-500 transition cursor-pointer">
-                    <input type="radio" name="payment_method" value="momo" class="accent-red-500">
+                    <input type="radio" name="payment_method" value="momo" @checked($paymentMethods[0] === 'momo') class="accent-red-500">
                     <span class="text-lg">💳</span>
                     <div>
                         <p class="text-sm font-semibold text-slate-700">MoMo</p>
                         <p class="text-xs text-slate-400">Ví điện tử MoMo</p>
                     </div>
                 </label>
+                @endif
+                @if (in_array('vnpay', $paymentMethods))
                 <label class="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-200 has-checked:border-red-500 transition cursor-pointer">
-                    <input type="radio" name="payment_method" value="vnpay" class="accent-red-500">
+                    <input type="radio" name="payment_method" value="vnpay" @checked($paymentMethods[0] === 'vnpay') class="accent-red-500">
                     <span class="text-lg">🏦</span>
                     <div>
                         <p class="text-sm font-semibold text-slate-700">VNPAY</p>
                         <p class="text-xs text-slate-400">Thanh toán qua VNPAY</p>
                     </div>
                 </label>
+                @endif
             </div>
         </div>
 
@@ -93,7 +100,7 @@
 
         <button type="submit"
             class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 rounded-full transition shadow-lg shadow-red-100 text-sm cursor-pointer">
-            Đặt Hàng — {{ number_format($subtotal, 0, ',', '.') }} đ
+            Đặt Hàng — {{ number_format($subtotal - $discount, 0, ',', '.') }} đ
         </button>
     </form>
 
@@ -116,6 +123,16 @@
                 </div>
                 @endforeach
             </div>
+            <form method="GET" action="{{ route('checkout.index') }}" class="p-4 border-t border-slate-100 flex gap-2">
+                <input name="coupon" value="{{ $couponCode }}" placeholder="Nhập mã giảm giá"
+                       class="flex-1 min-w-0 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm uppercase focus:border-red-400 focus:outline-hidden">
+                <button class="px-4 py-2 rounded-xl bg-slate-800 text-white text-sm font-semibold cursor-pointer">Áp dụng</button>
+            </form>
+            @if ($couponError || $errors->has('coupon_code'))
+                <p class="px-4 -mt-2 pb-2 text-xs text-red-500">{{ $couponError ?? $errors->first('coupon_code') }}</p>
+            @elseif ($couponCode)
+                <p class="px-4 -mt-2 pb-2 text-xs text-green-600">Đã áp dụng mã {{ $couponCode }}. <a href="{{ route('checkout.index') }}" class="underline">Bỏ mã</a></p>
+            @endif
             <div class="p-4 border-t border-slate-100 space-y-1.5 text-sm">
                 <div class="flex justify-between text-slate-500">
                     <span>Tạm tính</span>
@@ -123,11 +140,11 @@
                 </div>
                 <div class="flex justify-between text-slate-500">
                     <span>Giảm giá</span>
-                    <span class="text-green-500">0 đ</span>
+                    <span class="text-green-500">-{{ number_format($discount, 0, ',', '.') }} đ</span>
                 </div>
                 <div class="flex justify-between font-bold text-slate-800 text-base pt-1.5 border-t border-slate-100">
                     <span>Tổng cộng</span>
-                    <span class="text-red-500">{{ number_format($subtotal, 0, ',', '.') }} đ</span>
+                    <span class="text-red-500">{{ number_format($subtotal - $discount, 0, ',', '.') }} đ</span>
                 </div>
             </div>
         </div>

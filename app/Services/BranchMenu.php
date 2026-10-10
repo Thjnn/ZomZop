@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Quy tắc món & giá theo chi nhánh (dùng chung cho khách và manager).
- * - Đang bán: menu_items.is_available = 1 và chi nhánh không tắt món (không có dòng = vẫn bán).
+ * - Đang bán: menu_items.is_available = 1, danh mục đang hiện, và chi nhánh không tắt món (không có dòng = vẫn bán).
  * - Giá: branch_menu_items.price (nếu có) thay base_price; discount_percent vẫn áp lên.
  */
 class BranchMenu
@@ -22,7 +22,8 @@ class BranchMenu
 
     public function filterAvailable(Builder $query, ?int $branchId): Builder
     {
-        $query->where('menu_items.is_available', true);
+        $query->where('menu_items.is_available', true)
+            ->whereHas('category', fn ($q) => $q->where('is_active', true));
 
         if ($branchId) {
             $query->whereDoesntHave('branchMenuItems', fn ($q) => $q

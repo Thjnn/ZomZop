@@ -15,4 +15,11 @@ class Branch extends Model
         'close_time',
         'is_active'
     ];
+
+    protected $casts = ['is_active' => 'boolean'];
+
+    public function users(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(User::class);
+    }
 }

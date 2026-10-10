@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Banner;
 use App\Models\Category;
 use App\Models\MenuItem;
 use App\Models\Branch;
@@ -59,7 +60,11 @@ class HomeController extends Controller
         // Chi nhánh
         $branches = Branch::where('is_active', true)->get();
 
+        // Banner do admin quản lý; chưa có banner nào thì view dùng 3 ảnh mặc định
+        $banners = Banner::active()->get();
+
         return view('home', compact(
+            'banners',
             'categories',
             'popularItems',
             'comboItems',

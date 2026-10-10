@@ -10,26 +10,32 @@ use Illuminate\Support\Carbon;
 
 class Coupon extends Model
 {
+    public const TYPES = ['percent' => 'Giảm %', 'fixed' => 'Giảm tiền'];
+
     protected $fillable = [
         'code',
         'type',
         'value',
+        'max_discount',
         'min_order_value',
         'max_uses',
         'used_count',
         'max_uses_per_user',
         'is_active',
+        'is_public',
         'started_at',
         'expired_at',
     ];
 
     protected $casts = [
         'value'             => 'integer',
+        'max_discount'      => 'integer',
         'min_order_value'   => 'integer',
         'max_uses'          => 'integer',
         'used_count'        => 'integer',
         'max_uses_per_user' => 'integer',
         'is_active'         => 'boolean',
+        'is_public'         => 'boolean',
         'started_at'        => 'datetime',
         'expired_at'        => 'datetime',
     ];
@@ -51,16 +57,28 @@ class Coupon extends Model
         return true;
     }
 
-    /** Tính số tiền được giảm từ subtotal */
+    /** Số tiền được giảm từ subtotal (đã xét đơn tối thiểu, trần giảm, không vượt tiền đơn) */
     public function calcDiscount(int $subtotal): int
     {
-        if ($subtotal < $this->min_order_value) return 0;
-
-        if ($this->type === 'percent') {
-            return (int) round($subtotal * $this->value / 100);
+        if ($subtotal < (int) $this->min_order_value) {
+            return 0;
         }
 
-        return min((int) $this->value, $subtotal);
+        $discount = $this->type === 'percent'
+            ? (int) round($subtotal * $this->value / 100)
+            : (int) $this->value;
+
+        if ($this->type === 'percent' && $this->max_discount) {
+            $discount = min($discount, (int) $this->max_discount);
+        }
+
+        return min($discount, $subtotal);
+    }
+
+    /** Đã có người dùng → không được sửa mã/loại/giá trị, không được xoá */
+    public function isUsed(): bool
+    {
+        return (int) $this->used_count > 0;
     }
 
     // ── Scopes ───────────────────────────────────────────────

@@ -4,27 +4,23 @@
  
 @section('content')
 @php
-    // Dữ liệu làm cứng. type: ship = miễn phí ship | express = ship hỏa tốc | food = giảm giá món ăn
-    $coupons = [
-        ['code' => 'FREESHIP',   'type' => 'ship',    'label' => 'FREE SHIP',    'desc' => 'Miễn phí vận chuyển tiêu chuẩn',            'exp' => '31 Thg 12, 2026', 'min' => '99.000đ'],
-        ['code' => 'FREESHIP30', 'type' => 'ship',    'label' => '-30K SHIP',    'desc' => 'Giảm tối đa 30.000đ phí vận chuyển',        'exp' => '30 Thg 11, 2026', 'min' => '150.000đ'],
-        ['code' => 'HOATOC15',   'type' => 'express', 'label' => '-15K HỎA TỐC', 'desc' => 'Giảm 15.000đ phí giao hỏa tốc',             'exp' => '31 Thg 12, 2026', 'min' => '120.000đ'],
-        ['code' => 'HOATOC50',   'type' => 'express', 'label' => '50% HỎA TỐC',  'desc' => 'Giảm 50% phí hỏa tốc, tối đa 25.000đ',      'exp' => '31 Thg 10, 2026', 'min' => '200.000đ'],
-        ['code' => 'ZOMZOP15',   'type' => 'food',    'label' => '15% OFF',      'desc' => 'Giảm 15% tổng giá trị món ăn',              'exp' => '31 Thg 12, 2026', 'min' => '100.000đ'],
-        ['code' => 'COMBO30',    'type' => 'food',    'label' => '-30K',         'desc' => 'Giảm 30.000đ cho đơn có combo',             'exp' => '30 Thg 11, 2026', 'min' => '200.000đ'],
-        ['code' => 'GARAN20',    'type' => 'food',    'label' => '20% OFF',      'desc' => 'Giảm 20% món Gà rán, tối đa 40.000đ',       'exp' => '15 Thg 11, 2026', 'min' => '120.000đ'],
-        ['code' => 'NEWBIE50',   'type' => 'food',    'label' => '50% OFF',      'desc' => 'Đơn đầu tiên, giảm tối đa 50.000đ',         'exp' => '31 Thg 12, 2026', 'min' => '80.000đ'],
-    ];
+    // Chuyển model sang dạng view đang dùng. type: percent | fixed
+    $coupons = $coupons->map(fn ($c) => [
+        'code'  => $c->code,
+        'type'  => $c->type,
+        'label' => $c->type === 'percent' ? $c->value . '% OFF' : '-' . number_format($c->value / 1000, 0, ',', '.') . 'K',
+        'desc'  => $c->type === 'percent'
+            ? 'Giảm ' . $c->value . '% tổng tiền món' . ($c->max_discount ? ', tối đa ' . number_format($c->max_discount, 0, ',', '.') . 'đ' : '')
+            : 'Giảm ' . number_format($c->value, 0, ',', '.') . 'đ cho đơn hàng',
+        'exp'   => $c->expired_at ? $c->expired_at->format('d/m/Y') : 'Không thời hạn',
+        'min'   => number_format($c->min_order_value, 0, ',', '.') . 'đ',
+    ])->all();
     $meta = [
-        'ship'    => ['Miễn phí ship', 'bg-green-50 text-green-600'],
-        'express' => ['Ship hỏa tốc',  'bg-orange-50 text-orange-600'],
-        'food'    => ['Món ăn',        'bg-red-50 text-red-500'],
+        'percent' => ['Giảm theo %', 'bg-red-50 text-red-500'],
+        'fixed'   => ['Giảm tiền',   'bg-green-50 text-green-600'],
     ];
-    $icons = [
-        'ship'    => 'M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12',
-        'express' => 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z',
-        'food'    => 'M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z',
-    ];
+    $foodIcon = 'M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z';
+    $icons = ['percent' => $foodIcon, 'fixed' => $foodIcon];
 @endphp
  
 <div class="max-w-6xl mx-auto py-8 px-4">
@@ -39,7 +35,7 @@
  
     {{-- Tab lọc --}}
     <div class="flex gap-2 overflow-x-auto pb-2 mb-6">
-        @foreach (['all' => 'Tất cả', 'ship' => 'Miễn phí ship', 'express' => 'Ship hỏa tốc', 'food' => 'Giảm giá món ăn'] as $k => $t)
+        @foreach (['all' => 'Tất cả', 'percent' => 'Giảm theo %', 'fixed' => 'Giảm tiền'] as $k => $t)
             <button type="button" data-tab="{{ $k }}" onclick="setTab('{{ $k }}')"
                     class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm border border-slate-200 bg-white text-slate-600 {{ $k === 'all' ? '!bg-red-500 !text-white !border-red-500' : '' }}">
                 {{ $t }}
@@ -70,7 +66,7 @@
         @endforeach
     </div>
  
-    <p id="couponEmpty" class="hidden text-center text-slate-400 py-16">Không tìm thấy mã giảm giá phù hợp.</p>
+    <p id="couponEmpty" class="{{ count($coupons) ? 'hidden' : '' }} text-center text-slate-400 py-16">Không tìm thấy mã giảm giá phù hợp.</p>
 </div>
  
 <script>

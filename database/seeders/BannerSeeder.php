@@ -12,7 +12,7 @@ class BannerSeeder extends Seeder
         $banners = [
             [
                 'title'      => 'Ưu đãi mùa hè — Giảm 20% tất cả Pizza',
-                'image'      => 'banner-pizza.jpg',
+                'image'      => 'banner-1.jpeg',
                 'link'       => '/category/pizza',
                 'sort_order' => 1,
                 'is_active'  => 1,
@@ -21,7 +21,7 @@ class BannerSeeder extends Seeder
             ],
             [
                 'title'      => 'Burger mới ra mắt — Double Smash chỉ 65k',
-                'image'      => 'banner-burger.jpg',
+                'image'      => 'banner-2.jpeg',
                 'link'       => '/category/burger',
                 'sort_order' => 2,
                 'is_active'  => 1,
@@ -30,7 +30,7 @@ class BannerSeeder extends Seeder
             ],
             [
                 'title'      => 'Combo Gia Đình — Tiết kiệm hơn gọi lẻ',
-                'image'      => 'banner-combo.jpg',
+                'image'      => 'banner-3.jpg',
                 'link'       => '/category/combo',
                 'sort_order' => 3,
                 'is_active'  => 1,
@@ -39,7 +39,7 @@ class BannerSeeder extends Seeder
             ],
             [
                 'title'      => 'Nhập WELCOME10 — Giảm 10% đơn đầu tiên',
-                'image'      => 'banner-coupon.jpg',
+                'image'      => 'banner-1.jpeg',
                 'link'       => '/menu',
                 'sort_order' => 4,
                 'is_active'  => 1,
@@ -48,7 +48,7 @@ class BannerSeeder extends Seeder
             ],
             [
                 'title'      => 'Gà Chiên Giòn — Giòn tan từng miếng',
-                'image'      => 'banner-ga-chien.jpg',
+                'image'      => 'banner-2.jpeg',
                 'link'       => '/category/ga-chien',
                 'sort_order' => 5,
                 'is_active'  => 1,
