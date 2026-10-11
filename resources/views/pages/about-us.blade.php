@@ -2,6 +2,7 @@
 @section('title', 'Về Chúng Tôi - ZomZop')
 @section('content')
 <div class="max-w-4xl mx-auto py-12">
+    <x-back-to-account />
     <h2 class="text-3xl font-bold text-slate-800 text-center mb-10">Về Chúng Tôi</h2>
     <div class="prose prose-slate max-w-none text-slate-600 space-y-6 leading-relaxed">
         <p>Chào mừng bạn đến với <strong>ZomZop Fast Food</strong> – chuỗi nhà hàng thức ăn nhanh hàng đầu, nơi mang đến cho bạn những trải nghiệm ẩm thực tuyệt vời, nhanh chóng và đầy hương vị.</p>

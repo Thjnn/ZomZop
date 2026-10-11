@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Coupon;
+use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Models\User;
@@ -54,6 +56,12 @@ class OrderStatusService
                 $fresh->payment_status = 'paid';
             }
             $fresh->save();
+
+            // Hủy đơn: trả lại lượt dùng mã giảm giá để khách dùng được lần sau
+            if ($to === 'cancelled' && $fresh->coupon_id) {
+                CouponUsage::where('order_id', $fresh->id)->delete();
+                Coupon::whereKey($fresh->coupon_id)->where('used_count', '>', 0)->decrement('used_count');
+            }
 
             OrderHistory::create([
                 'order_id'    => $fresh->id,

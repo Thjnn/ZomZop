@@ -40,6 +40,22 @@
             <span class="text-sm text-slate-500">Trạng thái</span>
             <span class="bg-amber-100 text-amber-600 font-semibold text-xs px-3 py-1 rounded-full">Chờ xác nhận</span>
         </div>
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">Tạm tính</span>
+            <span class="font-semibold text-slate-700">{{ number_format($order->subtotal, 0, ',', '.') }} đ</span>
+        </div>
+        @if ($order->shipping_fee > 0)
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">Phí giao hàng ({{ $order->delivery_speed === 'express' ? 'hỏa tốc' : 'tiêu chuẩn' }})</span>
+            <span class="font-semibold text-slate-700">{{ number_format($order->shipping_fee, 0, ',', '.') }} đ</span>
+        </div>
+        @endif
+        @if ($order->discount > 0)
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">Giảm giá{{ $order->coupon ? ' (' . $order->coupon->code . ')' : '' }}</span>
+            <span class="font-semibold text-green-600">-{{ number_format($order->discount, 0, ',', '.') }} đ</span>
+        </div>
+        @endif
         <div class="border-t border-slate-100 pt-3 flex items-center justify-between font-bold text-base">
             <span class="text-slate-600">Tổng tiền</span>
             <span class="text-red-500 text-xl">{{ number_format($order->total, 0, ',', '.') }} đ</span>
@@ -51,11 +67,15 @@
         <div>
             <p class="font-semibold">Lưu ý:</p>
             <p>Vui lòng đưa <strong>mã nhận món</strong> cho nhân viên khi đến lấy hàng.
-            Bạn có thể theo dõi trạng thái đơn hàng trong mục <a href="#" class="text-red-500 hover:underline font-semibold">Đơn hàng</a>.</p>
+            Bạn có thể theo dõi trạng thái đơn hàng trong mục <a href="{{ route('orders.show', $order->order_code) }}" class="text-red-500 hover:underline font-semibold">Đơn hàng</a>.</p>
         </div>
     </div>
 
     <div class="flex gap-3 justify-center">
+        <a href="{{ route('orders.show', $order->order_code) }}"
+            class="border border-red-500 text-red-500 hover:bg-red-50 font-semibold px-8 py-3 rounded-full transition">
+            Theo dõi đơn hàng
+        </a>
         <a href="{{ route('home') }}"
             class="bg-red-500 hover:bg-red-600 text-white font-semibold px-8 py-3 rounded-full transition">
             Về Trang Chủ

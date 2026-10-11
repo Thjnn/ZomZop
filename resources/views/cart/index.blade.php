@@ -11,6 +11,7 @@
 @endif
 
 <div class="max-w-5xl mx-auto space-y-6">
+    <x-back-to-account />
 
     <div class="flex items-center justify-between">
         <div>

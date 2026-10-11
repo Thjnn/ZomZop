@@ -9,6 +9,8 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\CouponController;
+use App\Http\Controllers\CustomerOrderController;
 
 // Auth
 Route::middleware('guest')->group(function () {
@@ -43,6 +45,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout/store', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::post('/checkout/coupon', [CheckoutController::class, 'applyCoupon'])->name('checkout.coupon');
     Route::get('/order/{orderCode}', [CheckoutController::class, 'success'])->name('order.success');
 });
 
@@ -52,7 +55,7 @@ Route::get('/menu', function () {
 
 // Các trang thông tin & chính sách
 Route::get('/notifications', function () { return view('notifications.index'); })->name('notifications');
-Route::get('/coupons', function () { return view('coupons.index'); })->name('coupons');
+Route::get('/coupons', [CouponController::class, 'index'])->name('coupons');
 Route::get('/about-us', function () { return view('pages.about-us'); })->name('about-us');
 Route::get('/support', function () { return view('pages.support'); })->name('support');
 Route::get('/privacy-policy', function () { return view('pages.privacy-policy'); })->name('privacy-policy');
@@ -65,8 +68,14 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile/password', [AccountController::class, 'updatePassword'])->name('account.password');
     Route::delete('/profile',       [AccountController::class, 'destroy'])->name('account.destroy');
 
-    // Đơn hàng (đang là dữ liệu mẫu)
-    Route::view('/orders', 'account.orders')->name('orders');
+    // Đơn hàng của khách (dữ liệu thật từ CSDL)
+    Route::get('/orders',                            [CustomerOrderController::class, 'index'])->name('orders');
+    Route::get('/orders/{order:order_code}',         [CustomerOrderController::class, 'show'])->name('orders.show');
+    Route::get('/orders/{order:order_code}/status',  [CustomerOrderController::class, 'status'])->name('orders.status');
+    Route::post('/orders/{order:order_code}/cancel', [CustomerOrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('/orders/{order:order_code}/reorder',[CustomerOrderController::class, 'reorder'])->name('orders.reorder');
+    Route::get('/orders/{order:order_code}/review',  [CustomerOrderController::class, 'reviewForm'])->name('orders.review');
+    Route::post('/orders/{order:order_code}/review', [CustomerOrderController::class, 'reviewStore'])->name('orders.review.store');
 
     // Địa chỉ
     Route::get('/addresses',                    [AddressController::class, 'index'])->name('addresses.index');

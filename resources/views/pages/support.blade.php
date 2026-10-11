@@ -2,6 +2,7 @@
 @section('title', 'Hỗ Trợ & Chăm Sóc Khách Hàng - ZomZop')
 @section('content')
 <div class="max-w-5xl mx-auto py-12 text-center">
+    <div class="text-left"><x-back-to-account /></div>
     <h2 class="text-3xl font-bold text-slate-800 mb-8">Trợ Giúp & Hỗ Trợ</h2>
     
     {{-- Hình ảnh minh họa --}}
