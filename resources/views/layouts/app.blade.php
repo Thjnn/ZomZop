@@ -277,14 +277,16 @@
             },
             loop: true, 
         });
+        // Swiper chỉ lặp vòng khi đủ 2 × số món mỗi khung (tối đa 3); ít hơn thì tự tắt loop và autoplay dừng ở cuối → quay về đầu
+        const specialOfferCount = document.querySelectorAll(".specialOffersSwiper .swiper-slide").length;
         new Swiper(".specialOffersSwiper", {
-            loop: true,
+            loop: specialOfferCount >= 6,
+            rewind: specialOfferCount < 6,
             spaceBetween: 24,
             grabCursor: true,
             autoplay: {
                 delay: 2600,
                 disableOnInteraction: false,
-                pauseOnMouseEnter: true,
             },
             navigation: {
                 nextEl: ".special-offers-next",
