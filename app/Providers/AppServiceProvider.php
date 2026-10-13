@@ -27,5 +27,8 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(20)->by('kiosk-device:' . $request->header('X-Kiosk-Token')),
             Limit::perMinute(30)->by('kiosk-ip:' . $request->ip()),
         ]);
+
+        // Chatbot: mỗi khách tối đa 10 tin/phút (tiết kiệm quota Gemini)
+        RateLimiter::for('chatbot', fn (Request $request) => Limit::perMinute(10)->by('chatbot:' . ($request->user()?->id ?? $request->ip())));
     }
 }

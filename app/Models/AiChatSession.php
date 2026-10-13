@@ -37,20 +37,21 @@ class AiChatSession extends Model
      */
     public function getRecentMessages(): array
     {
-        return collect($this->messages)->takeLast(15)->values()->toArray();
+        return collect($this->messages)->slice(-15)->values()->toArray();
     }
 
     /**
-     * Thêm tin nhắn mới vào session
+     * Thêm tin nhắn mới vào session (giữ 15 tin gần nhất).
+     * $extra: link_url / link_label của câu trả lời bot. message_count chỉ đếm tin của khách.
      */
-    public function addMessage(string $role, string $content): void
+    public function addMessage(string $role, string $content, array $extra = []): void
     {
         $messages = $this->messages ?? [];
-        $messages[] = ['role' => $role, 'content' => $content];
+        $messages[] = ['role' => $role, 'content' => $content] + $extra + ['at' => now()->toIso8601String()];
 
         $this->update([
-            'messages'      => collect($messages)->takeLast(15)->values()->toArray(),
-            'message_count' => $this->message_count + 1,
+            'messages'      => collect($messages)->slice(-15)->values()->toArray(),
+            'message_count' => $this->message_count + ($role === 'user' ? 1 : 0),
         ]);
     }
 

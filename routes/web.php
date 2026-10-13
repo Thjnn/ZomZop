@@ -51,6 +51,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/order/{orderCode}', [CheckoutController::class, 'success'])->name('order.success');
 });
 
+// Chatbot khách hàng (từ khoá + Gemini) — chỉ khách đã đăng nhập
+Route::middleware('auth')->group(function () {
+    Route::get('/chatbot/messages', [App\Http\Controllers\ChatbotController::class, 'messages'])->name('chatbot.messages');
+    Route::post('/chatbot/message', [App\Http\Controllers\ChatbotController::class, 'send'])
+        ->middleware('throttle:chatbot')->name('chatbot.send');
+});
+
 Route::get('/menu', function () {
     return view('account.menu');
 });
