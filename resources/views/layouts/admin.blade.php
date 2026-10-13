@@ -37,6 +37,7 @@
                 ['route' => 'admin.managers.index',    'match' => 'admin.managers.*',    'label' => 'Tài khoản quản lý',  'icon' => 'user'],
                 ['route' => 'admin.staff.index',       'match' => 'admin.staff.*',       'label' => 'Nhân viên',          'icon' => 'staff'],
                 ['route' => 'admin.customers.index',   'match' => 'admin.customers.*',   'label' => 'Khách hàng',         'icon' => 'user'],
+                ['route' => 'admin.contact-messages.index', 'match' => 'admin.contact-messages.*', 'label' => 'Liên hệ', 'icon' => 'chat'],
             ],
             'Bán hàng' => [
                 ['route' => 'admin.orders.index',      'match' => 'admin.orders.*',      'label' => 'Đơn hàng',           'icon' => 'orders'],

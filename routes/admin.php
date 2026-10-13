@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\ChatbotKeywordController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CouponSendController;
@@ -69,6 +70,9 @@ Route::middleware(['auth', 'role:admin'])
 
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
+
+        Route::get('/contact-messages', [ContactMessageController::class, 'index'])->name('contact-messages.index');
+        Route::patch('/contact-messages/{contactMessage}/toggle', [ContactMessageController::class, 'toggle'])->name('contact-messages.toggle');
 
         Route::get('/chatbot-keywords', [ChatbotKeywordController::class, 'index'])->name('chatbot-keywords.index');
         Route::get('/chatbot-keywords/create', [ChatbotKeywordController::class, 'create'])->name('chatbot-keywords.create');

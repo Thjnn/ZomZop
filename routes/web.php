@@ -28,6 +28,7 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/unsubscribe/{user}', \App\Http\Controllers\UnsubscribeController::class)
     ->middleware('signed')->name('unsubscribe');
 
+Route::post('/contact', [App\Http\Controllers\ContactController::class, 'store'])->middleware('throttle:5,1')->name('contact.store');
 Route::get('/ban-chay', [CategoryController::class, 'bestsellers'])->name('bestsellers');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
 

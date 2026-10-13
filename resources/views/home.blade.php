@@ -193,4 +193,58 @@
     </div>
 </section>
 
+{{-- ===================== LIÊN HỆ ===================== --}}
+@php
+    $contactErrors = $errors->getBag('contact');
+    $field = 'w-full bg-slate-50 px-4 py-2.5 rounded-xl text-sm border focus:bg-white focus:border-red-400 focus:outline-hidden transition';
+@endphp
+<section id="lien-he" class="scroll-mt-24 grid lg:grid-cols-5 gap-6 rounded-[2rem] bg-white p-6 sm:p-8 shadow-sm ring-1 ring-slate-100">
+    <div class="lg:col-span-2 rounded-[1.5rem] bg-linear-to-br from-red-500 to-orange-500 p-6 text-white flex flex-col justify-between gap-6">
+        <div>
+            <h2 class="text-2xl font-bold">Liên hệ với ZomZop</h2>
+            <p class="mt-2 text-sm text-white/85">Góp ý món ăn, hỏi về đơn hàng hay hợp tác, cứ nhắn cho chúng mình nhé.</p>
+        </div>
+        <ul class="space-y-3 text-sm">
+            <li>📞 Hotline: <span class="font-semibold">{{ \App\Models\Setting::get('hotline', '1900 1234') }}</span></li>
+            <li>✉️ Email: <span class="font-semibold">{{ \App\Models\Setting::get('email', 'contact@zomzop.vn') }}</span></li>
+            <li>🕘 Giờ mở cửa: <span class="font-semibold">{{ \App\Models\Setting::get('open_hours', '09:00 - 22:00') }}</span></li>
+        </ul>
+    </div>
+
+    <form method="POST" action="{{ route('contact.store') }}" class="lg:col-span-3 grid sm:grid-cols-2 gap-4" novalidate>
+        @csrf
+        @if (session('contact_sent'))
+            <p role="status" class="sm:col-span-2 rounded-xl bg-green-50 text-green-700 text-sm px-4 py-3">{{ session('contact_sent') }}</p>
+        @endif
+
+        <label class="grid gap-1 text-sm">
+            <span class="font-medium text-slate-700">Họ tên <span class="text-red-500">*</span></span>
+            <input name="name" value="{{ old('name', auth()->user()?->name) }}" maxlength="100" required autocomplete="name"
+                   class="{{ $field }} {{ $contactErrors->has('name') ? 'border-red-400' : 'border-slate-200' }}">
+            @if ($contactErrors->has('name'))<span class="text-xs text-red-500">{{ $contactErrors->first('name') }}</span>@endif
+        </label>
+        <label class="grid gap-1 text-sm">
+            <span class="font-medium text-slate-700">Email <span class="text-red-500">*</span></span>
+            <input type="email" name="email" value="{{ old('email', auth()->user()?->email) }}" maxlength="150" required autocomplete="email"
+                   class="{{ $field }} {{ $contactErrors->has('email') ? 'border-red-400' : 'border-slate-200' }}">
+            @if ($contactErrors->has('email'))<span class="text-xs text-red-500">{{ $contactErrors->first('email') }}</span>@endif
+        </label>
+        <label class="grid gap-1 text-sm sm:col-span-2">
+            <span class="font-medium text-slate-700">Số điện thoại</span>
+            <input type="tel" name="phone" value="{{ old('phone', auth()->user()?->phone) }}" maxlength="20" autocomplete="tel" placeholder="Không bắt buộc"
+                   class="{{ $field }} {{ $contactErrors->has('phone') ? 'border-red-400' : 'border-slate-200' }}">
+            @if ($contactErrors->has('phone'))<span class="text-xs text-red-500">{{ $contactErrors->first('phone') }}</span>@endif
+        </label>
+        <label class="grid gap-1 text-sm sm:col-span-2">
+            <span class="font-medium text-slate-700">Nội dung <span class="text-red-500">*</span></span>
+            <textarea name="message" rows="4" maxlength="2000" required
+                      class="{{ $field }} resize-y {{ $contactErrors->has('message') ? 'border-red-400' : 'border-slate-200' }}">{{ old('message') }}</textarea>
+            @if ($contactErrors->has('message'))<span class="text-xs text-red-500">{{ $contactErrors->first('message') }}</span>@endif
+        </label>
+        <div class="sm:col-span-2 flex justify-end">
+            <button class="px-6 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold shadow-sm cursor-pointer">Gửi liên hệ</button>
+        </div>
+    </form>
+</section>
+
 @endsection
