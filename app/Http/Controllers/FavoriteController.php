@@ -49,7 +49,7 @@ class FavoriteController extends Controller
      */
     public function index()
     {
-        $items = auth()->user()->favoriteItems()->with(['images', 'category'])->get();
+        $items = auth()->user()->favoriteItems()->with(['images', 'category'])->withRating()->get();
         return view('favorites.index', compact('items'));
     }
 }

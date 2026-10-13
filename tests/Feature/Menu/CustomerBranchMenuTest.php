@@ -186,4 +186,21 @@ class CustomerBranchMenuTest extends TestCase
 
         $this->flushSession()->get('/ban-chay')->assertSee('Burger Hot A')->assertSee('Pizza Hot B')->assertDontSee('Khoai Thường');
     }
+
+    public function test_item_card_shows_average_rating_from_reviews_of_orders_containing_it(): void
+    {
+        $branch = $this->makeBranch();
+        $burger = $this->makeMenuItem('Burger Có Sao');
+        foreach ([5, 4] as $rating) {
+            $order = $this->makeOrder($branch);
+            $this->addItem($order, $burger, 1);
+            \App\Models\Review::create(['order_id' => $order->id, 'user_id' => $order->user_id, 'branch_id' => $branch->id, 'rating' => $rating]);
+        }
+        $this->makeMenuItem('Pizza Chưa Ai Chấm');
+
+        $this->get('/category/test')
+            ->assertOk()
+            ->assertSee('4.5')
+            ->assertSee('(2 đánh giá)', false);
+    }
 }

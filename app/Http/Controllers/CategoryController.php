@@ -25,7 +25,7 @@ class CategoryController extends Controller
 
         // Query món đang bán tại chi nhánh đang chọn
         $query = $menu->filterAvailable(
-            MenuItem::with(['images'])->where('category_id', $category->id),
+            MenuItem::with(['images'])->withRating()->where('category_id', $category->id),
             $branchId
         );
 
@@ -53,7 +53,7 @@ class CategoryController extends Controller
         $branchId = $menu->currentBranchId();
 
         $items = $menu->filterAvailable(
-            MenuItem::with(['images'])->whereHas('branchMenuItems', fn ($q) => $q
+            MenuItem::with(['images'])->withRating()->whereHas('branchMenuItems', fn ($q) => $q
                 ->where('is_bestseller', true)
                 ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))),
             $branchId

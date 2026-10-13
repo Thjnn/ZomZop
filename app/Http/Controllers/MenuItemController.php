@@ -16,7 +16,7 @@ class MenuItemController extends Controller
         if ($q !== '') {
             $branchId = $menu->currentBranchId();
             $like = '%' . addcslashes($q, '%_\\') . '%';
-            $items = $menu->filterAvailable(MenuItem::with('images')->where('menu_items.name', 'like', $like), $branchId)
+            $items = $menu->filterAvailable(MenuItem::with('images')->withRating()->where('menu_items.name', 'like', $like), $branchId)
                 ->orderBy('menu_items.name')->limit(60)->get();
             $menu->applyPrices($items, $branchId);
         }

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class MenuItem extends Model
@@ -76,6 +77,15 @@ class MenuItem extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Đánh giá của các đơn có món này (đánh giá gắn theo đơn, không theo món).
+     * ponytail: đơn có cùng món ở 2 dòng thì đánh giá bị tính 2 lần, cần distinct nếu chuyện này hay xảy ra
+     */
+    public function reviews(): HasManyThrough
+    {
+        return $this->hasManyThrough(Review::class, OrderItem::class, 'menu_item_id', 'order_id', 'id', 'order_id');
     }
 
     /**
@@ -182,6 +192,14 @@ class MenuItem extends Model
     public function scopeAvailable($query)
     {
         return $query->where('is_available', true);
+    }
+
+    /**
+     * Kèm điểm sao trung bình + số đánh giá cho thẻ món (reviews_avg_rating, reviews_count)
+     */
+    public function scopeWithRating($query)
+    {
+        return $query->withAvg('reviews', 'rating')->withCount('reviews');
     }
 
     /**

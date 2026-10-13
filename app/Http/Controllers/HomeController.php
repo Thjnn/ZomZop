@@ -15,7 +15,7 @@ class HomeController extends Controller
     {
         // Chỉ hiện món đang bán tại chi nhánh khách đã chọn (nếu có)
         $branchId = $menu->currentBranchId();
-        $sell     = fn ($q) => $menu->filterAvailable($q, $branchId);
+        $sell     = fn ($q) => $menu->filterAvailable($q->withRating(), $branchId);
 
         // Lấy tất cả categories đang active, có ảnh icon
         $categories = Category::where('is_active', true)
