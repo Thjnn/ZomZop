@@ -30,7 +30,7 @@ Bảng mới `chatbot_keywords`:
 
 Model `ChatbotKeyword`. Seeder `ChatbotKeywordSeeder` (idempotent, `updateOrCreate` theo `keywords`) tạo sẵn: thực đơn (link trang danh mục đầu tiên), giờ mở cửa, chi nhánh (link `/branches/select`), mã giảm giá (link `/coupons`), cách đặt hàng.
 
-Lịch sử chat dùng bảng có sẵn `ai_chat_sessions` (model `AiChatSession`): mỗi user một dòng (`user_id`, `session_token` sinh ngẫu nhiên), `messages` là mảng `{role: user|bot, text, link_url?, link_label?, at}`, giữ tối đa 15 tin gần nhất (`getRecentMessages()` đã có); `message_count` tăng mỗi tin của khách.
+Lịch sử chat dùng bảng có sẵn `ai_chat_sessions` (model `AiChatSession`): mỗi user một dòng (`user_id`, `session_token` sinh ngẫu nhiên), `messages` là mảng `{role: user|bot, content, link_url?, link_label?, at}` (giữ khoá `content` của `addMessage()` có sẵn), giữ tối đa 15 tin gần nhất (`getRecentMessages()` đã có); `message_count` tăng mỗi tin của khách.
 
 ## 2. Luồng xử lý
 
@@ -56,7 +56,7 @@ Cấu hình: `config/services.php` thêm `gemini.key` (`GEMINI_API_KEY`), `gemin
 
 Trong `layouts/app.blade.php` (mọi trang khách), JS ở `resources/js/chatbot.js` nạp từ `app.js`:
 - Bóng chat tròn cố định góc dưới phải (đặt cao hơn nút "lên đầu trang" để không đè nhau).
-- Chưa đăng nhập: bấm bóng chat → `openAuthModal(event)` (popup đăng nhập có sẵn).
+- Chưa đăng nhập: bấm bóng chat → sang trang đăng nhập (meta `login-url` có sẵn trong layout; `openAuthModal` chỉ có ở trang tài khoản nên không dùng được toàn site).
 - Đã đăng nhập: bấm → mở khung chat (đóng bằng nút X hoặc Esc). Lần mở đầu tải lịch sử qua `GET /chatbot/messages`; trống thì hiện lời chào của bot.
 - Gửi tin: hiện ngay tin của khách, hiện "Đang trả lời…", nhận JSON thì thay bằng câu trả lời; có `link_url` thì thêm nút link bên dưới.
 - Mọi nội dung chèn bằng `textContent` (không `innerHTML`) để không chạy HTML/JS từ tin nhắn hay từ Gemini. Chỉ nhận `link_url` bắt đầu bằng `/` (đường dẫn nội bộ).
