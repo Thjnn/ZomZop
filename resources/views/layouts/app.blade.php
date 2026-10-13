@@ -246,6 +246,7 @@
                 <button id="chatbot-close" type="button" aria-label="Đóng chat" class="text-white/80 hover:text-white text-xl leading-none cursor-pointer">×</button>
             </div>
             <div id="chatbot-messages" aria-live="polite" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm bg-slate-50"></div>
+            <p class="px-3 pt-2 text-[11px] text-slate-400 text-center">Trợ lý chỉ gợi ý tham khảo, bạn là người quyết định. Giá có thể thay đổi.</p>
             <form id="chatbot-form" class="flex gap-2 p-3 border-t border-slate-100">
                 <input name="message" maxlength="500" autocomplete="off" required placeholder="Hỏi về món ăn, calo, mã giảm giá…" aria-label="Tin nhắn"
                     class="flex-1 min-w-0 bg-slate-100 px-3 py-2 rounded-full text-sm border border-transparent focus:bg-white focus:border-red-400 focus:outline-hidden">
