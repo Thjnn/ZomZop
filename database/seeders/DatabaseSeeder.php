@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             DailySalesSummarySeeder::class,     // 20
             SalesPredictionSeeder::class,       // 21
             AddressSeeder::class,               // 22. cần user_id (customer)
+            ChatbotKeywordSeeder::class,        // 23. cần categories (link thực đơn)
         ]);
     }
 }
