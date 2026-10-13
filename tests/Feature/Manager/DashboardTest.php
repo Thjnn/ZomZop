@@ -157,11 +157,12 @@ class DashboardTest extends TestCase
 
         $revenue = fn (int $expected) => fn ($counts) => $counts['revenue'] === $expected;
 
-        $this->actingAs($manager)->get('/manager')->assertViewHas('counts', $revenue(111000));
-        $this->actingAs($manager)->get('/manager?period=today')->assertViewHas('counts', $revenue(0));
+        // Mặc định (và giá trị lạ) là hôm nay
+        $this->actingAs($manager)->get('/manager')->assertViewHas('period', 'today')->assertViewHas('counts', $revenue(0));
+        $this->actingAs($manager)->get('/manager?period=all')->assertViewHas('counts', $revenue(111000));
         $this->actingAs($manager)->get('/manager?period=bogus')
             ->assertOk()
-            ->assertViewHas('period', 'all')
-            ->assertViewHas('counts', $revenue(111000));
+            ->assertViewHas('period', 'today')
+            ->assertViewHas('counts', $revenue(0));
     }
 }

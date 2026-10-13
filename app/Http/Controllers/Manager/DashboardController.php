@@ -15,7 +15,7 @@ class DashboardController extends ManagerController
     {
         $branchId = $this->branchId();
         $period   = $request->string('period')->toString();
-        $period   = array_key_exists($period, BranchStats::PERIODS) ? $period : 'all';
+        $period   = array_key_exists($period, BranchStats::PERIODS) ? $period : 'today';
 
         return view('manager.dashboard', [
             'branch'       => Branch::findOrFail($branchId),
