@@ -59,7 +59,7 @@ class Chatbot
             ->values()->all();
 
         try {
-            $response = Http::timeout(15)
+            $response = Http::timeout(config('services.gemini.timeout'))
                 ->withHeaders(['x-goog-api-key' => $key])
                 ->post('https://generativelanguage.googleapis.com/v1beta/models/' . config('services.gemini.model') . ':generateContent', [
                     'systemInstruction' => ['parts' => [['text' => $this->instruction()]]],

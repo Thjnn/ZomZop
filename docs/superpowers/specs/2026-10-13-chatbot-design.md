@@ -42,7 +42,7 @@ Validate: `message` bắt buộc, chuỗi, tối đa 500 ký tự. Rate limiter 
 
 Xử lý trong service `App\Services\Chatbot`:
 1. **Khớp từ khoá:** chuẩn hoá tin nhắn và từng từ khoá (chữ thường, bỏ dấu tiếng Việt bằng `Str::ascii`, gộp khoảng trắng). Tin nhắn chứa một từ khoá → dùng dòng đó. Nhiều dòng khớp → lấy từ khoá **dài nhất** (cụ thể nhất). Chỉ xét dòng `is_active`.
-2. **Gemini** (không khớp): gọi `POST https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent` qua `Http` facade, header `x-goog-api-key`, timeout 15 giây.
+2. **Gemini** (không khớp): gọi `POST https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent` qua `Http` facade, header `x-goog-api-key`, timeout `GEMINI_TIMEOUT` (mặc định 180 giây).
    - `systemInstruction`: là trợ lý ZomZop, trả lời tiếng Việt, ngắn gọn; chỉ nói về đồ ăn, dinh dưỡng và ZomZop, câu lạc đề thì từ chối nhẹ nhàng; calo/dinh dưỡng là **ước tính**; chỉ nhắc món có trong danh sách, không bịa giá; kèm danh sách món đang bán.
    - Danh sách món: `BranchMenu::filterAvailable` + `applyPrices` theo chi nhánh trong session (không chọn chi nhánh → giá gốc). Mỗi món một dòng `Tên — giá — mô tả cắt 120 ký tự`.
    - `contents`: tối đa 6 tin gần nhất trong lịch sử (role `user`/`model`) + tin mới, để hiểu câu như "món này".
@@ -50,7 +50,7 @@ Xử lý trong service `App\Services\Chatbot`:
 
 Cả tin của khách và câu trả lời của bot đều lưu vào `ai_chat_sessions`.
 
-Cấu hình: `config/services.php` thêm `gemini.key` (`GEMINI_API_KEY`), `gemini.model` (`GEMINI_MODEL`, mặc định `gemini-3.8-flash`). Thêm hai biến vào `.env.example`. Khoá thật chỉ nằm trong `.env`, không commit.
+Cấu hình: `config/services.php` thêm `gemini.key` (`GEMINI_API_KEY`), `gemini.model` (`GEMINI_MODEL`, mặc định `gemini-3.1-flash-lite`). Thêm hai biến vào `.env.example`. Khoá thật chỉ nằm trong `.env`, không commit.
 
 ## 3. Giao diện khách
 
