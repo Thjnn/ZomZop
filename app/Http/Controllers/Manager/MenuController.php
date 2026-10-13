@@ -43,6 +43,7 @@ class MenuController extends ManagerController
         $data = $request->validate([
             'price'        => ['nullable', 'integer', 'min:1000', 'max:10000000'],
             'is_available' => ['required', 'boolean'],
+            'is_bestseller' => ['nullable', 'boolean'],
         ], [
             'price.integer' => 'Giá phải là số nguyên (VD: 45000).',
             'price.min'     => 'Giá tối thiểu 1.000đ.',
@@ -55,7 +56,7 @@ class MenuController extends ManagerController
 
         BranchMenuItem::updateOrCreate(
             ['branch_id' => $branchId, 'menu_item_id' => $menuItem->id],
-            ['price' => $data['price'] ?? null, 'is_available' => (bool) $data['is_available']]
+            ['price' => $data['price'] ?? null, 'is_available' => (bool) $data['is_available'], 'is_bestseller' => (bool) ($data['is_bestseller'] ?? false)]
         );
 
         return back()->with('success', "Đã lưu \"{$menuItem->name}\".");

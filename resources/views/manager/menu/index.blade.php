@@ -31,7 +31,7 @@
                 <tr>
                     <th class="px-4 py-3">Món</th>
                     <th class="px-4 py-3">Giá gốc</th>
-                    <th class="px-4 py-3">Giá chi nhánh · Đang bán</th>
+                    <th class="px-4 py-3">Giá chi nhánh · Đang bán · Bán chạy</th>
                 </tr>
             </thead>
             <tbody>
@@ -54,6 +54,10 @@
                                     <input type="hidden" name="is_available" value="0">
                                     <label class="flex items-center gap-1.5 cursor-pointer">
                                         <input type="checkbox" name="is_available" value="1" @checked($on) class="accent-red-500 w-4 h-4"> Bán
+                                    </label>
+                                    <input type="hidden" name="is_bestseller" value="0">
+                                    <label class="flex items-center gap-1.5 cursor-pointer">
+                                        <input type="checkbox" name="is_bestseller" value="1" @checked($row?->is_bestseller) class="accent-red-500 w-4 h-4"> 🔥 Bán chạy
                                     </label>
                                     <button class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white cursor-pointer">Lưu</button>
                                 </form>

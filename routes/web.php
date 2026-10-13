@@ -28,6 +28,7 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/unsubscribe/{user}', \App\Http\Controllers\UnsubscribeController::class)
     ->middleware('signed')->name('unsubscribe');
 
+Route::get('/ban-chay', [CategoryController::class, 'bestsellers'])->name('bestsellers');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
 
 Route::get('/branches/select', [BranchController::class, 'select'])->name('branches.select');

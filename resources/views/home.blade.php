@@ -42,7 +42,7 @@
         <div class="grid grid-cols-3 gap-3">
 
             {{-- Nút "Bán Chạy" cố định --}}
-            <a href="{{ route('home', ['sort' => 'popular']) }}"
+            <a href="{{ route('bestsellers') }}"
                 class="bg-white p-3 rounded-xl flex flex-col items-center justify-center text-center shadow-xs border border-slate-100 hover:scale-105 transition cursor-pointer no-underline">
                 <span class="text-2xl mb-1">🔥</span>
                 <span class="text-xs font-medium text-slate-600">Bán Chạy</span>

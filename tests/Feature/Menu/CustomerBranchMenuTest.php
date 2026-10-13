@@ -162,4 +162,28 @@ class CustomerBranchMenuTest extends TestCase
             ->assertSee('Burger: giá đổi từ 50.000đ thành 70.000đ.')
             ->assertSee('70.000');
     }
+
+    public function test_bestsellers_page_shows_only_items_flagged_at_selected_branch(): void
+    {
+        $a = $this->makeBranch('Chi nhánh A');
+        $b = $this->makeBranch('Chi nhánh B');
+        $hot   = $this->makeMenuItem('Burger Hot A');
+        $other = $this->makeMenuItem('Pizza Hot B');
+        $off   = $this->makeMenuItem('Gà Hot Tắt');
+        $this->makeMenuItem('Khoai Thường');
+        BranchMenuItem::create(['branch_id' => $a->id, 'menu_item_id' => $hot->id, 'price' => 61000, 'is_available' => true, 'is_bestseller' => true]);
+        BranchMenuItem::create(['branch_id' => $b->id, 'menu_item_id' => $other->id, 'is_available' => true, 'is_bestseller' => true]);
+        BranchMenuItem::create(['branch_id' => $a->id, 'menu_item_id' => $off->id, 'is_available' => false, 'is_bestseller' => true]);
+
+        $this->withSession(['selected_branch_id' => $a->id])
+            ->get('/ban-chay')
+            ->assertOk()
+            ->assertSee('Burger Hot A')
+            ->assertSee('61.000 đ')
+            ->assertDontSee('Pizza Hot B')
+            ->assertDontSee('Gà Hot Tắt')
+            ->assertDontSee('Khoai Thường');
+
+        $this->flushSession()->get('/ban-chay')->assertSee('Burger Hot A')->assertSee('Pizza Hot B')->assertDontSee('Khoai Thường');
+    }
 }

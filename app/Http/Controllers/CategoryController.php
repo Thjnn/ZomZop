@@ -46,4 +46,23 @@ class CategoryController extends Controller
 
         return view('category.show', compact('category', 'allCategories', 'items'));
     }
+
+    /** Món quản lý gắn "Bán chạy" ở chi nhánh đang chọn; chưa chọn chi nhánh thì gộp mọi chi nhánh */
+    public function bestsellers(BranchMenu $menu)
+    {
+        $branchId = $menu->currentBranchId();
+
+        $items = $menu->filterAvailable(
+            MenuItem::with(['images'])->whereHas('branchMenuItems', fn ($q) => $q
+                ->where('is_bestseller', true)
+                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))),
+            $branchId
+        )->orderBy('name')->get();
+        $menu->applyPrices($items, $branchId);
+
+        return view('category.bestsellers', [
+            'items'         => $items,
+            'allCategories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
+        ]);
+    }
 }

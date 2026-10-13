@@ -12,12 +12,14 @@ class BranchMenuItem extends Model
         'menu_item_id',
         'price',
         'is_available',
+        'is_bestseller',
         'stock_qty',
     ];
 
     protected $casts = [
         'price'        => 'integer',
         'is_available' => 'boolean',
+        'is_bestseller' => 'boolean',
         'stock_qty'    => 'integer',
     ];
 

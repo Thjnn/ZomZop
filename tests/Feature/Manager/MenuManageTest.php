@@ -105,4 +105,17 @@ class MenuManageTest extends TestCase
             ->put("/manager/menu/{$burger->id}", ['price' => '', 'is_available' => '1'])
             ->assertSessionHasErrors('is_available');
     }
+
+    public function test_manager_flags_bestseller_for_own_branch_only(): void
+    {
+        $branch = $this->makeBranch();
+        $burger = $this->makeMenuItem('Burger');
+        $manager = $this->makeUser('manager', $branch);
+
+        $this->actingAs($manager)->put("/manager/menu/{$burger->id}", ['price' => '', 'is_available' => '1', 'is_bestseller' => '1']);
+        $this->assertTrue(BranchMenuItem::where('branch_id', $branch->id)->value('is_bestseller'));
+
+        $this->actingAs($manager)->put("/manager/menu/{$burger->id}", ['price' => '', 'is_available' => '1', 'is_bestseller' => '0']);
+        $this->assertFalse(BranchMenuItem::where('branch_id', $branch->id)->value('is_bestseller'));
+    }
 }
