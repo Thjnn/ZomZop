@@ -195,11 +195,11 @@ class MenuItem extends Model
     }
 
     /**
-     * Kèm điểm sao trung bình + số đánh giá cho thẻ món (reviews_avg_rating, reviews_count)
+     * Kèm điểm sao trung bình cho thẻ món (reviews_avg_rating)
      */
     public function scopeWithRating($query)
     {
-        return $query->withAvg('reviews', 'rating')->withCount('reviews');
+        return $query->withAvg('reviews', 'rating');
     }
 
     /**

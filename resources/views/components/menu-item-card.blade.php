@@ -42,7 +42,6 @@ $imgSrc = $image ? $image->image_url : $item->image_url;
         <div class="mt-1 flex items-center justify-center gap-1 text-sm text-slate-700">
             <span class="text-amber-400" aria-hidden="true">★</span>
             <span class="font-medium">{{ number_format($item->reviews_avg_rating, 1) }}</span>
-            <span class="text-xs text-slate-400">({{ $item->reviews_count }} đánh giá)</span>
         </div>
         @endif
 

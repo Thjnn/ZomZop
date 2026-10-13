@@ -201,6 +201,6 @@ class CustomerBranchMenuTest extends TestCase
         $this->get('/category/test')
             ->assertOk()
             ->assertSee('4.5')
-            ->assertSee('(2 đánh giá)', false);
+            ->assertDontSee('đánh giá');
     }
 }
