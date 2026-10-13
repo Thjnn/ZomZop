@@ -204,6 +204,11 @@
             <h2 class="text-2xl font-bold">Liên hệ với ZomZop</h2>
             <p class="mt-2 text-sm text-white/85">Góp ý món ăn, hỏi về đơn hàng hay hợp tác, cứ nhắn cho chúng mình nhé.</p>
         </div>
+        {{-- Logo trên nền trắng: chữ logo màu đỏ sẽ chìm nếu đặt thẳng lên nền đỏ --}}
+        <div class="self-center flex items-center gap-3 rounded-2xl bg-white px-5 py-3 shadow-lg">
+            <img src="{{ asset('images/avatar-logo.png') }}" alt="" class="h-12 w-auto object-contain">
+            <img src="{{ asset('images/text-logo.png') }}" alt="ZomZop Fast Food" class="h-9 w-auto object-contain">
+        </div>
         <ul class="space-y-3 text-sm">
             <li>📞 Hotline: <span class="font-semibold">{{ \App\Models\Setting::get('hotline', '1900 1234') }}</span></li>
             <li>✉️ Email: <span class="font-semibold">{{ \App\Models\Setting::get('email', 'contact@zomzop.vn') }}</span></li>
