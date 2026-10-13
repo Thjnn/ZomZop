@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Manager;
 use App\Models\BranchMenuItem;
 use App\Models\Category;
 use App\Models\MenuItem;
+use App\Services\BranchMenu;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class MenuController extends ManagerController
@@ -81,5 +83,27 @@ class MenuController extends ManagerController
         }
 
         return back()->with('success', 'Đã lưu thay đổi menu.');
+    }
+
+    /** "Ưu đãi đặc biệt từ đầu bếp" trên trang chủ: chọn ở dashboard, thay toàn bộ danh sách cũ của chi nhánh */
+    public function updateChefPicks(Request $request, BranchMenu $menu)
+    {
+        $branchId = $this->branchId();
+        $ids = $request->validate([
+            'items'   => ['nullable', 'array', 'max:10'],
+            'items.*' => ['integer'],
+        ], ['items.max' => 'Chỉ chọn tối đa 10 món.'])['items'] ?? [];
+
+        // Chỉ nhận món chi nhánh đang bán
+        $ids = $menu->filterAvailable(MenuItem::whereIn('id', $ids), $branchId)->pluck('id');
+
+        DB::transaction(function () use ($branchId, $ids) {
+            BranchMenuItem::where('branch_id', $branchId)->whereNotIn('menu_item_id', $ids)->update(['is_chef_pick' => false]);
+            foreach ($ids as $id) {
+                BranchMenuItem::updateOrCreate(['branch_id' => $branchId, 'menu_item_id' => $id], ['is_chef_pick' => true]);
+            }
+        });
+
+        return back()->with('success', "Đã lưu {$ids->count()} món ưu đãi từ đầu bếp.");
     }
 }

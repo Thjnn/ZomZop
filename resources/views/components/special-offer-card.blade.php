@@ -12,9 +12,11 @@
             <img src="{{ $imgSrc }}" alt="{{ $item->name }}"
                  class="h-full w-full object-cover transition duration-300 hover:scale-105">
 
+            @if ($item->is_on_sale)
             <span class="absolute left-4 top-4 rounded-full bg-[#ff6a61] px-4 py-2 text-sm font-bold text-white">
                 Giảm {{ $item->discount_percent }}%
             </span>
+            @endif
 
             <button class="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm transition hover:text-red-500 cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -40,13 +42,15 @@
 
         @if ($item->reviews_avg_rating ?? false)
         <div class="mt-2 flex items-center justify-center gap-1 text-sm text-slate-700">
-            <span>{{ number_format($item->reviews_avg_rating, 1) }}</span>
-            <span class="text-amber-400">★</span>
+            <span class="text-amber-400" aria-hidden="true">★</span>
+            <span class="font-medium">{{ number_format($item->reviews_avg_rating, 1) }}</span>
         </div>
         @endif
 
         <div class="mt-2 flex items-center justify-center gap-2 text-[0.95rem]">
+            @if ($item->is_on_sale)
             <span class="text-slate-400 line-through">{{ $item->display_base_price }}</span>
+            @endif
             <span class="font-semibold text-slate-800">{{ $item->display_price }}</span>
         </div>
     </div>

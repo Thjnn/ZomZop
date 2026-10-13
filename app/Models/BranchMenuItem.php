@@ -13,6 +13,7 @@ class BranchMenuItem extends Model
         'price',
         'is_available',
         'is_bestseller',
+        'is_chef_pick',
         'stock_qty',
     ];
 
@@ -20,6 +21,7 @@ class BranchMenuItem extends Model
         'price'        => 'integer',
         'is_available' => 'boolean',
         'is_bestseller' => 'boolean',
+        'is_chef_pick' => 'boolean',
         'stock_qty'    => 'integer',
     ];
 

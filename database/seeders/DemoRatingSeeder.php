@@ -12,7 +12,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 
 /**
- * Dữ liệu demo cho sao trên thẻ món + trang Bán chạy.
+ * Dữ liệu demo cho sao trên thẻ món, trang Bán chạy và mục Ưu đãi từ đầu bếp.
  * Chạy lại được: xoá đơn DEMO- cũ (order_items, reviews xoá theo cascade) rồi tạo mới.
  */
 class DemoRatingSeeder extends Seeder
@@ -82,15 +82,18 @@ class DemoRatingSeeder extends Seeder
             }
         }
 
-        // Mỗi chi nhánh 4 món Bán chạy (chỉ chọn món chi nhánh đang bán)
+        // Mỗi chi nhánh 4 món Bán chạy + 5 món "ưu đãi từ đầu bếp" (chỉ chọn món chi nhánh đang bán)
         foreach ($branches as $branch) {
-            BranchMenuItem::where('branch_id', $branch->id)->update(['is_bestseller' => false]);
-            $off = BranchMenuItem::where('branch_id', $branch->id)->where('is_available', false)->pluck('menu_item_id');
-            foreach ($items->whereNotIn('id', $off)->random(min(4, $items->count())) as $item) {
-                BranchMenuItem::updateOrCreate(
-                    ['branch_id' => $branch->id, 'menu_item_id' => $item->id],
-                    ['is_bestseller' => true]
-                );
+            BranchMenuItem::where('branch_id', $branch->id)->update(['is_bestseller' => false, 'is_chef_pick' => false]);
+            $off  = BranchMenuItem::where('branch_id', $branch->id)->where('is_available', false)->pluck('menu_item_id');
+            $sell = $items->whereNotIn('id', $off);
+            foreach (['is_bestseller' => 4, 'is_chef_pick' => 5] as $flag => $count) {
+                foreach ($sell->random(min($count, $sell->count())) as $item) {
+                    BranchMenuItem::updateOrCreate(
+                        ['branch_id' => $branch->id, 'menu_item_id' => $item->id],
+                        [$flag => true]
+                    );
+                }
             }
         }
     }

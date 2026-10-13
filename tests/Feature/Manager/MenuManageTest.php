@@ -144,4 +144,39 @@ class MenuManageTest extends TestCase
         $this->save([$burger->id => ['price' => '', 'is_available' => '1', 'is_bestseller' => '0']]);
         $this->assertFalse(BranchMenuItem::where('branch_id', $branch->id)->value('is_bestseller'));
     }
+
+    public function test_dashboard_saves_chef_picks_replacing_old_ones(): void
+    {
+        $branch = $this->makeBranch();
+        $other  = $this->makeBranch('B');
+        $burger = $this->makeMenuItem('Burger Đầu Bếp');
+        $pizza  = $this->makeMenuItem('Pizza Đầu Bếp');
+        $off    = $this->makeMenuItem('Gà Đã Tắt');
+        BranchMenuItem::create(['branch_id' => $branch->id, 'menu_item_id' => $pizza->id, 'is_available' => true, 'is_chef_pick' => true]);
+        BranchMenuItem::create(['branch_id' => $branch->id, 'menu_item_id' => $off->id, 'is_available' => false]);
+        BranchMenuItem::create(['branch_id' => $other->id, 'menu_item_id' => $pizza->id, 'is_available' => true, 'is_chef_pick' => true]);
+        $this->actingAs($this->makeUser('manager', $branch));
+
+        $this->get('/manager')->assertOk()->assertSee('Burger Đầu Bếp')->assertDontSee('Gà Đã Tắt');
+
+        $this->from('/manager')->put('/manager/chef-picks', ['items' => [$burger->id, $off->id]])
+            ->assertRedirect('/manager')->assertSessionHas('success');
+
+        $picks = BranchMenuItem::where('is_chef_pick', true)->get(['branch_id', 'menu_item_id']);
+        $this->assertEqualsCanonicalizing(
+            [[$branch->id, $burger->id], [$other->id, $pizza->id]],
+            $picks->map(fn ($r) => [$r->branch_id, $r->menu_item_id])->all()
+        );
+    }
+
+    public function test_chef_picks_limited_to_ten(): void
+    {
+        $branch = $this->makeBranch();
+        $ids = collect(range(1, 11))->map(fn ($i) => $this->makeMenuItem("Món $i")->id)->all();
+
+        $this->actingAs($this->makeUser('manager', $branch))
+            ->from('/manager')->put('/manager/chef-picks', ['items' => $ids])
+            ->assertSessionHasErrors('items');
+        $this->assertDatabaseCount('branch_menu_items', 0);
+    }
 }

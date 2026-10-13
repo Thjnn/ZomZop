@@ -192,4 +192,33 @@
             @endforelse
         </section>
     </div>
+
+    {{-- Chọn món cho mục "Ưu Đãi Đặc Biệt Từ Đầu Bếp" trên trang chủ của chi nhánh --}}
+    <section class="bg-white rounded-2xl border border-slate-100 p-5 mt-6">
+        <h2 class="font-semibold">👨‍🍳 Ưu đãi đặc biệt từ đầu bếp</h2>
+        <p class="text-xs text-slate-400 mt-1 mb-4">Đề xuất nổi bật trên trang chủ cho khách chọn chi nhánh này, tối đa 10 món. Không chọn món nào thì trang chủ tự hiện các món đang giảm giá.</p>
+
+        <form method="POST" action="{{ route('manager.chef-picks.update') }}">
+            @csrf @method('PUT')
+            @php $picked = collect(old('items', $chefItems->where('is_chef_pick', true)->pluck('id')))->map(fn ($id) => (int) $id); @endphp
+            <div class="flex flex-wrap gap-2">
+                @forelse ($chefItems as $item)
+                    <label class="cursor-pointer">
+                        <input type="checkbox" name="items[]" value="{{ $item->id }}" @checked($picked->contains($item->id)) class="peer sr-only">
+                        <span class="inline-block px-3 py-1.5 rounded-full border border-slate-200 text-sm text-slate-600 transition
+                                     peer-checked:bg-red-500 peer-checked:border-red-500 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-red-300 hover:border-red-300">
+                            {{ $item->name }}@if ($item->discount_percent > 0) <span class="text-xs opacity-80">−{{ $item->discount_percent }}%</span>@endif
+                        </span>
+                    </label>
+                @empty
+                    <p class="text-sm text-slate-400">Chi nhánh chưa có món nào đang bán.</p>
+                @endforelse
+            </div>
+            @if ($chefItems->isNotEmpty())
+                <div class="mt-4 flex justify-end">
+                    <button class="px-5 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold cursor-pointer">Lưu đề xuất</button>
+                </div>
+            @endif
+        </form>
+    </section>
 @endsection

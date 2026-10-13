@@ -203,4 +203,23 @@ class CustomerBranchMenuTest extends TestCase
             ->assertSee('4.5')
             ->assertDontSee('đánh giá');
     }
+
+    public function test_home_special_offers_show_branch_chef_picks_else_discounted_items(): void
+    {
+        $branch = $this->makeBranch();
+        $sale   = $this->makeMenuItem('Món Đang Giảm');
+        $sale->update(['discount_percent' => 20]);
+
+        $this->withSession(['selected_branch_id' => $branch->id])
+            ->get('/')->assertOk()->assertSee('Món Đang Giảm');
+
+        $pick = $this->makeMenuItem('Món Đầu Bếp Chọn');
+        BranchMenuItem::create(['branch_id' => $branch->id, 'menu_item_id' => $pick->id, 'is_available' => true, 'is_chef_pick' => true]);
+
+        $html = $this->get('/')->assertOk()->getContent();
+        $section = substr($html, strpos($html, 'specialOffersSwiper'), 4000);
+        $this->assertStringContainsString('Món Đầu Bếp Chọn', $section);
+        $this->assertStringNotContainsString('Món Đang Giảm', $section);
+        $this->assertStringNotContainsString('Giảm 0%', $html);
+    }
 }

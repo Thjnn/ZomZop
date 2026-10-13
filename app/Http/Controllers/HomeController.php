@@ -36,13 +36,23 @@ class HomeController extends Controller
             ->limit(6)
             ->get();
 
-        // Ưu đãi đặc biệt — món có discount > 0, lấy 6 món
+        // Ưu đãi đặc biệt từ đầu bếp — món quản lý chọn ở dashboard (chưa chọn chi nhánh thì gộp mọi chi nhánh);
+        // chưa có món nào được chọn thì lấy món đang giảm giá
         $specialOffers = MenuItem::with(['images', 'category'])
             ->tap($sell)
-            ->where('discount_percent', '>', 0)
+            ->whereHas('branchMenuItems', fn ($q) => $q->where('is_chef_pick', true)
+                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId)))
             ->orderByDesc('discount_percent')
-            ->limit(6)
+            ->limit(10)
             ->get();
+        if ($specialOffers->isEmpty()) {
+            $specialOffers = MenuItem::with(['images', 'category'])
+                ->tap($sell)
+                ->where('discount_percent', '>', 0)
+                ->orderByDesc('discount_percent')
+                ->limit(6)
+                ->get();
+        }
 
         // Món ăn mới nhất — hiển thị ngẫu nhiên để trang chủ luôn có cảm giác mới.
         $newArrivals = MenuItem::with(['images', 'category'])

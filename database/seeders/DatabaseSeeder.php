@@ -35,7 +35,7 @@ class DatabaseSeeder extends Seeder
             SalesPredictionSeeder::class,       // 21
             AddressSeeder::class,               // 22. cần user_id (customer)
             ChatbotKeywordSeeder::class,        // 23. cần categories (link thực đơn)
-            DemoRatingSeeder::class,            // 24. đơn + đánh giá demo cho sao thẻ món, món Bán chạy mỗi chi nhánh
+            DemoRatingSeeder::class,            // 24. đánh giá demo cho sao thẻ món, món Bán chạy + ưu đãi đầu bếp mỗi chi nhánh
         ]);
     }
 }
