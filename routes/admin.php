@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\Admin\ChatbotKeywordController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CouponSendController;
 use App\Http\Controllers\Admin\CustomerController;
@@ -68,6 +69,14 @@ Route::middleware(['auth', 'role:admin'])
 
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
+
+        Route::get('/chatbot-keywords', [ChatbotKeywordController::class, 'index'])->name('chatbot-keywords.index');
+        Route::get('/chatbot-keywords/create', [ChatbotKeywordController::class, 'create'])->name('chatbot-keywords.create');
+        Route::post('/chatbot-keywords', [ChatbotKeywordController::class, 'store'])->name('chatbot-keywords.store');
+        Route::get('/chatbot-keywords/{chatbotKeyword}/edit', [ChatbotKeywordController::class, 'edit'])->name('chatbot-keywords.edit');
+        Route::put('/chatbot-keywords/{chatbotKeyword}', [ChatbotKeywordController::class, 'update'])->name('chatbot-keywords.update');
+        Route::patch('/chatbot-keywords/{chatbotKeyword}/toggle', [ChatbotKeywordController::class, 'toggle'])->name('chatbot-keywords.toggle');
+        Route::delete('/chatbot-keywords/{chatbotKeyword}', [ChatbotKeywordController::class, 'destroy'])->name('chatbot-keywords.destroy');
 
         Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
 
