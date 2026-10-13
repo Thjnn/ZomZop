@@ -232,20 +232,20 @@
     </button>
 
     {{-- Chatbot (resources/js/chatbot.js). Đặt cao hơn nút lên đầu trang để không đè nhau --}}
-    <button id="chatbot-toggle" type="button" aria-label="Chat với trợ lý ZomZop"
+    <button id="chatbot-toggle" type="button" aria-controls="chatbot-panel" aria-expanded="false" aria-label="Chat với trợ lý ZomZop"
         class="fixed bottom-20 right-6 z-50 w-12 h-12 bg-slate-800 hover:bg-slate-900 text-white rounded-full shadow-lg flex items-center justify-center transition cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" />
         </svg>
     </button>
     @auth
-    <div id="chatbot-panel" class="hidden fixed bottom-36 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm h-[28rem] max-h-[70vh]">
+    <div id="chatbot-panel" role="dialog" aria-label="Trợ lý ZomZop" class="hidden fixed bottom-36 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm h-[28rem] max-h-[70vh]">
         <div class="flex flex-col h-full bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
             <div class="flex items-center justify-between px-4 py-3 bg-red-500 text-white">
                 <p class="font-semibold text-sm">Trợ lý ZomZop</p>
                 <button id="chatbot-close" type="button" aria-label="Đóng chat" class="text-white/80 hover:text-white text-xl leading-none cursor-pointer">×</button>
             </div>
-            <div id="chatbot-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm bg-slate-50"></div>
+            <div id="chatbot-messages" aria-live="polite" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm bg-slate-50"></div>
             <form id="chatbot-form" class="flex gap-2 p-3 border-t border-slate-100">
                 <input name="message" maxlength="500" autocomplete="off" required placeholder="Hỏi về món ăn, calo, mã giảm giá…" aria-label="Tin nhắn"
                     class="flex-1 min-w-0 bg-slate-100 px-3 py-2 rounded-full text-sm border border-transparent focus:bg-white focus:border-red-400 focus:outline-hidden">

@@ -46,6 +46,8 @@ class Chatbot
     {
         $key = config('services.gemini.key');
         if (!$key) {
+            Log::warning('Chatbot: chưa cấu hình GEMINI_API_KEY');
+
             return null;
         }
 
@@ -69,7 +71,7 @@ class Chatbot
             return null;
         }
 
-        $text = trim((string) $response->json('candidates.0.content.parts.0.text'));
+        $text = trim(collect($response->json('candidates.0.content.parts', []))->pluck('text')->implode(''));
         if ($response->failed() || $text === '') {
             Log::warning('Chatbot: Gemini trả lỗi hoặc không có chữ', ['status' => $response->status()]);
 

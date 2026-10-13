@@ -25,8 +25,8 @@ if (toggle && panel) {
             (role === "user" ? "bg-red-500 text-white rounded-br-sm" : "bg-white text-slate-800 shadow-sm rounded-bl-sm");
         bubble.textContent = text;
 
-        // Chỉ nhận đường dẫn trong web: "/..." nhưng không "//..."
-        if (linkUrl && /^\/(?!\/)/.test(linkUrl)) {
+        // Chỉ nhận đường dẫn trong web: "/..." nhưng không "//..." và "/\..." (cả hai đều rời khỏi site)
+        if (linkUrl && /^\/(?![\/\\])/.test(linkUrl)) {
             const link = document.createElement("a");
             link.href = linkUrl;
             link.textContent = linkLabel || "Xem";
@@ -42,12 +42,16 @@ if (toggle && panel) {
 
     const open = () => {
         panel.classList.remove("hidden");
+        toggle.setAttribute("aria-expanded", "true");
         input.focus();
         if (loaded) return;
         loaded = true;
 
         fetch("/chatbot/messages", { headers: { Accept: "application/json" } })
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) throw new Error();
+                return res.json();
+            })
             .then((data) => {
                 if (!data.messages.length) {
                     add("bot", "Xin chào! Mình là trợ lý ZomZop. Bạn muốn xem thực đơn, mã giảm giá hay hỏi gì về món ăn?");
@@ -57,9 +61,13 @@ if (toggle && panel) {
             })
             .catch(() => {
                 loaded = false; // mở lại sẽ thử tải lại
+                add("bot", "Không tải được lịch sử chat, bạn thử lại sau nhé.");
             });
     };
-    const close = () => panel.classList.add("hidden");
+    const close = () => {
+        panel.classList.add("hidden");
+        toggle.setAttribute("aria-expanded", "false");
+    };
 
     toggle.addEventListener("click", () => (panel.classList.contains("hidden") ? open() : close()));
     document.getElementById("chatbot-close").addEventListener("click", close);

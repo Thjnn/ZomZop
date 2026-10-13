@@ -21,9 +21,9 @@ class ChatbotKeywordSeeder extends Seeder
             ],
             [
                 'keywords'   => 'giờ mở cửa, mấy giờ mở, mở cửa, đóng cửa',
-                'reply'      => 'Các chi nhánh ZomZop mở cửa từ 8:00 đến 22:00 mỗi ngày.',
-                'link_url'   => null,
-                'link_label' => null,
+                'reply'      => 'Giờ mở cửa có thể khác nhau giữa các chi nhánh. Bạn chọn chi nhánh để xem giờ mở cửa nhé.',
+                'link_url'   => '/branches/select',
+                'link_label' => 'Chọn chi nhánh',
             ],
             [
                 'keywords'   => 'chi nhánh, địa chỉ, ở đâu',

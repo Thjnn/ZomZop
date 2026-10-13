@@ -98,6 +98,18 @@ class ChatbotChatTest extends TestCase
         Http::assertSent(fn (HttpRequest $req) => array_column($req['contents'], 'role') === ['user']);
     }
 
+    public function test_gemini_multiple_parts_are_joined(): void
+    {
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [['content' => ['parts' => [['text' => 'Khoảng 550 '], ['text' => 'kcal.']]]]],
+        ])]);
+
+        $this->actingAs($this->makeUser('customer'))
+            ->postJson('/chatbot/message', ['message' => 'calo bao nhiêu'])
+            ->assertOk()
+            ->assertJson(['reply' => 'Khoảng 550 kcal.', 'source' => 'gemini']);
+    }
+
     public function test_gemini_error_returns_fallback_with_200(): void
     {
         Http::fake(['generativelanguage.googleapis.com/*' => Http::response('boom', 500)]);
