@@ -65,4 +65,31 @@ class CategoryController extends Controller
             'allCategories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
         ]);
     }
+
+    public const ALL_SORTS = ['rating' => 'Đánh giá cao', 'newest' => 'Mới nhất', 'price_asc' => 'Giá thấp → cao', 'price_desc' => 'Giá cao → thấp'];
+
+    /** Toàn bộ món đang bán ở chi nhánh đang chọn ("Xem tất cả" trên trang chủ) */
+    public function all(Request $request, BranchMenu $menu)
+    {
+        $sort = array_key_exists($request->get('sort'), self::ALL_SORTS) ? $request->get('sort') : 'rating';
+        $branchId = $menu->currentBranchId();
+
+        $items = $menu->filterAvailable(MenuItem::with(['images'])->withRating(), $branchId)->latest()->get();
+        $menu->applyPrices($items, $branchId);
+
+        // Sắp xếp trong bộ nhớ: giá phải tính SAU khi áp giá chi nhánh; sortBy ổn định nên hoà thì giữ thứ tự mới nhất
+        $items = match ($sort) {
+            'rating'     => $items->sortByDesc(fn ($i) => $i->reviews_avg_rating ?? -1)->values(),
+            'price_asc'  => $items->sortBy('discounted_price')->values(),
+            'price_desc' => $items->sortByDesc('discounted_price')->values(),
+            default      => $items,
+        };
+
+        return view('category.all', [
+            'items'         => $items,
+            'sort'          => $sort,
+            'sorts'         => self::ALL_SORTS,
+            'allCategories' => Category::where('is_active', true)->orderBy('sort_order')->get(),
+        ]);
+    }
 }

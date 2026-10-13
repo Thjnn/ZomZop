@@ -68,7 +68,7 @@
 <section class="space-y-4">
     <div class="flex justify-between items-end">
         <h2 class="text-xl font-bold text-slate-800">Món Ngon Được Yêu Thích</h2>
-        <a href="{{ route('home', ['sort' => 'popular']) }}" class="text-xs font-semibold text-red-500 hover:underline">Xem Tất Cả</a>
+        <a href="{{ route('menu.all', ['sort' => 'rating']) }}" class="text-xs font-semibold text-red-500 hover:underline">Xem Tất Cả</a>
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -85,7 +85,7 @@
 <section class="mt-10">
     <div class="flex items-center justify-between mb-5">
         <h3 class="text-2xl font-extrabold text-slate-900">Combo Ngon Mê Ly</h3>
-        <a href="{{ route('home', ['category' => 'combo']) }}" class="text-red-500 font-semibold hover:underline">Xem Tất Cả</a>
+        <a href="{{ route('category.show', 'combo') }}" class="text-red-500 font-semibold hover:underline">Xem Tất Cả</a>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -153,7 +153,7 @@
 <section class="space-y-4">
     <div class="flex justify-between items-end">
         <h2 class="text-lg font-bold text-slate-800">Tìm món ăn từ các Chi nhánh</h2>
-        <a href="{{ route('home') }}" class="text-xs font-semibold text-red-500 hover:underline">Xem Tất Cả</a>
+        <a href="{{ route('branches.select') }}" class="text-xs font-semibold text-red-500 hover:underline">Xem Tất Cả</a>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -181,7 +181,7 @@
 <section class="space-y-4">
     <div class="flex justify-between items-end">
         <h2 class="text-lg font-bold text-slate-800">Món Ăn Mới Nhất</h2>
-        <a href="{{ route('home', ['sort' => 'newest']) }}" class="text-xs font-semibold text-red-500 hover:underline">Xem Tất Cả</a>
+        <a href="{{ route('menu.all', ['sort' => 'newest']) }}" class="text-xs font-semibold text-red-500 hover:underline">Xem Tất Cả</a>
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">

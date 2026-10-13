@@ -29,6 +29,7 @@ Route::get('/unsubscribe/{user}', \App\Http\Controllers\UnsubscribeController::c
     ->middleware('signed')->name('unsubscribe');
 
 Route::post('/contact', [App\Http\Controllers\ContactController::class, 'store'])->middleware('throttle:5,1')->name('contact.store');
+Route::get('/thuc-don', [CategoryController::class, 'all'])->name('menu.all');
 Route::get('/ban-chay', [CategoryController::class, 'bestsellers'])->name('bestsellers');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
 

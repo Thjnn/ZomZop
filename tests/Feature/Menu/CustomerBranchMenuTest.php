@@ -222,4 +222,27 @@ class CustomerBranchMenuTest extends TestCase
         $this->assertStringNotContainsString('Món Đang Giảm', $section);
         $this->assertStringNotContainsString('Giảm 0%', $html);
     }
+
+    public function test_all_menu_page_sorts_by_rating_and_price_and_home_links_to_it(): void
+    {
+        $branch = $this->makeBranch();
+        $low  = $this->makeMenuItem('Món Ít Sao');
+        $high = $this->makeMenuItem('Món Nhiều Sao');
+        $none = $this->makeMenuItem('Món Chưa Chấm');
+        $none->update(['base_price' => 10000]);
+        foreach ([$low->id => 3, $high->id => 5] as $id => $rating) {
+            $order = $this->makeOrder($branch);
+            $this->addItem($order, \App\Models\MenuItem::find($id), 1);
+            \App\Models\Review::create(['order_id' => $order->id, 'user_id' => $order->user_id, 'branch_id' => $branch->id, 'rating' => $rating]);
+        }
+
+        $this->get('/thuc-don')->assertOk()->assertSeeInOrder(['Món Nhiều Sao', 'Món Ít Sao', 'Món Chưa Chấm']);
+        $this->get('/thuc-don?sort=price_asc')->assertSeeInOrder(['Món Chưa Chấm', 'Món Ít Sao']);
+        $this->get('/thuc-don?sort=bogus')->assertOk()->assertSeeInOrder(['Món Nhiều Sao', 'Món Ít Sao']);
+
+        $this->get('/')->assertOk()
+            ->assertSee(route('menu.all', ['sort' => 'rating']), false)
+            ->assertSee(route('branches.select'), false)
+            ->assertSeeInOrder(['Món Ngon Được Yêu Thích', 'Món Nhiều Sao', 'Món Ít Sao']);
+    }
 }

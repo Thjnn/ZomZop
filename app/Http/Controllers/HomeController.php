@@ -22,9 +22,11 @@ class HomeController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        // Món ngon được yêu thích — tạm sort theo created_at, sau khi có Review model sẽ sort theo rating
+        // Món ngon được yêu thích — điểm sao cao nhất (món chưa có đánh giá xếp sau), hoà điểm thì món mới trước
         $popularItems = MenuItem::with(['images', 'category'])
             ->tap($sell)
+            ->orderByRaw('reviews_avg_rating is null')
+            ->orderByDesc('reviews_avg_rating')
             ->latest()
             ->limit(5)
             ->get();
