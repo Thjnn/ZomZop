@@ -233,7 +233,7 @@
 
     {{-- Chatbot (resources/js/chatbot.js). Đặt cao hơn nút lên đầu trang để không đè nhau --}}
     <button id="chatbot-toggle" type="button" aria-controls="chatbot-panel" aria-expanded="false" aria-label="Chat với trợ lý ZomZop"
-        class="fixed bottom-20 right-6 z-50 w-12 h-12 bg-slate-800 hover:bg-slate-900 text-white rounded-full shadow-lg flex items-center justify-center transition cursor-pointer">
+        class="fixed bottom-20 right-6 z-50 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center transition cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" />
         </svg>
