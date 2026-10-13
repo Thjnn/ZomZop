@@ -25,6 +25,8 @@
         <button class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold cursor-pointer">Lọc</button>
     </form>
 
+    <form method="POST" action="{{ route('manager.menu.update') }}">
+    @csrf @method('PUT')
     <div class="bg-white rounded-2xl border border-slate-100 overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="text-left text-xs text-slate-400 border-b border-slate-100">
@@ -36,7 +38,11 @@
             </thead>
             <tbody>
                 @forelse ($items as $item)
-                    @php $row = $rows[$item->id] ?? null; $on = $row ? $row->is_available : true; @endphp
+                    @php
+                        $row = $rows[$item->id] ?? null;
+                        $on  = $row ? $row->is_available : true;
+                        $key = "items.{$item->id}";
+                    @endphp
                     <tr class="border-b border-slate-50 {{ (!$item->is_available || !$on) ? 'bg-slate-50 text-slate-400' : '' }}">
                         <td class="px-4 py-3">
                             <p class="font-semibold">{{ $item->name }}</p>
@@ -47,20 +53,19 @@
                             @if (!$item->is_available)
                                 <span class="text-xs">Ngừng bán toàn chuỗi</span>
                             @else
-                                <form method="POST" action="{{ route('manager.menu.update', $item) }}" class="flex flex-wrap items-center gap-3">
-                                    @csrf @method('PUT')
-                                    <input type="number" name="price" value="{{ $row?->price }}" placeholder="{{ $item->base_price }}"
-                                           min="1000" max="10000000" step="500" class="w-32 px-3 py-1.5 rounded-lg border border-slate-200">
-                                    <input type="hidden" name="is_available" value="0">
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <input type="number" name="items[{{ $item->id }}][price]" value="{{ old("$key.price", $row?->price) }}" placeholder="{{ $item->base_price }}"
+                                           min="1000" max="10000000" step="500" aria-label="Giá chi nhánh {{ $item->name }}"
+                                           class="w-32 px-3 py-1.5 rounded-lg border {{ $errors->has("$key.price") ? 'border-red-400' : 'border-slate-200' }}">
+                                    <input type="hidden" name="items[{{ $item->id }}][is_available]" value="0">
                                     <label class="flex items-center gap-1.5 cursor-pointer">
-                                        <input type="checkbox" name="is_available" value="1" @checked($on) class="accent-red-500 w-4 h-4"> Bán
+                                        <input type="checkbox" name="items[{{ $item->id }}][is_available]" value="1" @checked(old("$key.is_available", $on)) class="accent-red-500 w-4 h-4"> Bán
                                     </label>
-                                    <input type="hidden" name="is_bestseller" value="0">
+                                    <input type="hidden" name="items[{{ $item->id }}][is_bestseller]" value="0">
                                     <label class="flex items-center gap-1.5 cursor-pointer">
-                                        <input type="checkbox" name="is_bestseller" value="1" @checked($row?->is_bestseller) class="accent-red-500 w-4 h-4"> 🔥 Bán chạy
+                                        <input type="checkbox" name="items[{{ $item->id }}][is_bestseller]" value="1" @checked(old("$key.is_bestseller", $row?->is_bestseller)) class="accent-red-500 w-4 h-4"> 🔥 Bán chạy
                                     </label>
-                                    <button class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white cursor-pointer">Lưu</button>
-                                </form>
+                                </div>
                             @endif
                         </td>
                     </tr>
@@ -70,4 +75,11 @@
             </tbody>
         </table>
     </div>
+
+    @if ($items->isNotEmpty())
+        <div class="sticky bottom-0 mt-4 flex justify-end py-3 bg-slate-50/90 backdrop-blur-sm">
+            <button class="px-6 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg cursor-pointer">Lưu tất cả</button>
+        </div>
+    @endif
+    </form>
 @endsection

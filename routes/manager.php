@@ -24,7 +24,7 @@ Route::middleware(['auth', 'role:manager'])
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status');
 
         Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
-        Route::put('/menu/{menuItem}', [MenuController::class, 'update'])->name('menu.update');
+        Route::put('/menu', [MenuController::class, 'update'])->name('menu.update');
 
         Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
         Route::get('/staff/create', [StaffController::class, 'create'])->name('staff.create');
