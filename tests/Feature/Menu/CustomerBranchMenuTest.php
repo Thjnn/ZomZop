@@ -33,6 +33,34 @@ class CustomerBranchMenuTest extends TestCase
             ->assertDontSee('Pizza Đã Tắt');
     }
 
+    public function test_search_finds_items_by_name_with_branch_price(): void
+    {
+        $branch = $this->makeBranch();
+        $burger = $this->makeMenuItem('Burger Bò');
+        $this->makeMenuItem('Pizza Hải Sản');
+        $off = $this->makeMenuItem('Burger Đã Tắt');
+        BranchMenuItem::create(['branch_id' => $branch->id, 'menu_item_id' => $burger->id, 'price' => 61000, 'is_available' => true]);
+        BranchMenuItem::create(['branch_id' => $branch->id, 'menu_item_id' => $off->id, 'is_available' => false]);
+
+        $this->withSession(['selected_branch_id' => $branch->id])
+            ->get('/search?q=burger')
+            ->assertOk()
+            ->assertSee('Burger Bò')
+            ->assertSee('61.000 đ')
+            ->assertDontSee('Pizza Hải Sản')
+            ->assertDontSee('Burger Đã Tắt');
+
+        $this->get('/search?q=%25')->assertOk()->assertDontSee('Burger Bò');
+        $this->get('/search')->assertOk();
+
+        // Gõ trực tiếp: chỉ trả khối kết quả, không kèm layout
+        $this->withSession(['selected_branch_id' => $branch->id])
+            ->get('/search?q=burger', ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()
+            ->assertSee('Burger Bò')
+            ->assertDontSee('<html', false);
+    }
+
     public function test_detail_json_uses_branch_price(): void
     {
         $branch = $this->makeBranch();

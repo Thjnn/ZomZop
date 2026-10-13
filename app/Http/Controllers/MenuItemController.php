@@ -8,6 +8,22 @@ use Illuminate\Http\Request;
 
 class MenuItemController extends Controller
 {
+    public function search(Request $request, BranchMenu $menu)
+    {
+        $q = mb_substr(trim((string) $request->query('q')), 0, 50);
+        $items = collect();
+
+        if ($q !== '') {
+            $branchId = $menu->currentBranchId();
+            $like = '%' . addcslashes($q, '%_\\') . '%';
+            $items = $menu->filterAvailable(MenuItem::with('images')->where('menu_items.name', 'like', $like), $branchId)
+                ->orderBy('menu_items.name')->limit(60)->get();
+            $menu->applyPrices($items, $branchId);
+        }
+
+        return view($request->ajax() ? 'search._results' : 'search.index', compact('q', 'items'));
+    }
+
     public function detail($id, BranchMenu $menu)
     {
         $item = MenuItem::with(['images', 'category'])->findOrFail($id);

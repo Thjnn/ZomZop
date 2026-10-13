@@ -63,8 +63,8 @@
 
             {{-- min-w-0: cho phép ô tìm kiếm co lại, không đẩy nút 3 gạch ra khỏi màn hình --}}
             <div class="flex-1 min-w-0 max-w-md mx-0 sm:mx-4">
-                <div class="relative">
-                    <input type="text" placeholder="Bạn đang đói bụng cồn cào?" class="w-full min-w-0 bg-slate-100 pl-10 pr-4 py-2 rounded-full text-sm border border-transparent focus:bg-white focus:border-red-400 focus:outline-hidden transition shadow-inner">
+                <form id="live-search-form" action="{{ route('search') }}" method="GET" role="search" class="relative">
+                    <input type="search" name="q" autocomplete="off" value="{{ request()->routeIs('search') ? request('q') : '' }}" maxlength="50" aria-label="Tìm món ăn" placeholder="Bạn đang đói bụng cồn cào?" class="w-full min-w-0 bg-slate-100 pl-10 pr-4 py-2 rounded-full text-sm border border-transparent focus:bg-white focus:border-red-400 focus:outline-hidden transition shadow-inner">
 
                     <span class="absolute left-3 top-2 text-slate-400">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -72,7 +72,7 @@
                             <path d="m21 21-4.3-4.3" />
                         </svg>
                     </span>
-                </div>
+                </form>
             </div>
 
             <div class="flex items-center gap-1 sm:gap-4 flex-shrink-0">
@@ -152,7 +152,13 @@
                 </a>
             </div>
         </div>
+        {{-- Kết quả tìm kiếm tức thời (resources/js/live-search.js đổ HTML vào) --}}
+        <div id="live-search-panel" class="hidden absolute left-0 right-0 top-full bg-white border-b border-slate-200 shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 py-6 max-h-[70vh] overflow-y-auto"></div>
+        </div>
     </header>
+    {{-- Làm mờ trang phía sau khi đang hiện kết quả tìm kiếm tức thời --}}
+    <div id="live-search-backdrop" class="hidden fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm"></div>
 
     <main class="max-w-7xl mx-auto px-4 py-6 space-y-10">
         @yield('content')

@@ -32,6 +32,7 @@ Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('categ
 
 Route::get('/branches/select', [BranchController::class, 'select'])->name('branches.select');
 Route::post('/branches/confirm', [BranchController::class, 'confirm'])->name('branches.confirm');
+Route::get('/search', [App\Http\Controllers\MenuItemController::class, 'search'])->name('search');
 Route::get('/menu-items/{id}/detail', [App\Http\Controllers\MenuItemController::class, 'detail'])->name('menu.detail');
 
 // Cart — không yêu cầu auth, guest có thể thêm vào giỏ
