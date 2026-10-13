@@ -2,3 +2,4 @@
 console.log("eFood Interface Loaded Successfully!");
 import "./item-modal.js";
 import "./live-search.js";
+import "./chatbot.js";
