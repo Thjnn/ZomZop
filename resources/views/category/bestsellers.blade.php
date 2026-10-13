@@ -14,7 +14,7 @@
 
 <div class="border-b border-slate-200 overflow-x-auto">
     <div class="flex gap-6 text-sm font-medium min-w-max">
-        <span class="text-red-500 border-b-2 border-red-500 pb-2 px-1">Bán Chạy</span>
+        <span class="text-red-500 border-b-2 border-red-500 pb-2 px-1">🔥 Bán Chạy</span>
         @foreach ($allCategories as $cat)
         <a href="{{ route('category.show', $cat->slug) }}" class="text-slate-400 hover:text-slate-600 pb-2 px-1 transition">{{ $cat->name }}</a>
         @endforeach
