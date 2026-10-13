@@ -27,10 +27,10 @@ Hệ thống phục vụ 5 nhóm người dùng:
 
 | Vai trò | Làm được gì |
 |---|---|
-| **Khách hàng** | Xem menu theo chi nhánh, tìm món, giỏ hàng, mã giảm giá, đặt và theo dõi đơn, yêu thích, đánh giá, hỏi chatbot |
+| **Khách hàng** | Xem menu theo chi nhánh, tìm món, giỏ hàng, mã giảm giá, đặt và theo dõi đơn, yêu thích, đánh giá, hỏi chatbot, gửi liên hệ |
 | **Quản lý chi nhánh** | Duyệt đơn, chỉnh menu và giá chi nhánh, gắn món Bán chạy, chọn món đề xuất, nhân sự, ca làm, chấm công, bảng lương, báo cáo |
 | **Nhân viên / Bếp** | Chấm công bằng khuôn mặt tại máy ở quầy |
-| **Admin** | Chi nhánh, tài khoản quản lý, món và danh mục, banner, mã giảm giá, cài đặt, từ khoá chatbot, nhật ký thao tác |
+| **Admin** | Chi nhánh, tài khoản quản lý, món và danh mục, banner, mã giảm giá, cài đặt, từ khoá chatbot, tin nhắn liên hệ, nhật ký thao tác |
 
 ## Dành cho khách hàng
 
@@ -46,6 +46,7 @@ Hệ thống phục vụ 5 nhóm người dùng:
 - **Ưu Đãi Đặc Biệt Từ Đầu Bếp**: các món quản lý chi nhánh chọn, tự chuyển slide
 - Mỗi thẻ món hiện **điểm sao** trung bình từ đánh giá của khách
 - Giá và món hiển thị đúng theo chi nhánh khách đã chọn
+- **Form liên hệ** cuối trang: khách vãng lai cũng gửi được, tin nhắn được chuyển tới trang admin
 
 </td>
 </tr>
@@ -109,7 +110,7 @@ Ngoài ra còn có:
 |---|---|
 | <img src="docs/screenshots/admin-dashboard.jpg" alt="Dashboard admin"> | <img src="docs/screenshots/admin-chatbot.jpg" alt="Quản lý từ khoá chatbot"> |
 
-Quản lý chi nhánh, tài khoản quản lý, nhân viên, khách hàng, đơn hàng, chấm công và bảng lương toàn chuỗi; danh mục và món ăn (nhiều ảnh mỗi món); banner trang chủ; mã giảm giá (gửi thông báo cho khách); cài đặt chung (thông tin liên hệ, phương thức thanh toán); từ khoá chatbot; nhật ký thao tác.
+Quản lý chi nhánh, tài khoản quản lý, nhân viên, khách hàng, đơn hàng, chấm công và bảng lương toàn chuỗi; danh mục và món ăn (nhiều ảnh mỗi món); banner trang chủ; mã giảm giá (gửi thông báo cho khách); cài đặt chung (thông tin liên hệ, phương thức thanh toán); từ khoá chatbot; **tin nhắn liên hệ** từ trang chủ (đánh dấu đã xử lý); nhật ký thao tác.
 
 ## Công nghệ
 
