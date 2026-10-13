@@ -50,7 +50,7 @@ Xử lý trong service `App\Services\Chatbot`:
 
 Cả tin của khách và câu trả lời của bot đều lưu vào `ai_chat_sessions`.
 
-Cấu hình: `config/services.php` thêm `gemini.key` (`GEMINI_API_KEY`), `gemini.model` (`GEMINI_MODEL`, mặc định `gemini-2.5-flash`). Thêm hai biến vào `.env.example`. Khoá thật chỉ nằm trong `.env`, không commit.
+Cấu hình: `config/services.php` thêm `gemini.key` (`GEMINI_API_KEY`), `gemini.model` (`GEMINI_MODEL`, mặc định `gemini-3.8-flash`). Thêm hai biến vào `.env.example`. Khoá thật chỉ nằm trong `.env`, không commit.
 
 ## 3. Giao diện khách
 
