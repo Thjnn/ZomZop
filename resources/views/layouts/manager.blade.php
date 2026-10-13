@@ -51,8 +51,8 @@
         {{-- Sidebar (ẩn trên điện thoại, thay bằng thanh ngang phía trên) --}}
         <aside class="hidden md:flex w-64 flex-col bg-white border-r border-slate-100 sticky top-0 h-screen">
             <a href="{{ route('manager.dashboard') }}" class="flex items-center gap-2 px-5 h-16 shrink-0">
-                <img src="{{ asset('images/avatar-logo.png') }}" alt="ZomZop" class="h-9 w-auto">
-                <span class="font-bold text-red-500 text-lg">ZomZop</span>
+                <img src="{{ asset('images/avatar-logo.png') }}" alt="" class="h-9 w-auto object-contain">
+                <img src="{{ asset('images/text-logo.png') }}" alt="ZomZop Fast Food" class="h-7 w-auto object-contain">
             </a>
 
             <div class="px-3 pb-2">

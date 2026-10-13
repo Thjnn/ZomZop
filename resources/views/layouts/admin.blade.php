@@ -66,8 +66,9 @@
     <div class="flex min-h-screen">
         <aside class="hidden md:flex w-64 flex-col bg-white border-r border-slate-100 sticky top-0 h-screen">
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 px-5 h-16 shrink-0">
-                <img src="{{ asset('images/avatar-logo.png') }}" alt="ZomZop" class="h-9 w-auto">
-                <span class="font-bold text-red-500 text-lg">ZomZop <span class="text-xs text-slate-400 font-semibold">ADMIN</span></span>
+                <img src="{{ asset('images/avatar-logo.png') }}" alt="" class="h-9 w-auto object-contain">
+                <img src="{{ asset('images/text-logo.png') }}" alt="ZomZop Fast Food" class="h-7 w-auto object-contain">
+                <span class="text-xs text-slate-400 font-semibold">ADMIN</span>
             </a>
             <nav class="flex-1 overflow-y-auto px-3 pb-4 text-sm">
                 @foreach ($_nav as $group => $items)
