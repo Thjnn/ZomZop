@@ -1,10 +1,27 @@
-# Hướng dẫn pull code mới về (cập nhật 06/10/2026)
+# Hướng dẫn pull code mới về (cập nhật 13/10/2026)
 
 Dành cho các thành viên nhóm. Làm đúng thứ tự dưới đây thì **không bị xung đột code** và **không mất dữ liệu** trong database máy mình.
 
 ---
 
 ## 1. Đợt này có gì mới
+
+### Đợt 13/10/2026
+
+| Phần | Nội dung |
+|---|---|
+| Tìm kiếm món | Ô tìm kiếm trên header: gõ tới đâu hiện thẻ món tới đó (theo chi nhánh đang chọn), nền phía sau mờ đi; Enter để sang trang `/search` |
+| Chatbot | Bóng chat góc dưới phải (chỉ khách đã đăng nhập). Câu khớp **từ khoá** → trả lời soạn sẵn kèm nút link (vd. "thực đơn" → nút Xem thực đơn); câu khác → **Gemini** trả lời dựa trên thực đơn của quán (vd. hỏi calo) |
+| Admin → Chatbot | `/admin/chatbot-keywords`: thêm / sửa / bật tắt / xoá từ khoá và câu trả lời |
+
+Cần làm thêm khi cài đặt đợt này:
+
+- **Migration mới:** `2026_10_13_000001_create_chatbot_keywords_table` (bảng từ khoá chatbot).
+- **Seeder mới:** `ChatbotKeywordSeeder` (5 từ khoá mẫu).
+- **Biến `.env` mới** (tự thêm vào `.env` của mình, xem bước 3b): `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_TIMEOUT`.
+- Không có thư viện composer/npm mới.
+
+### Đợt 06/10/2026
 
 | Phần | Nội dung |
 |---|---|
@@ -66,10 +83,26 @@ npm run build             # build lại giao diện
 php artisan migrate                              # thêm bảng/cột mới, KHÔNG mất dữ liệu
 php artisan db:seed --class=UserSeeder           # thêm tài khoản mẫu còn thiếu
 php artisan db:seed --class=SalaryConfigSeeder   # thêm mức lương cho nhân viên/bếp chưa có
+php artisan db:seed --class=ChatbotKeywordSeeder # thêm 5 từ khoá mẫu cho chatbot
 ```
 
-- Hai lệnh `db:seed` ở trên **chạy lại bao nhiêu lần cũng được**: tài khoản / mức lương đã có thì giữ nguyên, chỉ thêm cái thiếu.
+- Ba lệnh `db:seed` ở trên **chạy lại được**: tài khoản / mức lương đã có thì giữ nguyên, chỉ thêm cái thiếu. Riêng `ChatbotKeywordSeeder` chạy lại sẽ đặt lại câu trả lời của 5 từ khoá mẫu về mặc định (từ khoá bạn tự thêm trong admin không bị đụng tới).
 - **Không** chạy `php artisan migrate:fresh --seed` nếu muốn giữ dữ liệu — lệnh đó **xoá sạch** database rồi tạo lại.
+
+### 3b. Bật Gemini cho chatbot
+
+Mở file `.env` của máy mình, thêm 3 dòng (file `.env` không nằm trên git nên phải tự thêm):
+
+```
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_TIMEOUT=180
+```
+
+- Lấy khoá miễn phí ở **aistudio.google.com** → **Get API key**, dán sau `GEMINI_API_KEY=` (không dấu cách, không dấu nháy).
+- Mỗi người dùng khoá của mình. **Không** gửi khoá lên nhóm chat hay commit lên git.
+- Sửa `.env` xong chạy: `php artisan config:clear`
+- Chưa có khoá thì chatbot vẫn trả lời theo từ khoá, còn câu khác sẽ nhận "Xin lỗi, mình đang bận một chút…".
 
 Nếu ở bước 2 bạn dùng `git stash`, lấy lại code của mình:
 
@@ -162,6 +195,9 @@ Thử trên máy tính bảng thì cần HTTPS: chạy `share.bat` (xem `docs/hu
 | Trang đăng ký khuôn mặt báo camera đang được dùng ở nơi khác | Zoom / Teams / ứng dụng Camera đang giữ webcam | Đóng ứng dụng đó rồi tải lại trang |
 | "Camera bị chặn" | Trình duyệt chưa cho quyền, hoặc đang mở bằng `http://zomzop.test` | Mở bằng `http://localhost:8000`, bấm biểu tượng camera trên thanh địa chỉ → Cho phép |
 | Không đăng nhập được tài khoản quản lý chi nhánh khác | Chưa chạy seeder tài khoản | `php artisan db:seed --class=UserSeeder` |
+| Chat báo "Không gửi được tin nhắn, bạn thử lại nhé." | Chưa chạy migration chatbot (`Table 'zomzop.chatbot_keywords' doesn't exist` trong `storage/logs/laravel.log`) | `php artisan migrate` rồi `php artisan db:seed --class=ChatbotKeywordSeeder` |
+| Chatbot luôn trả "Xin lỗi, mình đang bận một chút…" | Chưa có `GEMINI_API_KEY`, khoá sai, hoặc model không dùng được với khoá (log có dòng `Chatbot: Gemini trả lỗi… {"status":404}`) | Kiểm tra 3 dòng Gemini trong `.env` (bước 3b), `GEMINI_MODEL=gemini-3.1-flash-lite`, rồi `php artisan config:clear` |
+| Gõ ô tìm kiếm không hiện gì / không có bóng chat | Chưa build lại giao diện | `npm run build` |
 | `php artisan test` báo fail `ExampleTest` | Lỗi có sẵn từ commit đầu tiên (test không tạo bảng) | Bỏ qua, không liên quan |
 
 ---
@@ -169,15 +205,19 @@ Thử trên máy tính bảng thì cần HTTPS: chạy `share.bat` (xem `docs/hu
 ## 8. Tin nhắn ngắn gửi nhóm
 
 ```
-Đã cập nhật main (dashboard manager, lương, xuất Excel, 2 quản lý/chi nhánh, chấm công khuôn mặt).
+Đã cập nhật main: ô tìm kiếm món (hiện kết quả khi gõ) + chatbot (từ khoá + Gemini) + trang admin quản lý từ khoá chatbot.
 Trước khi pull: git status — có file đang sửa thì commit vào nhánh riêng hoặc git stash.
 Rồi chạy:
 git checkout main && git pull origin main
 composer install
 npm install && npm run build
 php artisan migrate
-php artisan db:seed --class=UserSeeder
-php artisan db:seed --class=SalaryConfigSeeder
+php artisan db:seed --class=ChatbotKeywordSeeder
+Thêm vào .env (khoá Gemini lấy ở aistudio.google.com, mỗi người dùng khoá riêng, không gửi lên nhóm):
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_TIMEOUT=180
+rồi php artisan config:clear
 Không chạy migrate:fresh nếu muốn giữ dữ liệu.
-Chi tiết + cách xử lý xung đột: docs/huong-dan-cap-nhat-code-cho-nhom.md
+Chi tiết + lỗi hay gặp: docs/huong-dan-cap-nhat-code-cho-nhom.md
 ```
