@@ -58,17 +58,41 @@ export function detectFaces(video) {
     return faceapi.detectAllFaces(video, detectorOptions).withFaceLandmarks().withFaceDescriptors();
 }
 
+// Ngưỡng "nhìn thẳng" — chỉnh ở đây khi thử thực tế (xem spec chấm công khuôn mặt v2, mục 2)
+export const FRONTAL = { minWidth: 0.25, yawMin: 0.4, yawMax: 0.6, maxRoll: 12, minEar: 0.22 };
+
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const center = (pts) => ({ x: pts.reduce((s, p) => s + p.x, 0) / pts.length, y: pts.reduce((s, p) => s + p.y, 0) / pts.length });
+
+/** Eye Aspect Ratio: mắt mở ~0.3, nhắm < 0.2 */
+const ear = (eye) => (dist(eye[1], eye[5]) + dist(eye[2], eye[4])) / (2 * dist(eye[0], eye[3]));
+
 /**
  * Kiểm tra khung hình có dùng được không. Trả về chuỗi lý do nếu không, null nếu được.
- * Đúng 1 khuôn mặt, đủ chắc chắn và đủ lớn (đứng đủ gần camera).
+ * Đúng 1 khuôn mặt, đủ chắc chắn, đủ gần, nhìn thẳng (không quay ngang, không nghiêng đầu), mắt mở.
  */
-export function faceProblem(faces, video, minScore = 0.6) {
+export function frontalProblem(faces, video, minScore = 0.6) {
     if (faces.length === 0) return "Chưa thấy khuôn mặt — nhìn thẳng vào camera";
     if (faces.length > 1) return "Chỉ một người đứng trước camera";
-    const { score, box } = faces[0].detection;
-    if (score < minScore) return "Khuôn mặt chưa rõ — đứng chỗ sáng hơn";
-    if (box.width < video.videoWidth * 0.25) return "Lại gần camera hơn";
+    const { detection, landmarks } = faces[0];
+    if (detection.score < minScore) return "Khuôn mặt chưa rõ — đứng chỗ sáng hơn";
+    if (detection.box.width < video.videoWidth * FRONTAL.minWidth) return "Lại gần camera hơn";
+
+    const left = center(landmarks.getLeftEye());
+    const right = center(landmarks.getRightEye());
+    const yaw = (landmarks.getNose()[3].x - left.x) / (right.x - left.x); // đầu mũi giữa hai mắt: ~0.5 khi nhìn thẳng
+    if (yaw < FRONTAL.yawMin || yaw > FRONTAL.yawMax) return "Nhìn thẳng vào camera";
+    const roll = Math.abs((Math.atan2(right.y - left.y, right.x - left.x) * 180) / Math.PI);
+    if (roll > FRONTAL.maxRoll) return "Giữ thẳng đầu";
+    if ((ear(landmarks.getLeftEye()) + ear(landmarks.getRightEye())) / 2 < FRONTAL.minEar) return "Mở mắt, nhìn vào camera";
     return null;
+}
+
+/** Khoảng cách Euclid giữa 2 descriptor (cùng công thức với FaceMatcher trên server) */
+export function descriptorDistance(a, b) {
+    let sum = 0;
+    for (let i = 0; i < 128; i++) sum += (a[i] - b[i]) ** 2;
+    return Math.sqrt(sum);
 }
 
 /** Trung bình nhiều descriptor (ổn định hơn 1 khung hình) */

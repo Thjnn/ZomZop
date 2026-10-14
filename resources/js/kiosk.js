@@ -1,8 +1,7 @@
 // Máy chấm công khuôn mặt đặt ở quầy (máy tính bảng / laptop có webcam).
 // Luồng: bấm nút (Chấm vào / Chấm ra / Ra ca sớm) → quét mặt + kiểm tra người thật → gửi server.
 // Server cần lý do đi trễ / ra sớm thì hiện bảng chọn lý do rồi gửi lại (không phải quét lại).
-import { averageDescriptor, detectFaces, faceProblem, loadModels, sleep, snapshot, startCamera, stopCamera } from "./face/core";
-import { Liveness } from "./face/liveness";
+import { averageDescriptor, detectFaces, frontalProblem, loadModels, sleep, snapshot, startCamera, stopCamera } from "./face/core";
 
 const REASONS = {
     late: ["Kẹt xe", "Ốm", "Việc gia đình", "Quản lý cho phép"],
@@ -133,51 +132,30 @@ if (root) {
 
     // ── Quét mặt ──
 
-    /** Đợi đúng 1 khuôn mặt hợp lệ đứng yên ~1 giây. false nếu hết giờ/huỷ */
-    async function waitForFace(mine) {
-        const until = Date.now() + SCAN_TIMEOUT;
-        let steady = 0;
-        while (steady < 3) {
-            if (!alive(mine) || Date.now() > until) return false;
-            const problem = faceProblem(await detectFaces(video), video);
-            setHint(problem ?? "Giữ yên…", !problem);
-            steady = problem ? 0 : steady + 1;
-            await sleep(250);
-        }
-        return true;
-    }
-
     /**
-     * Người thật: làm theo yêu cầu (tối đa 5 giây + 1,5 giây để nhìn thẳng lại).
-     * Chỉ gom descriptor từ khung "trung tính" (mắt mở, nhìn thẳng); lấy trung bình 3 khung gần nhất.
-     * Trả về descriptor; null nếu người rời đi; false nếu không làm theo yêu cầu.
+     * Đợi 3 khung nhìn thẳng LIÊN TIẾP (người đi ngang / quay mặt đi giữa chừng thì đếm lại),
+     * trả về trung bình 3 descriptor; null nếu hết giờ/huỷ. Không còn yêu cầu chớp mắt/quay đầu.
      */
-    async function checkLiveness(mine) {
-        const live = new Liveness();
-        const neutral = [];
-        let deadline = Date.now() + 5000;
-        let passed = false;
-        setHint(live.prompt, true);
-
-        while (Date.now() < deadline) {
-            if (!alive(mine)) return null;
+    async function captureFrontal(mine) {
+        const until = Date.now() + SCAN_TIMEOUT;
+        let picks = [];
+        while (picks.length < 3) {
+            if (!alive(mine) || Date.now() > until) return null;
             const faces = await detectFaces(video);
-            if (faceProblem(faces, video)) return null;
-            const { landmarks, descriptor } = faces[0];
-            if (!passed && live.update(landmarks)) {
-                passed = true;
-                deadline = Date.now() + 1500;
-                setHint("Nhìn thẳng vào camera", true);
+            const problem = frontalProblem(faces, video);
+            if (problem) {
+                picks = [];
+                setHint(problem);
+            } else {
+                picks.push(Array.from(faces[0].descriptor));
+                setHint("Giữ yên, nhìn thẳng…", true);
             }
-            if (live.isNeutral(landmarks)) neutral.push(Array.from(descriptor));
-            if (passed && neutral.length >= 3 && live.isNeutral(landmarks)) break;
-            await sleep(80);
+            await sleep(120);
         }
-        if (!passed || neutral.length === 0) return false;
-        return averageDescriptor(neutral.slice(-3));
+        return averageDescriptor(picks);
     }
 
-    /** Quét đến khi có descriptor (thử lại liveness nếu người còn đứng đó). null nếu hết giờ/huỷ */
+    /** Quét đến khi có descriptor nhìn thẳng. null nếu hết giờ/huỷ */
     async function scan(mine, title) {
         $("scan-title").textContent = title;
         setHint("Đang bật camera…");
@@ -190,16 +168,9 @@ if (root) {
             return null;
         }
         try {
-            setHint("Nhìn vào camera");
-            while (alive(mine)) {
-                if (!(await waitForFace(mine))) return null;
-                const descriptor = await checkLiveness(mine);
-                if (descriptor) return { descriptor, photo: await snapshot(video) };
-                if (descriptor === false) {
-                    setHint("Chưa xác nhận được — làm lại nhé");
-                    await sleep(1200);
-                }
-            }
+            setHint("Nhìn thẳng vào camera");
+            const descriptor = await captureFrontal(mine);
+            if (descriptor) return { descriptor, photo: await snapshot(video) };
             return null;
         } finally {
             stopCamera(video);
