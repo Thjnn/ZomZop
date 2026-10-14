@@ -33,7 +33,8 @@ class FaceMatcher
             return null;
         }
 
-        return $best + ['confidence' => round(max(0, 1 - $best['distance'] / $threshold) * 100, 2)];
+        // Độ tương đồng (1 − d) chỉ để hiển thị; việc nhận/từ chối đã quyết ở threshold + margin phía trên
+        return $best + ['confidence' => round(max(0, 1 - $best['distance']) * 100, 2)];
     }
 
     /** Nhân viên khác (trừ $exceptUserId) có khuôn mặt trùng — dùng để chặn đăng ký nhầm người */

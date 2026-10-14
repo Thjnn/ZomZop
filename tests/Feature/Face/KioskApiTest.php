@@ -40,7 +40,7 @@ class KioskApiTest extends TestCase
 
         $this->get('/kiosk')->assertOk()->assertSee('kiosk-video', false);
         $this->actingAs($this->makeUser('manager', $branch))
-            ->get("/manager/staff/{$staff->id}/face")->assertOk()->assertSee('1</b>/5', false);
+            ->get("/manager/staff/{$staff->id}/face")->assertOk()->assertSee('1</b>/15', false);
     }
 
     public function test_status_needs_valid_token(): void

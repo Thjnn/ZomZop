@@ -113,7 +113,7 @@ class DemoActivitySeeder extends Seeder
                 'check_in'        => $checkIn,
                 'check_out'       => $working ? null : $checkOut,
                 'method'          => $face ? 'face' : 'manual',
-                'face_confidence' => $face ? rand(55, 98) : null,
+                'face_confidence' => $face ? rand(62, 92) : null,
                 'note'            => $face ? null : collect(['Camera lỗi, chấm hộ', 'Quên chấm, quản lý xác nhận'])->random(),
                 'late_reason'     => $lateBy > 5 ? collect(self::LATE_REASONS)->random() : null,
                 'early_reason'    => !$working && $earlyBy > 10 ? collect(self::EARLY_REASONS)->random() : null,

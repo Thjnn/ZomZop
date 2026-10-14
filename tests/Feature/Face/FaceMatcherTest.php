@@ -41,7 +41,7 @@ class FaceMatcherTest extends TestCase
 
         $this->assertTrue($m['user']->is($ngan));
         $this->assertEqualsWithDelta(0.1, $m['distance'], 1e-9);
-        $this->assertEqualsWithDelta(77.78, $m['confidence'], 0.01);   // (1 - 0.1/0.45) * 100
+        $this->assertEqualsWithDelta(90.0, $m['confidence'], 0.01);   // độ tương đồng (1 - 0.1) * 100
     }
 
     public function test_too_far_is_not_recognized(): void

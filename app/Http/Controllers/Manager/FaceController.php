@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Manager;
 
-use App\Http\Controllers\KioskController;
 use App\Models\User;
 use App\Services\FaceMatcher;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /** Manager đăng ký khuôn mặt cho nhân viên (chỉ lưu descriptor 128 số, không lưu ảnh) */
@@ -22,25 +22,42 @@ class FaceController extends ManagerController
         ]);
     }
 
+    /** Nhận cả bộ max_samples mẫu (trang tự chụp), hợp lệ thì thay toàn bộ mẫu cũ của nhân viên */
     public function store(Request $request, User $user, FaceMatcher $matcher)
     {
         $this->ensureOwnStaff($user);
 
-        $data = $request->validate(KioskController::DESCRIPTOR_RULES + ['consent' => ['accepted']], [
-            'consent.accepted' => 'Cần xác nhận nhân viên đã đồng ý.',
-            'descriptor.*'     => 'Dữ liệu khuôn mặt không hợp lệ, hãy chụp lại.',
+        $max  = config('attendance.face.max_samples');
+        $data = $request->validate([
+            'descriptors'     => ['required', 'array', "size:{$max}"],
+            'descriptors.*'   => ['required', 'array', 'size:128'],
+            'descriptors.*.*' => ['required', 'numeric', 'between:-1,1'],
+            'consent'         => ['accepted'],
+        ], [
+            'consent.accepted'  => 'Cần xác nhận nhân viên đã đồng ý.',
+            'descriptors.size'  => "Cần đủ {$max} mẫu, hãy chụp lại.",
+            'descriptors.*'     => 'Dữ liệu khuôn mặt không hợp lệ, hãy chụp lại.',
+            'descriptors.*.*'   => 'Dữ liệu khuôn mặt không hợp lệ, hãy chụp lại.',
         ]);
-        $descriptor = array_map('floatval', $data['descriptor']);
+        $samples = array_map(fn ($d) => array_map('floatval', $d), $data['descriptors']);
 
-        if ($user->faceDescriptors()->count() >= config('attendance.face.max_samples')) {
-            throw ValidationException::withMessages(['descriptor' => 'Đã đủ ' . config('attendance.face.max_samples') . ' mẫu. Xoá mẫu cũ nếu muốn chụp lại.']);
+        $center = array_map(fn (...$col) => array_sum($col) / count($col), ...$samples);
+        foreach ($samples as $s) {
+            if (FaceMatcher::distance($s, $center) > config('attendance.face.threshold')) {
+                throw ValidationException::withMessages(['descriptors' => 'Các mẫu không cùng một người, hãy chụp lại.']);
+            }
         }
 
-        if ($dup = $matcher->nearestOther($this->branchId(), $descriptor, $user->id)) {
-            throw ValidationException::withMessages(['descriptor' => "Khuôn mặt này giống nhân viên {$dup['user']->name} đã đăng ký."]);
+        if ($dup = $matcher->nearestOther($this->branchId(), $center, $user->id)) {
+            throw ValidationException::withMessages(['descriptors' => "Khuôn mặt này giống nhân viên {$dup['user']->name} đã đăng ký."]);
         }
 
-        $user->faceDescriptors()->create(['descriptor' => $descriptor]);
+        DB::transaction(function () use ($user, $samples) {
+            $user->faceDescriptors()->delete();
+            foreach ($samples as $s) {
+                $user->faceDescriptors()->create(['descriptor' => $s]);
+            }
+        });
 
         return response()->json(['count' => $user->faceDescriptors()->count()]);
     }

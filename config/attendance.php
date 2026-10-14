@@ -7,7 +7,9 @@ return [
         'threshold'         => (float) env('FACE_THRESHOLD', 0.45),
         // Người gần nhất phải gần hơn người thứ hai ít nhất chừng này, nếu không thì từ chối
         'margin'            => (float) env('FACE_MARGIN', 0.08),
-        'max_samples'       => 5,
+        'max_samples'       => 15,
+        // Độ tương đồng (%) dưới mốc này thì trang Chấm công tô cam để manager xem lại ảnh
+        'low_similarity'    => 60,
         'cooldown_minutes'  => 2,
         // Vào trễ hơn chừng này phút so với giờ bắt đầu ca → hỏi lý do đi trễ
         'late_minutes'      => 5,

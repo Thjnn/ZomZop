@@ -48,7 +48,7 @@ class AttendanceSeeder extends Seeder
                     'check_in'        => $checkIn,
                     'check_out'       => $checkOut,
                     'method'          => $method,
-                    'face_confidence' => $method === 'face' ? rand(85, 99) / 100 : null,
+                    'face_confidence' => $method === 'face' ? rand(62, 92) : null,
                     'note'            => $method === 'manual' ? 'Nhận diện thất bại, xác nhận thủ công' : null,
                 ]);
             }

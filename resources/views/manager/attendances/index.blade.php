@@ -107,7 +107,7 @@
                         <td class="px-4 py-3">{{ $a->check_out ? number_format($a->working_hours, 2, ',', '.') : '—' }}</td>
                         <td class="px-4 py-3 text-slate-500">
                             @if ($a->method === 'face')
-                                <span class="{{ $a->face_confidence !== null && $a->face_confidence < 30 ? 'text-orange-600 font-semibold' : '' }}">Khuôn mặt · {{ round((float) $a->face_confidence) }}%</span>
+                                <span class="{{ $a->face_confidence !== null && $a->face_confidence < config('attendance.face.low_similarity') ? 'text-orange-600 font-semibold' : '' }}">Khuôn mặt · Tương đồng {{ round((float) $a->face_confidence) }}%</span>
                                 @if ($a->photo_path)
                                     · <a href="{{ route('manager.attendances.photo', [$a, 'in']) }}" target="_blank" class="text-red-500 hover:underline">Ảnh vào</a>
                                 @endif

@@ -26,7 +26,7 @@ class FaceDisplayTest extends TestCase
         FaceDescriptor::create(['user_id' => $withFace->id, 'descriptor' => array_fill(0, 128, 0.0)]);
 
         $this->actingAs($this->makeUser('manager', $branch))->get('/manager/staff')
-            ->assertSee('1/5')
+            ->assertSee('1/15')
             ->assertSee('Chưa đăng ký')
             ->assertSee(route('manager.staff.face', $withFace));
     }
@@ -53,11 +53,11 @@ class FaceDisplayTest extends TestCase
             'check_in' => '2026-10-06 08:00', 'method' => 'face', 'face_confidence' => 87.5,
             'photo_path' => 'attendance-photos/x/in.jpg', 'note' => 'Thiết bị: Quầy 1']);
         Attendance::create(['user_id' => $this->makeUser('staff', $branch)->id, 'branch_id' => $branch->id, 'shift_id' => $shift->id,
-            'check_in' => '2026-10-06 09:00', 'method' => 'face', 'face_confidence' => 20]);
+            'check_in' => '2026-10-06 09:00', 'method' => 'face', 'face_confidence' => 50]);   // dưới mốc 60% → tô cam
 
         $this->actingAs($this->makeUser('manager', $branch))->get('/manager/attendances?date=2026-10-06')
-            ->assertSee('Khuôn mặt · 88%')
-            ->assertSee('Khuôn mặt · 20%')
+            ->assertSee('Khuôn mặt · Tương đồng 88%')
+            ->assertSee('Khuôn mặt · Tương đồng 50%')
             ->assertSee('text-orange-600', false)
             ->assertSee(route('manager.attendances.photo', [$ok, 'in']));
     }
