@@ -38,7 +38,7 @@
         </div>
         <div class="flex items-center justify-between">
             <span class="text-sm text-slate-500">Trạng thái</span>
-            <span class="bg-amber-100 text-amber-600 font-semibold text-xs px-3 py-1 rounded-full">Chờ xác nhận</span>
+            <span class="bg-amber-100 text-amber-600 font-semibold text-xs px-3 py-1 rounded-full">{{ \App\Services\OrderStatusService::LABELS[$order->status] ?? $order->status }}</span>
         </div>
         <div class="border-t border-slate-100 pt-3 flex items-center justify-between font-bold text-base">
             <span class="text-slate-600">Tổng tiền</span>
@@ -51,7 +51,7 @@
         <div>
             <p class="font-semibold">Lưu ý:</p>
             <p>Vui lòng đưa <strong>mã nhận món</strong> cho nhân viên khi đến lấy hàng.
-            Bạn có thể theo dõi trạng thái đơn hàng trong mục <a href="#" class="text-red-500 hover:underline font-semibold">Đơn hàng</a>.</p>
+            Bạn có thể theo dõi trạng thái đơn hàng trong mục <a href="{{ route('orders.show', $order) }}" class="text-red-500 hover:underline font-semibold">Đơn hàng</a>.</p>
         </div>
     </div>
 
@@ -64,4 +64,5 @@
 
 </div>
 
+<script>try { sessionStorage.removeItem('zomzop-checkout-draft-{{ auth()->id() }}'); } catch (_) {}</script>
 @endsection

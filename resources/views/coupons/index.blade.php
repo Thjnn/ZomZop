@@ -8,10 +8,10 @@
     $coupons = $coupons->map(fn ($c) => [
         'code'  => $c->code,
         'type'  => $c->type,
-        'label' => $c->type === 'percent' ? $c->value . '% OFF' : '-' . number_format($c->value / 1000, 0, ',', '.') . 'K',
-        'desc'  => $c->type === 'percent'
-            ? 'Giảm ' . $c->value . '% tổng tiền món' . ($c->max_discount ? ', tối đa ' . number_format($c->max_discount, 0, ',', '.') . 'đ' : '')
-            : 'Giảm ' . number_format($c->value, 0, ',', '.') . 'đ cho đơn hàng',
+        'label' => $c->badge,
+        'desc' => $c->summary,
+        'scope' => $c->scope_label,
+        'limit' => $c->max_uses_per_user,
         'exp'   => $c->expired_at ? $c->expired_at->format('d/m/Y') : 'Không thời hạn',
         'min'   => number_format($c->min_order_value, 0, ',', '.') . 'đ',
     ])->all();
@@ -24,6 +24,7 @@
 @endphp
  
 <div class="max-w-6xl mx-auto py-8 px-4">
+    <x-back-to-account />
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
         <h1 class="text-2xl md:text-3xl font-bold text-slate-800">Danh sách mã giảm giá</h1>
         <div class="relative w-full md:w-80">
@@ -54,11 +55,12 @@
             <div class="flex-1 p-4 min-w-0">
                 <div class="flex items-start justify-between gap-2">
                     <h3 class="font-bold text-slate-800 truncate">{{ $c['code'] }}</h3>
-                    <button type="button" onclick="copyCode('{{ $c['code'] }}', this)" title="Sao chép mã"
+                    <button type="button" data-code="{{ $c['code'] }}" onclick="copyCode(this.dataset.code, this)" title="Sao chép mã"
                             class="text-red-500 hover:text-red-600 shrink-0 text-xs font-semibold">Sao chép</button>
                 </div>
                 <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $meta[$c['type']][1] }}">{{ $meta[$c['type']][0] }}</span>
                 <p class="text-sm text-slate-600 mt-2">{{ $c['desc'] }}</p>
+                <p class="text-xs text-slate-500 mt-1">{{ $c['scope'] }} · {{ $c['limit'] }} lượt/khách</p>
                 <p class="text-xs text-slate-500 mt-1">HSD: {{ $c['exp'] }}</p>
                 <p class="text-xs text-red-500 mt-1">*Đơn tối thiểu {{ $c['min'] }}</p>
             </div>

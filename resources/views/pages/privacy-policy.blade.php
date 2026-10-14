@@ -2,6 +2,7 @@
 @section('title', 'Chính Sách Bảo Mật - ZomZop')
 @section('content')
 <div class="max-w-4xl mx-auto py-12">
+    <x-back-to-account />
     <h2 class="text-3xl font-bold text-slate-800 text-center mb-10">Chính Sách Bảo Mật</h2>
     <div class="prose prose-slate max-w-none text-slate-600 space-y-6">
         <h3 class="text-xl font-bold text-slate-800">Cách chúng tôi thu thập thông tin</h3>

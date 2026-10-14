@@ -82,7 +82,7 @@ class CartController extends Controller
         ]);
 
         $cart = session('cart', ['branch_id' => null, 'items' => []]);
-        $itemId = $request->menu_item_id;
+        $itemId = (int) $request->menu_item_id;
         $qty    = (int) $request->quantity;
 
         if ($qty === 0) {

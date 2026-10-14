@@ -7,7 +7,7 @@
 @section('content')
 
 <div class="space-y-6">
-
+<x-back-to-account />
     {{-- Header --}}
     <div class="flex items-center justify-between">
         <div>

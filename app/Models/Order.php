@@ -15,8 +15,10 @@ class Order extends Model
         'branch_id',
         'kitchen_by',
         'type',
+        'delivery_speed',
         'status',
         'subtotal',
+        'shipping_fee',
         'discount',
         'total',
         'payment_method',
@@ -30,6 +32,7 @@ class Order extends Model
 
     protected $casts = [
         'subtotal'       => 'integer',
+        'shipping_fee'   => 'integer',
         'discount'       => 'integer',
         'total'          => 'integer',
         'estimated_time' => 'datetime',

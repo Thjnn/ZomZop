@@ -77,8 +77,12 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile/password', [AccountController::class, 'updatePassword'])->name('account.password');
     Route::delete('/profile',       [AccountController::class, 'destroy'])->name('account.destroy');
 
-    // Đơn hàng (đang là dữ liệu mẫu)
-    Route::view('/orders', 'account.orders')->name('orders');
+    Route::get('/orders', [\App\Http\Controllers\CustomerOrderController::class, 'index'])->name('orders');
+    Route::get('/orders/{order}', [\App\Http\Controllers\CustomerOrderController::class, 'show'])->name('orders.show');
+    Route::get('/orders/{order}/reorder', [\App\Http\Controllers\CustomerOrderController::class, 'reorderPreview'])->name('orders.reorder.preview');
+    Route::post('/orders/{order}/reorder', [\App\Http\Controllers\CustomerOrderController::class, 'reorder'])->name('orders.reorder');
+    Route::get('/orders/{order}/review', [\App\Http\Controllers\CustomerOrderController::class, 'reviewForm'])->name('orders.review');
+    Route::post('/orders/{order}/review', [\App\Http\Controllers\CustomerOrderController::class, 'review'])->name('orders.review.store');
 
     // Địa chỉ
     Route::get('/addresses',                    [AddressController::class, 'index'])->name('addresses.index');
