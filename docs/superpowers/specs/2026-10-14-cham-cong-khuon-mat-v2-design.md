@@ -105,6 +105,27 @@ không phụ thuộc số mẫu). Trang nhân viên hiện "3/15 mẫu" để ma
   màn kết quả **không đổi**.
 - Chữ trên màn quét: "Nhìn thẳng vào camera" thay cho "Hãy chớp mắt / quay đầu".
 
+## 4b. Độ tương đồng thay cho "độ tin cậy"
+
+Công thức cũ `max(0, 1 − d/threshold) × 100` kéo thang quá gắt: lượt nhận đúng bình thường (d ≈ 0.25) chỉ hiện 44%.
+Đổi sang công thức phổ biến của face-api:
+
+```
+độ tương đồng = max(0, 1 − d) × 100   (%)
+```
+
+| d | Cũ | Mới |
+|---|---|---|
+| 0.15 | 67% | 85% |
+| 0.25 | 44% | 75% |
+| 0.45 (ngưỡng từ chối) | 0% | 55% |
+
+- **Chỉ đổi cách hiển thị**: ngưỡng `threshold`, `margin`, cách so khớp không đổi → ai bị từ chối vẫn bị từ chối.
+- Vẫn lưu ở cột `attendances.face_confidence` (không đổi DB). Lượt cũ đã lưu theo công thức cũ giữ nguyên số.
+- Nhãn hiển thị đổi thành **"Tương đồng xx%"**. Mốc tô cam: dưới `config('attendance.face.low_similarity')` = **60**
+  (thay số 30 viết cứng trong view).
+- Seeder demo sinh độ tương đồng 62–92%.
+
 ## 5. Kiểm thử
 
 **Tự động** (`tests/Feature/Face/FaceEnrollTest.php`, viết lại các test đăng ký):
@@ -116,6 +137,7 @@ không phụ thuộc số mẫu). Trang nhân viên hiện "3/15 mẫu" để ma
 - Tâm trùng mặt nhân viên khác cùng chi nhánh → 422, mẫu cũ còn nguyên.
 - Nhân viên chi nhánh khác → 404 (như cũ). Xoá dữ liệu → như cũ.
 - Nhân viên có 3 mẫu kiểu cũ vẫn được `FaceMatcher` nhận ra (test hiện có, giữ nguyên).
+- `FaceMatcher`: d = 0.1 → độ tương đồng 90%; trang Chấm công tô cam lượt dưới 60%, hiện "Tương đồng".
 
 **Kiểm thử tay** (JS camera không test tự động được), thêm vào checklist ở `docs/cham-cong-khuon-mat.md`:
 
@@ -148,6 +170,9 @@ không phụ thuộc số mẫu). Trang nhân viên hiện "3/15 mẫu" để ma
 | `resources/js/kiosk.js` | bỏ liveness, quét 3 khung nhìn thẳng liên tiếp |
 | `resources/views/manager/staff/face.blade.php` | nút Bắt đầu chụp, thanh tiến độ n/15 |
 | `app/Http/Controllers/Manager/FaceController.php` | `store` nhận `descriptors[15]`, kiểm cùng người, thay cả bộ |
-| `config/attendance.php` | `max_samples` = 15 |
+| `config/attendance.php` | `max_samples` = 15, + `low_similarity` = 60 |
+| `app/Services/FaceMatcher.php` | độ tương đồng = (1 − d) × 100 |
+| `resources/views/manager/attendances/index.blade.php` | nhãn "Tương đồng", mốc cam theo config |
+| `database/seeders/DemoActivitySeeder.php`, `AttendanceSeeder.php` | độ tương đồng 62–92 |
 | `tests/Feature/Face/FaceEnrollTest.php` | viết lại test đăng ký |
 | `docs/cham-cong-khuon-mat.md` | cập nhật mục 3.2, 3.3, 4.1, 4.3, 6, 7, 8 theo v2 |
