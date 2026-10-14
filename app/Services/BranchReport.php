@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Branch;
+use App\Http\Controllers\Manager\ReportController;
 use App\Models\Order;
+use App\Support\ExcelReport;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -121,5 +123,61 @@ class BranchReport
             ])
             ->sortByDesc('revenue')
             ->values();
+    }
+
+    /** File Excel báo cáo doanh thu (dùng chung cho quản lý chi nhánh và admin); $byBranch: thêm sheet so sánh chi nhánh */
+    public function excel(?int $branchId, Carbon $from, Carbon $to, string $scope, string $label, bool $byBranch = false): ExcelReport
+    {
+        $s = $this->summary($branchId, $from, $to);
+        $x = (new ExcelReport('Báo cáo doanh thu', "{$scope} · {$label}"))->sheet('Tổng quan');
+        $x->summary([
+            'Doanh thu'      => [$s['revenue'], 'money'],
+            'Số đơn'         => [$s['orders'], 'int'],
+            'Hoàn thành'     => [$s['completed'], 'int'],
+            'Đã huỷ'         => [$s['cancelled'], 'int'],
+            'Giá trị TB/đơn' => [$s['avg_order'], 'money'],
+            'Tỉ lệ huỷ'      => [$s['cancel_rate'], 'pct'],
+        ]);
+
+        $grain = ExcelReport::grain($from, $to);
+        if ($grain === 'hour') {
+            $byKey = $this->orders($branchId, $from, $to)->get(['created_at', 'status', 'total'])
+                ->groupBy(fn ($o) => ExcelReport::bucketOf($o->created_at, 'hour'))
+                ->map(fn ($g) => ['orders' => $g->count(), 'revenue' => (int) $g->where('status', 'completed')->sum('total')]);
+        } else {
+            $byKey = collect($this->daily($branchId, $from, $to))
+                ->groupBy(fn ($d, $day) => ExcelReport::bucketOf(Carbon::parse($day), $grain), true)
+                ->map(fn ($g) => ['orders' => $g->sum('orders'), 'revenue' => $g->sum('revenue')]);
+        }
+        $rows = collect(ExcelReport::buckets($from, $to))
+            ->map(fn ($l, $k) => [$l, $byKey[$k]['orders'] ?? 0, $byKey[$k]['revenue'] ?? 0])->values();
+        $t = $x->table([['hour' => 'Giờ', 'day' => 'Ngày', 'month' => 'Tháng'][$grain], 'Số đơn', 'Doanh thu'], $rows,
+            ['B' => 'int', 'C' => 'money'], ['B', 'C'], null, 'Doanh thu theo thời gian');
+        $x->chart($grain === 'hour' ? 'bar' : 'line', 'Doanh thu', $t, 'A', ['C']);
+        $x->chart('bar', 'Số đơn', $t, 'A', ['B']);
+
+        $x->sheet('Cơ cấu');
+        $labels = ReportController::TYPE_LABELS + ReportController::PAY_LABELS;
+        foreach (['Hình thức' => $this->byType($branchId, $from, $to), 'Thanh toán' => $this->byPayment($branchId, $from, $to)] as $title => $data) {
+            $t = $x->table([$title, 'Số đơn', 'Doanh thu'], collect($data)->map(fn ($d, $k) => [$labels[$k], $d['orders'], $d['revenue']])->values(),
+                ['B' => 'int', 'C' => 'money'], ['B', 'C'], null, "Theo {$title}");
+            $x->chart('pie', "Doanh thu theo {$title}", $t, 'A', ['C']);
+        }
+
+        $x->sheet('Món bán chạy');
+        $t = $x->table(['Món', 'Số lượng', 'Doanh thu'],
+            $this->topItems($branchId, $from, $to)->map(fn ($i) => [$i->name, (int) $i->qty, (int) $i->revenue]),
+            ['B' => 'int', 'C' => 'money'], ['B', 'C'], null, 'Top 10 món bán chạy');
+        $x->chart('bar', 'Số lượng bán', $t, 'A', ['B']);
+
+        if ($byBranch) {
+            $x->sheet('Chi nhánh');
+            $t = $x->table(['Chi nhánh', 'Số đơn', 'Doanh thu', 'Đơn huỷ'],
+                $this->byBranch($from, $to)->map(fn ($r) => [$r['branch']->name, $r['orders'], $r['revenue'], $r['cancelled']]),
+                ['B' => 'int', 'C' => 'money', 'D' => 'int'], ['B', 'C', 'D'], fn ($r) => $r[1] === 0 ? ExcelReport::RED : null, 'So sánh chi nhánh');
+            $x->chart('bar', 'Doanh thu theo chi nhánh', $t, 'A', ['C']);
+        }
+
+        return $x;
     }
 }

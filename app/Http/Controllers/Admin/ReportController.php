@@ -3,16 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\ParsesDateRange;
+use App\Http\Controllers\Concerns\ParsesPeriod;
 use App\Http\Controllers\Manager\ReportController as ManagerReport;
 use App\Models\Branch;
 use App\Services\BranchReport;
-use App\Support\XlsxExport;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class ReportController extends AdminController
 {
-    use ParsesDateRange;
+    use ParsesDateRange, ParsesPeriod;
 
     /** Chi nhánh đang lọc; id không tồn tại → coi như toàn chuỗi */
     private function branch(Request $request): ?Branch
@@ -44,35 +43,10 @@ class ReportController extends AdminController
 
     public function export(Request $request, BranchReport $report)
     {
-        [$from, $to] = $this->dateRange($request);
+        [$from, $to, $label, $slug] = $this->exportRange($request);
         $branch = $this->branch($request);
-        $id     = $branch?->id;
-        $s      = $report->summary($id, $from, $to);
 
-        $rows = [
-            ['Phạm vi', $branch?->name ?? 'Toàn chuỗi'],
-            ['Doanh thu', $s['revenue']], ['Số đơn', $s['orders']], ['Hoàn thành', $s['completed']],
-            ['Đã huỷ', $s['cancelled']], ['Giá trị TB/đơn', $s['avg_order']], ['Tỉ lệ huỷ (%)', $s['cancel_rate']],
-        ];
-        if (!$branch) {
-            $rows[] = [];
-            $rows[] = XlsxExport::bold(['Chi nhánh', 'Số đơn', 'Doanh thu', 'Đơn huỷ']);
-            foreach ($report->byBranch($from, $to) as $r) {
-                $rows[] = [$r['branch']->name, $r['orders'], $r['revenue'], $r['cancelled']];
-            }
-        }
-        $rows[] = [];
-        $rows[] = XlsxExport::bold(['Ngày', 'Số đơn', 'Doanh thu']);
-        foreach ($report->daily($id, $from, $to) as $day => $d) {
-            $rows[] = [Carbon::parse($day)->format('d/m/Y'), $d['orders'], $d['revenue']];
-        }
-        $rows[] = [];
-        $rows[] = XlsxExport::bold(['Món bán chạy', 'Số lượng', 'Doanh thu']);
-        foreach ($report->topItems($id, $from, $to) as $item) {
-            $rows[] = [$item->name, (int) $item->qty, (int) $item->revenue];
-        }
-
-        return XlsxExport::download("bao-cao-chuoi-{$from->toDateString()}-{$to->toDateString()}.xlsx",
-            ['Báo cáo doanh thu', $from->format('d/m/Y') . ' – ' . $to->format('d/m/Y')], $rows);
+        return $report->excel($branch?->id, $from, $to, $branch?->name ?? 'Toàn chuỗi', $label, !$branch)
+            ->download("bao-cao-chuoi-{$slug}.xlsx");
     }
 }

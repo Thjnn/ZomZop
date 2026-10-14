@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Manager;
 
 use App\Models\Payroll;
 use App\Services\BranchPayroll;
-use App\Support\XlsxExport;
+use App\Support\ExcelReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -56,23 +56,56 @@ class PayrollController extends ManagerController
     public function export(Request $request)
     {
         $branchId = $this->branchId();
-        $month    = $this->month($request);
-        $this->ensureCalculated($branchId, $month);
+        $p = $this->period($request, $this->month($request), ['month', 'year']);
 
-        $rows = $this->rows($branchId, $month)->map(fn (Payroll $p) => [
-            $p->user->name,
-            StaffController::ROLES[$p->user->role] ?? $p->user->role,
-            (float) $p->total_hours,
-            $p->total_days,
-            $p->base_salary,
-            $p->bonus,
-            $p->deduction,
-            $p->total,
-            self::STATUS[$p->status],
+        $months = [];
+        for ($m = $p['from']->copy(); $m->lte($p['to']) && $m->lte(today()); $m->addMonth()) {
+            $this->ensureCalculated($branchId, $m);
+            $months[$m->format('Y-m')] = $this->rows($branchId, $m);
+        }
+        $all = collect($months)->flatten(1);
+
+        $x = (new ExcelReport('Bảng lương', $this->branchName() . ' · ' . $p['label']))->sheet('Tổng hợp');
+        $x->summary([
+            'Số nhân viên'   => [$all->pluck('user_id')->unique()->count(), 'int'],
+            'Tổng giờ làm'   => [(float) $all->sum('total_hours'), 'dec'],
+            'Tổng thưởng'    => [(int) $all->sum('bonus'), 'money'],
+            'Tổng phạt'      => [(int) $all->sum('deduction'), 'money'],
+            'Tổng chi lương' => [(int) $all->sum('total'), 'money'],
         ]);
 
-        return XlsxExport::download('bang-luong-' . $month->format('Y-m') . '.xlsx',
-            ['Nhân viên', 'Vai trò', 'Số giờ', 'Ngày công', 'Lương cơ bản', 'Thưởng', 'Phạt', 'Tổng', 'Trạng thái'], $rows);
+        $perStaff = $all->groupBy('user_id')->map(fn ($g) => [
+            $g->first()->user->name,
+            StaffController::ROLES[$g->first()->user->role] ?? $g->first()->user->role,
+            (float) $g->sum('total_hours'),
+            (int) $g->sum('total_days'),
+            (int) $g->sum('base_salary'),
+            (int) $g->sum('bonus'),
+            (int) $g->sum('deduction'),
+            (int) $g->sum('total'),
+            $p['period'] === 'month' ? self::STATUS[$g->first()->status] : $g->count() . ' tháng',
+        ])->sortBy(0)->values();
+        $t = $x->table(['Nhân viên', 'Vai trò', 'Số giờ', 'Ngày công', 'Lương cơ bản', 'Thưởng', 'Phạt', 'Tổng', 'Trạng thái'], $perStaff,
+            ['C' => 'dec', 'D' => 'int', 'E' => 'money', 'F' => 'money', 'G' => 'money', 'H' => 'money'], ['C', 'D', 'E', 'F', 'G', 'H'],
+            fn ($r) => ['Đã trả' => ExcelReport::GREEN, 'Nháp' => ExcelReport::AMBER][$r[8]] ?? null, 'Theo nhân viên');
+        $x->chart('bar', 'Tổng lương theo nhân viên', $t, 'A', ['H']);
+
+        if ($p['period'] === 'year') {
+            $rows = collect(range(1, 12))->map(function ($m) use ($p, $months) {
+                $g = $months[$p['from']->copy()->month($m)->format('Y-m')] ?? collect();
+
+                return [sprintf('%02d/%d', $m, $p['from']->year), $g->count(), (float) $g->sum('total_hours'), (int) $g->sum('total')];
+            });
+            $t = $x->table(['Tháng', 'Số NV', 'Số giờ', 'Tổng lương'], $rows, ['B' => 'int', 'C' => 'dec', 'D' => 'money'], ['C', 'D'], null, 'Theo tháng');
+            $x->chart('line', 'Chi lương theo tháng', $t, 'A', ['D']);
+
+            $x->sheet('Chi tiết')->table(['Tháng', 'Nhân viên', 'Số giờ', 'Ngày công', 'Lương cơ bản', 'Thưởng', 'Phạt', 'Tổng', 'Trạng thái'],
+                $all->map(fn (Payroll $r) => [sprintf('%02d/%d', $r->month, $r->year), $r->user->name, (float) $r->total_hours, $r->total_days,
+                    $r->base_salary, $r->bonus, $r->deduction, $r->total, self::STATUS[$r->status]]),
+                ['C' => 'dec', 'E' => 'money', 'F' => 'money', 'G' => 'money', 'H' => 'money'], ['H']);
+        }
+
+        return $x->download("bang-luong-{$p['slug']}.xlsx");
     }
 
     public function recalculate(Request $request, BranchPayroll $service)

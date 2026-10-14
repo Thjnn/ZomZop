@@ -7,7 +7,7 @@
 
     <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold">Đơn hàng</h1>
-        <a href="{{ route('manager.orders.export', request()->only(['status', 'date', 'q'])) }}" class="px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">Xuất Excel</a>
+        <x-export-excel :action="route('manager.orders.export')" :anchor="$filters['date'] ?? null" :hidden="['status' => $filters['status'] ?? null, 'q' => $filters['q'] ?? null]" />
     </div>
 
     {{-- Bộ lọc --}}

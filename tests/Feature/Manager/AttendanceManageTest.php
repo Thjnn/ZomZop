@@ -41,6 +41,22 @@ class AttendanceManageTest extends TestCase
             ->assertSee($staff->name)->assertSee('08:05')->assertSee('15:00')->assertSee('6,92');
     }
 
+    public function test_month_calendar_shows_attendances_of_month_only(): void
+    {
+        $branch = $this->makeBranch();
+        $shift  = $this->makeShift($branch);
+        $staff  = $this->makeUser('staff', $branch);
+        foreach (['2026-10-02 08:10', '2026-12-01 09:20'] as $in) {
+            Attendance::create(['user_id' => $staff->id, 'branch_id' => $branch->id, 'shift_id' => $shift->id,
+                'check_in' => $in, 'check_out' => Carbon::parse($in)->addHours(4), 'method' => 'manual']);
+        }
+
+        $this->actingAs($this->makeUser('manager', $branch))->get('/manager/attendances?date=2026-10-20')
+            ->assertSee('Tháng 10, 2026')
+            ->assertSee('08:10 · ' . $staff->name)
+            ->assertDontSee('09:20');
+    }
+
     public function test_check_in_with_check_out_at_once(): void
     {
         $branch = $this->makeBranch();

@@ -4,9 +4,7 @@ namespace App\Http\Controllers\Manager;
 
 use App\Http\Controllers\Concerns\ParsesDateRange;
 use App\Services\BranchReport;
-use App\Support\XlsxExport;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class ReportController extends ManagerController
 {
@@ -33,35 +31,8 @@ class ReportController extends ManagerController
 
     public function export(Request $request, BranchReport $report)
     {
-        $branchId = $this->branchId();
-        [$from, $to] = $this->dateRange($request);
-        $s = $report->summary($branchId, $from, $to);
+        [$from, $to, $label, $slug] = $this->exportRange($request);
 
-        $rows = [
-            ['Doanh thu', $s['revenue']], ['Số đơn', $s['orders']], ['Hoàn thành', $s['completed']],
-            ['Đã huỷ', $s['cancelled']], ['Giá trị TB/đơn', $s['avg_order']], ['Tỉ lệ huỷ (%)', $s['cancel_rate']],
-            [], XlsxExport::bold(['Ngày', 'Số đơn', 'Doanh thu']),
-        ];
-        foreach ($report->daily($branchId, $from, $to) as $day => $d) {
-            $rows[] = [Carbon::parse($day)->format('d/m/Y'), $d['orders'], $d['revenue']];
-        }
-        $rows[] = [];
-        $rows[] = XlsxExport::bold(['Hình thức', 'Số đơn', 'Doanh thu']);
-        foreach ($report->byType($branchId, $from, $to) as $k => $d) {
-            $rows[] = [self::TYPE_LABELS[$k], $d['orders'], $d['revenue']];
-        }
-        $rows[] = [];
-        $rows[] = XlsxExport::bold(['Thanh toán', 'Số đơn', 'Doanh thu']);
-        foreach ($report->byPayment($branchId, $from, $to) as $k => $d) {
-            $rows[] = [self::PAY_LABELS[$k], $d['orders'], $d['revenue']];
-        }
-        $rows[] = [];
-        $rows[] = XlsxExport::bold(['Món bán chạy', 'Số lượng', 'Doanh thu']);
-        foreach ($report->topItems($branchId, $from, $to) as $item) {
-            $rows[] = [$item->name, (int) $item->qty, (int) $item->revenue];
-        }
-
-        return XlsxExport::download("bao-cao-{$from->toDateString()}-{$to->toDateString()}.xlsx",
-            ['Báo cáo doanh thu', $from->format('d/m/Y') . ' – ' . $to->format('d/m/Y')], $rows);
+        return $report->excel($this->branchId(), $from, $to, $this->branchName(), $label)->download("bao-cao-{$slug}.xlsx");
     }
 }

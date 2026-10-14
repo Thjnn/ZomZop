@@ -43,4 +43,23 @@ trait ParsesDateRange
 
         return [$from, $to, $validator];
     }
+
+    /**
+     * Kỳ xuất Excel của trang báo cáo: không có period hoặc period=range → khoảng từ/đến đang lọc,
+     * còn lại theo ngày/tháng/năm (cần trait ParsesPeriod).
+     *
+     * @return array{0: Carbon, 1: Carbon, 2: string, 3: string} [from, to, nhãn, đuôi tên file]
+     */
+    protected function exportRange(Request $request): array
+    {
+        if ($request->query('period', 'range') === 'range') {
+            [$from, $to] = $this->dateRange($request);
+
+            return [$from, $to, $from->format('d/m/Y') . ' – ' . $to->format('d/m/Y'), $from->toDateString() . '-' . $to->toDateString()];
+        }
+
+        $p = $this->period($request);
+
+        return [$p['from'], $p['to'], $p['label'], $p['slug']];
+    }
 }

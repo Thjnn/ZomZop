@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Manager;
 use App\Models\Attendance;
 use App\Models\Shift;
 use App\Models\User;
-use App\Support\XlsxExport;
+use App\Support\ExcelReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -36,8 +36,19 @@ class AttendanceController extends ManagerController
         $branchId = $this->branchId();
         $date = $this->date($request);
 
+        // Lịch tháng chứa ngày đang xem, tuần bắt đầu thứ Hai
+        $month     = Carbon::parse($date)->startOfMonth();
+        $gridStart = $month->copy()->startOfWeek(Carbon::MONDAY);
+        $gridEnd   = $month->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
+
         return view('manager.attendances.index', [
             'date'        => $date,
+            'month'       => $month,
+            'calendar'    => $gridStart->daysUntil($gridEnd),
+            'byDay'       => Attendance::ofBranch($branchId)->with('user:id,name')
+                ->whereBetween('check_in', [$gridStart, $gridEnd->copy()->endOfDay()])
+                ->orderBy('check_in')->get()
+                ->groupBy(fn (Attendance $a) => $a->check_in->toDateString()),
             'attendances' => $this->attendancesOn($branchId, $date),
             'staff'       => User::where('branch_id', $branchId)->whereIn('role', ['staff', 'kitchen'])->where('is_active', true)->orderBy('name')->get(),
             'shifts'      => Shift::ofBranch($branchId)->orderBy('start_time')->get(),
@@ -46,22 +57,65 @@ class AttendanceController extends ManagerController
 
     public function export(Request $request)
     {
-        $date = $this->date($request);
+        $p = $this->period($request, Carbon::parse($this->date($request)));
+        $list = Attendance::ofBranch($this->branchId())->with(['user', 'shift'])
+            ->whereBetween('check_in', [$p['from'], $p['to']])->orderBy('check_in')->get();
 
-        $rows = $this->attendancesOn($this->branchId(), $date)->map(fn (Attendance $a) => [
-            $a->user?->name,
-            $a->shift?->name,
-            $a->check_in->format('d/m/Y H:i'),
-            $a->check_out?->format('d/m/Y H:i'),
-            $a->check_out ? $a->working_hours : null,
-            $a->method === 'face' ? 'Khuôn mặt' : 'Thủ công',
-            $a->note,
-            $a->late_reason ? "Trễ {$a->lateMinutes()}' · {$a->late_reason}" : null,
-            $a->early_reason ? "Sớm {$a->earlyMinutes()}' · {$a->early_reason}" : null,
+        $x = (new ExcelReport('Bảng chấm công', $this->branchName() . ' · ' . $p['label']))->sheet('Tổng hợp');
+        $closed = $list->whereNotNull('check_out');
+        $x->summary([
+            'Số lượt chấm công' => [$list->count(), 'int'],
+            'Số nhân viên'      => [$list->pluck('user_id')->unique()->count(), 'int'],
+            'Tổng giờ làm'      => [$closed->sum('working_hours'), 'dec'],
+            'Lượt đi trễ'       => [$list->whereNotNull('late_reason')->count(), 'int'],
+            'Tỉ lệ đúng giờ'    => [$list->count() ? round(100 * $list->whereNull('late_reason')->count() / $list->count(), 1) : 0, 'pct'],
         ]);
 
-        return XlsxExport::download("cham-cong-{$date}.xlsx",
-            ['Nhân viên', 'Ca', 'Giờ vào', 'Giờ ra', 'Số giờ', 'Cách chấm', 'Ghi chú', 'Lý do trễ', 'Lý do ra sớm'], $rows);
+        $perStaff = $list->groupBy('user_id')->map(fn ($g) => [
+            $g->first()->user?->name,
+            StaffController::ROLES[$g->first()->user?->role] ?? '',
+            $g->count(),
+            round($g->whereNotNull('check_out')->sum('working_hours'), 2),
+            $g->whereNotNull('late_reason')->count(),
+            $g->whereNotNull('early_reason')->count(),
+            $g->whereNull('check_out')->count(),
+        ])->sortBy(0)->values();
+        $t = $x->table(['Nhân viên', 'Vai trò', 'Số lượt', 'Số giờ', 'Đi trễ', 'Ra sớm', 'Chưa chấm ra'], $perStaff,
+            ['C' => 'int', 'D' => 'dec', 'E' => 'int', 'F' => 'int', 'G' => 'int'], ['C', 'D', 'E', 'F', 'G'],
+            fn ($r) => $r[4] >= 3 ? ExcelReport::AMBER : null, 'Theo nhân viên');
+        $x->chart('bar', 'Số giờ làm theo nhân viên', $t, 'A', ['D']);
+
+        if ($p['period'] !== 'day') {
+            $grain = ExcelReport::grain($p['from'], $p['to']);
+            $byTime = $list->groupBy(fn ($a) => ExcelReport::bucketOf($a->check_in, $grain));
+            $rows = collect(ExcelReport::buckets($p['from'], $p['to']))->map(fn ($label, $key) => [
+                $label, $byTime->get($key)?->count() ?? 0,
+                round($byTime->get($key)?->whereNotNull('check_out')->sum('working_hours') ?? 0, 2),
+                $byTime->get($key)?->whereNotNull('late_reason')->count() ?? 0,
+            ])->values();
+            $t = $x->table([$grain === 'day' ? 'Ngày' : 'Tháng', 'Số lượt', 'Số giờ', 'Đi trễ'], $rows,
+                ['B' => 'int', 'C' => 'dec', 'D' => 'int'], ['B', 'C', 'D'], null, 'Theo thời gian');
+            $x->chart('line', 'Số lượt chấm công & đi trễ', $t, 'A', ['B', 'D']);
+        }
+
+        $x->sheet('Chi tiết')->table(
+            ['Nhân viên', 'Ca', 'Giờ vào', 'Giờ ra', 'Số giờ', 'Cách chấm', 'Ghi chú', 'Lý do trễ', 'Lý do ra sớm'],
+            $list->map(fn (Attendance $a) => [
+                $a->user?->name,
+                $a->shift?->name,
+                $a->check_in->format('d/m/Y H:i'),
+                $a->check_out?->format('d/m/Y H:i') ?? 'Chưa chấm ra',
+                $a->check_out ? $a->working_hours : null,
+                $a->method === 'face' ? 'Khuôn mặt' : 'Thủ công',
+                $a->note,
+                $a->late_reason ? "Trễ {$a->lateMinutes()}' · {$a->late_reason}" : null,
+                $a->early_reason ? "Sớm {$a->earlyMinutes()}' · {$a->early_reason}" : null,
+            ]),
+            ['E' => 'dec'], ['E'],
+            fn ($r) => $r[3] === 'Chưa chấm ra' ? ExcelReport::RED : ($r[7] || $r[8] ? ExcelReport::AMBER : null),
+        );
+
+        return $x->download("cham-cong-{$p['slug']}.xlsx");
     }
 
     public function store(Request $request)

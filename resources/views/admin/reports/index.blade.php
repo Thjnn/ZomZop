@@ -9,7 +9,7 @@
     @endphp
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h1 class="text-xl font-bold">Báo cáo doanh thu — {{ $branch?->name ?? 'Toàn chuỗi' }}</h1>
-        <a href="{{ route('admin.reports.export', $query) }}" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold">Xuất Excel</a>
+        <x-export-excel :action="route('admin.reports.export')" :range="[$from, $to]" :anchor="$to" :hidden="['branch_id' => $branch?->id]" />
     </div>
 
     <form method="GET" class="bg-white rounded-2xl p-4 border border-slate-100 mb-4 flex flex-wrap gap-3 items-end text-sm">

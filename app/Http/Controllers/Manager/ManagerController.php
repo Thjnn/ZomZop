@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\Manager;
 
+use App\Http\Controllers\Concerns\ParsesPeriod;
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Order;
 use App\Models\Shift;
 use App\Models\User;
 
 abstract class ManagerController extends Controller
 {
+    use ParsesPeriod;
+
     /** Chi nhánh của manager đang đăng nhập */
     protected function branchId(): int
     {
@@ -17,6 +21,11 @@ abstract class ManagerController extends Controller
         abort_if(!$branchId, 403, 'Tài khoản quản lý chưa được gán chi nhánh.');
 
         return (int) $branchId;
+    }
+
+    protected function branchName(): string
+    {
+        return Branch::find($this->branchId())?->name ?? 'Chi nhánh';
     }
 
     /** Đơn của chi nhánh khác coi như không tồn tại */

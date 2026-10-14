@@ -5,14 +5,82 @@
 @section('content')
     @php $input = 'px-3 py-2 rounded-lg border border-slate-200 text-sm'; @endphp
 
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 class="text-xl font-bold">Chấm công</h1>
-        <form method="GET" class="flex items-center gap-2 text-sm">
-            <input type="date" name="date" value="{{ $date }}" class="{{ $input }}">
-            <button class="px-3 py-2 rounded-lg bg-slate-800 text-white cursor-pointer">Xem</button>
-            <a href="{{ route('manager.attendances.export', ['date' => $date]) }}" class="px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">Xuất Excel</a>
-        </form>
+    @php
+        $today = today();
+        $nav = 'px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50';
+        $dayUrl = fn ($d) => route('manager.attendances.index', ['date' => $d->toDateString()]);
+    @endphp
+
+    <h1 class="text-xl font-bold mb-4">Chấm công</h1>
+
+    {{-- Lịch tháng (theo mẫu FullScreenCalendar) --}}
+    <div class="bg-white rounded-2xl border border-slate-100 mb-6 overflow-hidden">
+        <div class="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+            <div class="flex items-center gap-4">
+                <div class="hidden md:flex w-16 flex-col items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+                    <span class="p-1 text-xs uppercase text-slate-500">Th{{ $today->month }}</span>
+                    <span class="w-full rounded-lg border border-slate-200 bg-white text-center text-lg font-bold">{{ $today->day }}</span>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold">Tháng {{ $month->month }}, {{ $month->year }}</h2>
+                    <p class="text-sm text-slate-500">{{ $month->format('d/m/Y') }} – {{ $month->copy()->endOfMonth()->format('d/m/Y') }}</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-sm">
+                <div class="inline-flex -space-x-px">
+                    <a href="{{ $dayUrl($month->copy()->subMonth()) }}" class="{{ $nav }} rounded-s-lg" aria-label="Tháng trước">‹</a>
+                    <a href="{{ $dayUrl($today) }}" class="{{ $nav }}">Hôm nay</a>
+                    <a href="{{ $dayUrl($month->copy()->addMonth()) }}" class="{{ $nav }} rounded-e-lg" aria-label="Tháng sau">›</a>
+                </div>
+                <form method="GET"><input type="date" name="date" value="{{ $date }}" onchange="this.form.submit()" class="{{ $input }}"></form>
+                <x-export-excel :action="route('manager.attendances.export')" :anchor="$date" />
+            </div>
+        </div>
+
+        <div class="grid grid-cols-7 border-y border-slate-100 text-center text-xs font-semibold text-slate-500">
+            @foreach (['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'] as $w)
+                <div class="py-2.5 {{ $loop->last ? '' : 'border-r border-slate-100' }}">{{ $w }}</div>
+            @endforeach
+        </div>
+        <div class="grid grid-cols-7 text-xs">
+            @foreach ($calendar as $day)
+                @php
+                    $key = $day->toDateString();
+                    $items = $byDay->get($key, collect());
+                    $selected = $key === $date;
+                    $inMonth = $day->month === $month->month;
+                @endphp
+                <a href="{{ $dayUrl($day) }}"
+                   class="flex flex-col h-14 lg:h-28 border-b border-r border-slate-100 p-1.5 lg:p-2 hover:bg-slate-50 {{ $inMonth ? '' : 'bg-slate-50/60 text-slate-400' }} {{ $selected ? 'ring-2 ring-inset ring-red-400' : '' }}">
+                    <time datetime="{{ $key }}"
+                          class="ml-auto lg:ml-0 flex size-6 items-center justify-center rounded-full
+                                 {{ $selected ? 'bg-red-500 text-white font-semibold' : ($day->isToday() ? 'text-red-500 font-semibold' : '') }}">{{ $day->day }}</time>
+
+                    @if ($items->isNotEmpty())
+                        {{-- Màn nhỏ: chấm tròn --}}
+                        <div class="lg:hidden mt-auto flex flex-wrap gap-0.5">
+                            @foreach ($items->take(6) as $a)
+                                <span class="size-1.5 rounded-full {{ $a->late_reason ? 'bg-amber-500' : 'bg-slate-400' }}"></span>
+                            @endforeach
+                        </div>
+                        {{-- Màn lớn: tên + giờ vào --}}
+                        <div class="hidden lg:block mt-1 space-y-1">
+                            @foreach ($items->take(2) as $a)
+                                <p class="truncate rounded border px-1.5 py-0.5 {{ $a->late_reason ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-200 bg-slate-50' }}">
+                                    {{ $a->check_in->format('H:i') }} · {{ $a->user?->name }}
+                                </p>
+                            @endforeach
+                            @if ($items->count() > 2)
+                                <p class="text-slate-500">+ {{ $items->count() - 2 }} lượt nữa</p>
+                            @endif
+                        </div>
+                    @endif
+                </a>
+            @endforeach
+        </div>
     </div>
+
+    <h2 class="font-semibold mb-3">Ngày {{ \Illuminate\Support\Carbon::parse($date)->format('d/m/Y') }}</h2>
 
     <div class="bg-white rounded-2xl border border-slate-100 overflow-x-auto mb-6">
         <table class="w-full text-sm">
