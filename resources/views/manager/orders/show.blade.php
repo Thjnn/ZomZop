@@ -38,6 +38,7 @@
                 @endforeach
                 <div class="text-sm mt-3 space-y-1">
                     <div class="flex justify-between"><span class="text-slate-500">Tạm tính</span><span>{{ $money($order->subtotal) }}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Phí giao hàng</span><span>{{ $money($order->shipping_fee ?? 0) }}</span></div>
                     @if ($order->discount > 0)
                         <div class="flex justify-between"><span class="text-slate-500">Giảm giá</span><span>-{{ $money($order->discount) }}</span></div>
                     @endif

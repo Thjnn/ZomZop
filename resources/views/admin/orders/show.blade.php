@@ -22,6 +22,7 @@
             </table>
             <div class="mt-3 space-y-1 text-right">
                 <p>Tạm tính: {{ $money($order->subtotal) }}</p>
+                <p>Phí giao hàng: {{ $money($order->shipping_fee ?? 0) }}</p>
                 <p>Giảm giá: -{{ $money($order->discount) }} @if ($order->coupon) <span class="font-mono text-xs">({{ $order->coupon->code }})</span> @endif</p>
                 <p class="font-bold text-base">Tổng: {{ $money($order->total) }}</p>
             </div>

@@ -121,6 +121,7 @@
     </div>
 </div>
  
+ 
 {{-- POPUP YÊU CẦU ĐĂNG NHẬP (Chỉ hiển thị khi chưa đăng nhập) --}}
 @guest
 <div id="auth-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 opacity-0 invisible transition-all duration-300">

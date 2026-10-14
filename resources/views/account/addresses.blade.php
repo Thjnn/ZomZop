@@ -3,9 +3,15 @@
 @section('title', 'Địa chỉ giao hàng - ZomZop')
  
 @section('content')
-@php $input = 'w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-red-400 focus:outline-none'; @endphp
+@php $fromCheckout = request('from') === 'checkout' || old('from') === 'checkout'; $input = 'w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-red-400 focus:outline-none'; @endphp
  
 <div class="max-w-4xl mx-auto py-8 px-4">
+    @if($fromCheckout && $addresses->isNotEmpty())
+    <a href="{{ route('checkout.index', array_merge(session('checkout.preferences', []), ['type' => 'delivery'])) }}" class="inline-block mb-4 text-red-500 font-semibold">← Quay lại thanh toán</a>
+    @elseif($fromCheckout)
+    <p class="mb-4 text-slate-600">Thêm địa chỉ để tiếp tục đơn hàng. Giỏ hàng của bạn vẫn được giữ nguyên.</p>
+    <a href="{{ route('checkout.index', ['type' => 'takeaway']) }}" class="inline-block mb-4 text-red-500">Chuyển sang tự đến lấy</a>
+    @endif
     <a href="{{ url('/menu') }}" class="text-sm text-slate-500 hover:text-red-500">← Quay lại tài khoản</a>
     <div class="flex items-center justify-between gap-3 mt-2 mb-6">
         <h1 class="text-2xl font-bold text-slate-800">Địa chỉ giao hàng</h1>
@@ -39,17 +45,20 @@
                 <p class="text-xs text-slate-400 mt-1">Ghi chú: {{ $a->note }}</p>
             @endif
  
+            @if($fromCheckout)
+            <a href="{{ route('checkout.index', array_merge(session('checkout.preferences', []), ['type' => 'delivery', 'address_id' => $a->id])) }}" class="inline-block mt-3 text-red-500 font-semibold">Giao đến địa chỉ này →</a>
+            @endif
             <div class="flex flex-wrap items-center gap-4 mt-4 text-sm">
                 <button type="button" onclick='openAddr(@json($a))' class="text-slate-600 hover:text-red-500">Sửa</button>
  
-                <form method="POST" action="{{ route('addresses.destroy', $a) }}" onsubmit="return confirm('Xóa địa chỉ này?')">
+                <form method="POST" action="{{ route('addresses.destroy', ['address' => $a, 'from' => $fromCheckout ? 'checkout' : null]) }}" onsubmit="return confirm('Xóa địa chỉ này?')">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="text-slate-600 hover:text-red-500">Xóa</button>
                 </form>
  
                 @unless ($a->is_default)
-                    <form method="POST" action="{{ route('addresses.default', $a) }}">
+                    <form method="POST" action="{{ route('addresses.default', ['address' => $a, 'from' => $fromCheckout ? 'checkout' : null]) }}">
                         @csrf
                         <button type="submit" class="text-red-500 font-medium">Đặt làm mặc định</button>
                     </form>
@@ -64,6 +73,7 @@
 <div id="addrModal" class="fixed inset-0 bg-black/40 z-[100] hidden items-center justify-center p-4">
     <form id="addrForm" method="POST" action="{{ route('addresses.store') }}" class="bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
         @csrf
+        @if($fromCheckout)<input type="hidden" name="from" value="checkout">@endif
         <input type="hidden" name="_method" value="PUT" id="addrMethod" disabled>
         <input type="hidden" name="editing_id" id="editing_id" value="{{ old('editing_id') }}">
  
@@ -104,11 +114,12 @@
     const addrModal  = document.getElementById('addrModal');
     const addrForm   = document.getElementById('addrForm');
     const addrBase   = @json(url('/addresses'));
+    const checkoutSuffix = @json($fromCheckout ? '?from=checkout' : '');
  
     function setMode(id) {
         document.getElementById('addrMethod').disabled = !id;
         document.getElementById('editing_id').value    = id || '';
-        addrForm.action = id ? addrBase + '/' + id : addrBase;
+        addrForm.action = (id ? addrBase + '/' + id : addrBase) + checkoutSuffix;
         document.getElementById('addrTitle').textContent = id ? 'Sửa địa chỉ' : 'Thêm địa chỉ';
     }
     function showAddrModal() { addrModal.classList.remove('hidden'); addrModal.classList.add('flex'); }
@@ -126,6 +137,9 @@
     }
     addrModal.addEventListener('click', e => { if (e.target === addrModal) closeAddr(); });
  
+    @if($fromCheckout && $addresses->isEmpty() && !$errors->any())
+        openAddr();
+    @endif
     @if ($errors->any())
         // Lưu lỗi -> mở lại popup, giữ nguyên dữ liệu đã nhập
         setMode(@json(old('editing_id')));

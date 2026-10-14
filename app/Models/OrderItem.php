@@ -33,6 +33,6 @@ class OrderItem extends Model
     /** MenuItem gốc — dùng để lấy ảnh, slug, v.v. */
     public function menuItem(): BelongsTo
     {
-        return $this->belongsTo(MenuItem::class);
+        return $this->belongsTo(MenuItem::class)->withTrashed();
     }
 }

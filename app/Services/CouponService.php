@@ -13,8 +13,9 @@ class CouponService
     /**
      * Mã hợp lệ cho khách với tạm tính này, sai thì ném lỗi gắn vào ô coupon_code.
      * $lock = true khi gọi trong transaction lúc đặt đơn (khoá dòng, chống 2 người dùng lượt cuối).
+     * $type / $speed: loại đơn và tốc độ giao, để kiểm tra mã ship / hỏa tốc có hợp với đơn không.
      */
-    public function find(string $code, User $user, int $subtotal, bool $lock = false): Coupon
+    public function find(string $code, User $user, int $subtotal, bool $lock = false, string $type = 'takeaway', string $speed = 'standard'): Coupon
     {
         $query = Coupon::where('code', strtoupper(trim($code)));
         $coupon = ($lock ? $query->lockForUpdate() : $query)->first();
@@ -25,6 +26,10 @@ class CouponService
             $coupon->expired_at?->isPast() ?? false                      => 'Mã đã hết hạn.',
             $coupon->max_uses > 0 && $coupon->used_count >= $coupon->max_uses => 'Mã đã hết lượt sử dụng.',
             $subtotal < $coupon->min_order_value                         => 'Đơn tối thiểu ' . number_format($coupon->min_order_value, 0, ',', '.') . 'đ để dùng mã này.',
+            ($coupon->scope ?? 'food') === 'ship' && !($type === 'delivery' && $speed === 'standard')
+                                                                         => 'Mã này chỉ áp dụng cho đơn giao hàng tiêu chuẩn.',
+            ($coupon->scope ?? 'food') === 'express' && !($type === 'delivery' && $speed === 'express')
+                                                                         => 'Mã này chỉ áp dụng cho đơn giao hàng hỏa tốc.',
             CouponUsage::where('coupon_id', $coupon->id)->where('user_id', $user->id)->count() >= $coupon->max_uses_per_user
                                                                          => 'Bạn đã dùng hết lượt của mã này.',
             default                                                      => null,

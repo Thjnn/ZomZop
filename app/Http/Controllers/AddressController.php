@@ -56,9 +56,13 @@ class AddressController extends Controller
             Address::where('user_id', $userId)->update(['is_default' => false]);
         }
 
-        Address::create($data + ['user_id' => $userId, 'is_default' => $makeDefault]);
+        $address = Address::create($data + ['user_id' => $userId, 'is_default' => $makeDefault]);
+        if ($request->input('from') === 'checkout') {
+            return redirect()->route('checkout.index', array_merge(session('checkout.preferences', []), ['type' => 'delivery', 'address_id' => $address->id]))
+                ->with('success', 'Đã lưu địa chỉ nhận hàng.');
+        }
 
-        return redirect()->route('addresses.index')->with('success', 'Đã thêm địa chỉ mới.');
+        return redirect()->route('addresses.index', ['from' => request('from') === 'checkout' ? 'checkout' : null])->with('success', 'Đã thêm địa chỉ mới.');
     }
 
     public function update(Request $request, Address $address)
@@ -74,8 +78,12 @@ class AddressController extends Controller
         }
 
         $address->update($data);
+        if ($request->input('from') === 'checkout') {
+            return redirect()->route('checkout.index', array_merge(session('checkout.preferences', []), ['type' => 'delivery', 'address_id' => $address->id]))
+                ->with('success', 'Đã cập nhật địa chỉ nhận hàng.');
+        }
 
-        return redirect()->route('addresses.index')->with('success', 'Đã cập nhật địa chỉ.');
+        return redirect()->route('addresses.index', ['from' => request('from') === 'checkout' ? 'checkout' : null])->with('success', 'Đã cập nhật địa chỉ.');
     }
 
     public function destroy(Address $address)
@@ -90,7 +98,7 @@ class AddressController extends Controller
             Address::where('user_id', $userId)->orderByDesc('id')->first()?->update(['is_default' => true]);
         }
 
-        return redirect()->route('addresses.index')->with('success', 'Đã xóa địa chỉ.');
+        return redirect()->route('addresses.index', ['from' => request('from') === 'checkout' ? 'checkout' : null])->with('success', 'Đã xóa địa chỉ.');
     }
 
     public function setDefault(Address $address)
@@ -100,6 +108,6 @@ class AddressController extends Controller
         Address::where('user_id', $address->user_id)->update(['is_default' => false]);
         $address->update(['is_default' => true]);
 
-        return redirect()->route('addresses.index')->with('success', 'Đã đặt làm địa chỉ mặc định.');
+        return redirect()->route('addresses.index', ['from' => request('from') === 'checkout' ? 'checkout' : null])->with('success', 'Đã đặt làm địa chỉ mặc định.');
     }
 }

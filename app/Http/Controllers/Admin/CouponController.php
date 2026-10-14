@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 class CouponController extends AdminController
 {
     /** Không đổi được khi mã đã có người dùng */
-    private const LOCKED_WHEN_USED = ['code', 'type', 'value', 'max_discount'];
+    private const LOCKED_WHEN_USED = ['code', 'type', 'scope', 'value', 'max_discount'];
 
     private const MESSAGES = [
         'code.required'          => 'Vui lòng nhập mã.',
@@ -37,6 +37,8 @@ class CouponController extends AdminController
         return [
             'code'              => ['required', 'regex:/^[A-Z0-9]{4,20}$/', Rule::unique('coupons', 'code')->ignore($coupon?->id)],
             'type'              => ['required', Rule::in(array_keys(Coupon::TYPES))],
+            'scope'             => ['sometimes', Rule::in(array_keys(Coupon::SCOPES))],
+            'description'       => ['nullable', 'string', 'max:255'],
             'value'             => ['required', 'integer', ...($percent ? ['min:1', 'max:100'] : ['min:1000', 'max:10000000'])],
             'max_discount'      => ['nullable', 'integer', 'min:1000', 'max:10000000'],
             'min_order_value'   => ['required', 'integer', 'min:0', 'max:100000000'],

@@ -43,7 +43,13 @@
             <label class="grid gap-1">Lượt mỗi khách
                 <input type="number" name="max_uses_per_user" min="1" max="100" value="{{ old('max_uses_per_user', $coupon?->max_uses_per_user ?? 1) }}" required class="{{ $input }}">
             </label>
-            <div></div>
+            <label class="grid gap-1">Áp dụng cho
+                <select name="scope" @disabled($locked) class="{{ $input }}">
+                    @foreach(\App\Models\Coupon::SCOPES as $key => $label)
+                    <option value="{{ $key }}" @selected(old('scope', $coupon?->scope ?? 'food') === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </label>
             <label class="grid gap-1">Bắt đầu
                 <input type="date" name="started_at" value="{{ old('started_at', $coupon?->started_at?->format('Y-m-d')) }}" class="{{ $input }}">
             </label>
@@ -51,6 +57,7 @@
                 <input type="date" name="expired_at" value="{{ old('expired_at', $coupon?->expired_at?->format('Y-m-d')) }}" class="{{ $input }}">
             </label>
         </div>
+        <label class="grid gap-1">Mô tả<input name="description" maxlength="255" value="{{ old('description', $coupon?->description) }}" class="{{ $input }}"></label>
         <label class="flex items-center gap-2"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $coupon?->is_active ?? true)) class="accent-red-500"> Đang bật</label>
         <label class="flex items-center gap-2"><input type="checkbox" name="is_public" value="1" @checked(old('is_public', $coupon?->is_public ?? true)) class="accent-red-500"> Công khai ở trang Mã giảm giá (bỏ chọn = chỉ gửi riêng qua email)</label>
 
