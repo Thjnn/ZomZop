@@ -306,7 +306,7 @@ resources/
         ├── kiosks/index.blade.php           # Danh sách thiết bị quầy
         ├── staff/face.blade.php             # Đăng ký khuôn mặt
         ├── staff/index.blade.php            # (+ cột Khuôn mặt, nút 📷 Chụp khuôn mặt)
-        └── attendances/index.blade.php      # (+ độ tin cậy, link ảnh, "Trễ 12' · lý do", "Ra sớm 35' · lý do")
+        └── attendances/index.blade.php      # (+ độ tương đồng, link ảnh, "Trễ 12' · lý do", "Ra sớm 35' · lý do")
 
 public/models/face/                          # 3 model face-api (~6.8 MB), chép từ node_modules
 tests/Feature/Face/                          # 47 test: KioskDevice, FaceMatcher, FacePunch, KioskManage,
@@ -372,7 +372,7 @@ Trình duyệt: Chrome / **Cốc Cốc** / Edge (nhân Chromium) hoặc Safari t
 - Giá đỡ để **camera trước ngang tầm mặt**, cắm sạc liên tục, đủ sáng (không ngược sáng cửa sổ).
 - Tắt tự khoá màn hình; bấm nút **toàn màn hình** (góc phải trên) của trang máy quầy.
 - Khoá trong ứng dụng: **Ghim màn hình** (Android: Cài đặt → Bảo mật → Ghim ứng dụng) hoặc **Guided Access** (iPad).
-- Máy tầm trung (RAM ≥ 4 GB) nhận diện ~1–2 giây/lượt; máy yếu chậm hơn và dễ trượt cái chớp mắt.
+- Máy tầm trung (RAM ≥ 4 GB) nhận diện ~1–2 giây/lượt; máy yếu chậm hơn.
 
 ### Xoá ảnh tự động
 
@@ -403,7 +403,7 @@ hoặc tạo Windows Task Scheduler gọi `php artisan schedule:run` mỗi phút
 ## 8. Giới hạn đã biết
 
 - Kẻ gian có **cả** token thiết bị **lẫn** descriptor của người khác thì có thể gọi API giả mạo — chấp nhận ở mức quán ăn,
-  bù bằng ảnh bằng chứng + độ tin cậy để manager kiểm tra.
+  bù bằng ảnh bằng chứng + độ tương đồng để manager kiểm tra.
 - **Không còn kiểm tra người thật (v2)**: giơ ảnh in hoặc ảnh trên điện thoại trước camera có thể chấm được.
   Bù bằng ảnh bằng chứng + độ tương đồng để manager kiểm tra; nút bấm trước khi quét vẫn chặn người đi ngang.
 - So khớp tuần tự mọi mẫu của chi nhánh mỗi lần chấm (~150 mẫu, vài ms) — cần index vector nếu lên hàng nghìn mẫu.
