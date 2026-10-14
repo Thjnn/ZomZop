@@ -7,6 +7,8 @@ return [
         'threshold'         => (float) env('FACE_THRESHOLD', 0.45),
         // Người gần nhất phải gần hơn người thứ hai ít nhất chừng này, nếu không thì từ chối
         'margin'            => (float) env('FACE_MARGIN', 0.08),
+        // Camera tự chụp đủ max_samples; tải ảnh lên thì chấp nhận từ min_samples ảnh hợp lệ
+        'min_samples'       => 3,
         'max_samples'       => 15,
         // Độ tương đồng (%) dưới mốc này thì trang Chấm công tô cam để manager xem lại ảnh
         'low_similarity'    => 60,

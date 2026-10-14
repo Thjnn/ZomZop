@@ -51,6 +51,17 @@ class FaceEnrollTest extends TestCase
         $this->assertEquals(0.1, FaceDescriptor::where('user_id', $staff->id)->first()->descriptor[0]);
     }
 
+    /** Tải ảnh lên: 3 ảnh hợp lệ là đủ (camera vẫn chụp 15) */
+    public function test_enroll_from_uploaded_photos_accepts_three_samples(): void
+    {
+        $branch = $this->makeBranch();
+        $staff  = $this->makeUser('staff', $branch);
+        $this->actingAs($this->makeUser('manager', $branch));
+
+        $this->enroll($staff, $this->set(0.0, 3))->assertOk()->assertJson(['count' => 3]);
+        $this->assertSame(3, FaceDescriptor::where('user_id', $staff->id)->count());
+    }
+
     public function test_invalid_sets_are_rejected_and_keep_old_samples(): void
     {
         $branch = $this->makeBranch();
@@ -59,7 +70,7 @@ class FaceEnrollTest extends TestCase
         $this->actingAs($this->makeUser('manager', $branch));
 
         $this->enroll($staff, $this->set(0.0), false)->assertStatus(422)->assertJsonValidationErrors('consent');
-        $this->enroll($staff, $this->set(0.0, 14))->assertStatus(422)->assertJsonValidationErrors('descriptors');
+        $this->enroll($staff, $this->set(0.0, 2))->assertStatus(422)->assertJsonValidationErrors('descriptors');
         $this->enroll($staff, $this->set(0.0, 16))->assertStatus(422)->assertJsonValidationErrors('descriptors');
 
         $short = $this->set(0.0);

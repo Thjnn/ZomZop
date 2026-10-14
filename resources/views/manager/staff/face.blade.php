@@ -9,7 +9,7 @@
 
     <div id="face-enroll" class="grid lg:grid-cols-3 gap-6"
          data-url="{{ route('manager.staff.face.store', $user) }}" data-csrf="{{ csrf_token() }}"
-         data-count="{{ $count }}" data-max="{{ $max }}">
+         data-count="{{ $count }}" data-max="{{ $max }}" data-min="{{ $min }}">
         <div class="lg:col-span-2 bg-white rounded-2xl p-4 border border-slate-100">
             <div class="relative rounded-xl overflow-hidden bg-slate-900 aspect-[4/3]">
                 <video id="face-video" class="w-full h-full object-cover -scale-x-100 border-4 border-transparent rounded-xl transition-colors" muted playsinline></video>
@@ -28,6 +28,15 @@
                 <span>Nhân viên đã đồng ý cho lưu đặc trưng khuôn mặt để chấm công và lưu ảnh chụp lúc chấm công trong {{ config('attendance.face.photo_days') }} ngày.</span>
             </label>
             <button id="face-capture" disabled class="w-full px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-semibold cursor-pointer">Bắt đầu chụp</button>
+
+            <div class="border-t border-slate-100 pt-4 space-y-2">
+                <p class="font-semibold">Hoặc tải ảnh lên</p>
+                <p class="text-xs text-slate-500">{{ $min }}–{{ $max }} ảnh chân dung rõ mặt, nhìn thẳng, mỗi ảnh một người. Ảnh chỉ xử lý trên trình duyệt, không gửi lên máy chủ.</p>
+                <input type="file" id="face-files" accept="image/jpeg,image/png,image/webp" multiple
+                       class="block w-full text-xs file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-100 file:cursor-pointer">
+                <ul id="face-file-list" class="grid grid-cols-3 gap-2"></ul>
+                <button id="face-upload" disabled class="w-full px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-semibold cursor-pointer">Lưu từ ảnh</button>
+            </div>
             <p id="face-msg" class="text-sm"></p>
 
             @if ($count)

@@ -19,23 +19,25 @@ class FaceController extends ManagerController
             'user'  => $user,
             'count' => $user->faceDescriptors()->count(),
             'max'   => config('attendance.face.max_samples'),
+            'min'   => config('attendance.face.min_samples'),
         ]);
     }
 
-    /** Nhận cả bộ max_samples mẫu (trang tự chụp), hợp lệ thì thay toàn bộ mẫu cũ của nhân viên */
+    /** Nhận cả bộ min..max mẫu (camera tự chụp 15, hoặc từ ảnh tải lên), hợp lệ thì thay toàn bộ mẫu cũ của nhân viên */
     public function store(Request $request, User $user, FaceMatcher $matcher)
     {
         $this->ensureOwnStaff($user);
 
+        $min  = config('attendance.face.min_samples');
         $max  = config('attendance.face.max_samples');
         $data = $request->validate([
-            'descriptors'     => ['required', 'array', "size:{$max}"],
+            'descriptors'     => ['required', 'array', "between:{$min},{$max}"],
             'descriptors.*'   => ['required', 'array', 'size:128'],
             'descriptors.*.*' => ['required', 'numeric', 'between:-1,1'],
             'consent'         => ['accepted'],
         ], [
             'consent.accepted'  => 'Cần xác nhận nhân viên đã đồng ý.',
-            'descriptors.size'  => "Cần đủ {$max} mẫu, hãy chụp lại.",
+            'descriptors.between' => "Cần từ {$min} đến {$max} mẫu hợp lệ.",
             'descriptors.*'     => 'Dữ liệu khuôn mặt không hợp lệ, hãy chụp lại.',
             'descriptors.*.*'   => 'Dữ liệu khuôn mặt không hợp lệ, hãy chụp lại.',
         ]);

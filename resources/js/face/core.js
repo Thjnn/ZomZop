@@ -71,12 +71,13 @@ const ear = (eye) => (dist(eye[1], eye[5]) + dist(eye[2], eye[4])) / (2 * dist(e
  * Kiểm tra khung hình có dùng được không. Trả về chuỗi lý do nếu không, null nếu được.
  * Đúng 1 khuôn mặt, đủ chắc chắn, đủ gần, nhìn thẳng (không quay ngang, không nghiêng đầu), mắt mở.
  */
-export function frontalProblem(faces, video, minScore = 0.6) {
+export function frontalProblem(faces, source, minScore = 0.6, minWidth = FRONTAL.minWidth) {
     if (faces.length === 0) return "Chưa thấy khuôn mặt — nhìn thẳng vào camera";
     if (faces.length > 1) return "Chỉ một người đứng trước camera";
     const { detection, landmarks } = faces[0];
     if (detection.score < minScore) return "Khuôn mặt chưa rõ — đứng chỗ sáng hơn";
-    if (detection.box.width < video.videoWidth * FRONTAL.minWidth) return "Lại gần camera hơn";
+    // source: <video> (camera) hoặc <img> (ảnh tải lên)
+    if (detection.box.width < (source.videoWidth || source.naturalWidth) * minWidth) return "Lại gần camera hơn";
 
     const left = center(landmarks.getLeftEye());
     const right = center(landmarks.getRightEye());

@@ -87,6 +87,15 @@ không phụ thuộc số mẫu). Trang nhân viên hiện "3/15 mẫu" để ma
 
 `destroy` (xoá dữ liệu khuôn mặt) giữ nguyên.
 
+### 3.4 Tải ảnh lên thay cho camera
+
+- Cùng trang, khối **"Hoặc tải ảnh lên"**: chọn **3–15 ảnh** (jpg/png/webp), mỗi ảnh hiện ảnh thu nhỏ ✓/✗ kèm lý do
+  ("Không thấy khuôn mặt", "Có nhiều người", "Mặt quá nhỏ trong ảnh", "Không nhìn thẳng", "Khác người với ảnh đầu", "Trùng ảnh khác").
+- Nhận diện **trên trình duyệt** bằng cùng model và `frontalProblem`; điều kiện "đủ gần" tính theo ảnh: mặt rộng ≥ 15% bề ngang ảnh.
+  Ảnh **không** gửi lên server, chỉ gửi descriptor như camera.
+- Đủ ≥ 3 ảnh hợp lệ → nút **Lưu từ ảnh** gửi bộ mẫu (thay toàn bộ mẫu cũ, cùng kiểm tra cùng người / trùng nhân viên khác).
+- Server nhận `descriptors` có **3–15** phần tử (`config('attendance.face.min_samples')` = 3); camera vẫn tự chụp đủ 15.
+
 ## 4. Chấm công ở quầy chỉ cần nhìn thẳng (`resources/js/kiosk.js`)
 
 - **Xoá** `resources/js/face/liveness.js` và hàm `checkLiveness`.

@@ -90,6 +90,10 @@ Manager bấm "📷 Chụp khuôn mặt" ở dòng nhân viên (nên mở trên 
      → xoá mẫu cũ + lưu 15 mẫu mới trong một transaction (lỗi thì giữ nguyên mẫu cũ)
 ```
 
+**Hoặc tải ảnh lên** (cùng trang): chọn 3–15 ảnh chân dung nhìn thẳng → trình duyệt nhận diện từng ảnh
+(cùng điều kiện nhìn thẳng, mặt rộng ≥ 15% bề ngang ảnh), hiện ✓/✗ kèm lý do → "Lưu từ ảnh" gửi các ảnh hợp lệ.
+Ảnh không gửi lên server; server nhận bộ **3–15** mẫu và kiểm tra như trên.
+
 ### 3.3 Chấm công ở quầy (bấm nút trước, quét mặt sau)
 
 Màn hình máy quầy có 4 trạng thái: **chờ** → (**chọn lý do**) → **quét mặt** → **kết quả** → chờ.
@@ -331,7 +335,8 @@ Thư viện thêm: `@vladmandic/face-api` 1.7.15 (npm), bản fork còn bảo tr
 
 | Khoá | Giá trị | Ý nghĩa |
 |---|---|---|
-| `max_samples` | 15 | Số mẫu mỗi lần đăng ký (trang tự chụp đủ số này) |
+| `max_samples` | 15 | Số mẫu mỗi lần đăng ký (camera tự chụp đủ số này) |
+| `min_samples` | 3 | Tải ảnh lên: cần ít nhất chừng này ảnh hợp lệ |
 | `low_similarity` | 60 | Độ tương đồng (%) dưới mốc này thì tô cam ở trang Chấm công |
 | `cooldown_minutes` | 2 | Chấm lại trong 2 phút → "Bạn vừa chấm" |
 | `late_minutes` | 5 | Vào trễ **hơn** 5 phút → hỏi lý do đi trễ |
@@ -383,6 +388,7 @@ hoặc tạo Windows Task Scheduler gọi `php artisan schedule:run` mỗi phút
 
 - [ ] Manager: Thiết bị quầy → tạo link → mở link trên máy tính bảng → hiện tên chi nhánh, màn chờ có 3 nút.
 - [ ] Bấm Bắt đầu chụp khi chưa tick đồng ý → bị chặn.
+- [ ] Tải 5 ảnh (có 1 ảnh 2 người, 1 ảnh nghiêng mặt) → 3 ✓, 2 ✗ đúng lý do; Lưu từ ảnh → "Đã lưu 3 mẫu"; chấm công ở quầy nhận ra.
 - [ ] Đứng yên hoàn toàn → tiến độ dừng, hiện "Xê dịch nhẹ đầu"; xê dịch gần/xa, nghiêng nhẹ → đủ 15 trong ~15–30 giây.
 - [ ] Quay mặt sang bên / nhắm mắt / nghiêng đầu → không nhận mẫu, hiện đúng lời nhắc; người thứ hai chen vào → không nhận.
 - [ ] Đăng ký 15 mẫu cho 3 nhân viên; đăng ký mặt người A cho người B → bị chặn; rút mạng lúc gửi → mẫu cũ còn nguyên.

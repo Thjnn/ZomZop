@@ -1,9 +1,19 @@
-// Trang manager đăng ký khuôn mặt: bấm "Bắt đầu chụp" → tự nhận đủ 15 khung nhìn thẳng (mỗi khung hơi khác nhau) → gửi một lần
+// Trang manager đăng ký khuôn mặt, 2 cách (đều chỉ gửi descriptor, không gửi ảnh):
+//  - camera: bấm "Bắt đầu chụp" → tự nhận đủ 15 khung nhìn thẳng (mỗi khung hơi khác nhau) → gửi một lần
+//  - tải ảnh: chọn 3–15 ảnh chân dung → nhận diện từng ảnh trên trình duyệt → gửi các ảnh hợp lệ
 import { descriptorDistance, detectFaces, frontalProblem, loadModels, sleep, startCamera } from "./face/core";
 
 const MIN_GAP = 0.06; // khung mới phải cách mọi mẫu đã nhận ít nhất chừng này (tránh 15 mẫu y hệt nhau)
 const SAME_PERSON = 0.45; // cách mẫu đầu quá chừng này → coi như người khác chen vào
 const TIMEOUT = 60000;
+const PHOTO_MIN_WIDTH = 0.15; // ảnh tải lên: mặt rộng ≥ 15% bề ngang ảnh
+// Lời nhắc viết cho camera → đổi cho hợp ảnh tải lên
+const PHOTO_WORDS = {
+    "Chưa thấy khuôn mặt — nhìn thẳng vào camera": "Không thấy khuôn mặt",
+    "Chỉ một người đứng trước camera": "Có nhiều người",
+    "Lại gần camera hơn": "Mặt quá nhỏ trong ảnh",
+    "Nhìn thẳng vào camera": "Không nhìn thẳng",
+};
 
 const root = document.getElementById("face-enroll");
 
@@ -17,6 +27,11 @@ if (root) {
     const bar = document.getElementById("face-progress");
     const barText = document.getElementById("face-progress-text");
     const max = Number(root.dataset.max);
+    const min = Number(root.dataset.min);
+    const fileInput = document.getElementById("face-files");
+    const fileList = document.getElementById("face-file-list");
+    const uploadBtn = document.getElementById("face-upload");
+    let photoSamples = [];
     let busy = false;
 
     const say = (text, ok = false) => {
@@ -67,6 +82,93 @@ if (root) {
         return samples.length === max ? samples : null;
     }
 
+    /** Gửi bộ mẫu lên server (thay toàn bộ mẫu cũ); lỗi mạng ném ra cho nơi gọi */
+    async function save(descriptors) {
+        say("Đang lưu…", true);
+        const res = await fetch(root.dataset.url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-TOKEN": root.dataset.csrf },
+            body: JSON.stringify({ descriptors, consent: true }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) return say(Object.values(body.errors ?? {}).flat()[0] ?? body.message ?? "Lỗi lưu mẫu, thử lại.");
+
+        countEl.textContent = body.count;
+        say(`Đã lưu ${body.count} mẫu. Nhân viên có thể chấm công.`, true);
+    }
+
+    // ── Tải ảnh lên ──
+
+    /** Mở file ảnh thành <img> đã tải xong */
+    function loadImage(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error("Không đọc được ảnh"));
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
+    function addThumb(img, problem) {
+        const li = document.createElement("li");
+        li.className = "text-[11px] leading-tight " + (problem ? "text-red-600" : "text-emerald-600");
+        img.className = "w-full aspect-square object-cover rounded-lg border-2 " + (problem ? "border-red-300 opacity-60" : "border-emerald-400");
+        const cap = document.createElement("span");
+        cap.textContent = problem ? "✗ " + problem : "✓ Dùng được";
+        li.append(img, cap);
+        fileList.append(li);
+    }
+
+    fileInput.addEventListener("change", async () => {
+        const files = [...fileInput.files].slice(0, max);
+        fileList.replaceChildren();
+        photoSamples = [];
+        uploadBtn.disabled = true;
+        if (!files.length) return;
+        if (fileInput.files.length > max) say(`Chỉ dùng ${max} ảnh đầu tiên.`);
+
+        busy = true;
+        try {
+            await loadModels();
+            for (const file of files) {
+                let img;
+                try {
+                    img = await loadImage(file);
+                } catch {
+                    continue;
+                }
+                const faces = await detectFaces(img);
+                let problem = frontalProblem(faces, img, 0.6, PHOTO_MIN_WIDTH);
+                problem = PHOTO_WORDS[problem] ?? problem;
+                if (!problem) {
+                    const d = Array.from(faces[0].descriptor);
+                    if (photoSamples.length && descriptorDistance(d, photoSamples[0]) > SAME_PERSON) problem = "Khác người với ảnh đầu";
+                    else if (photoSamples.some((s) => descriptorDistance(d, s) < 0.02)) problem = "Trùng ảnh khác";
+                    else photoSamples.push(d);
+                }
+                addThumb(img, problem);
+            }
+        } finally {
+            busy = false;
+        }
+        uploadBtn.disabled = photoSamples.length < min;
+        say(photoSamples.length >= min
+            ? `${photoSamples.length} ảnh dùng được — bấm Lưu từ ảnh.`
+            : `Mới có ${photoSamples.length} ảnh dùng được, cần ít nhất ${min}.`, photoSamples.length >= min);
+    });
+
+    uploadBtn.addEventListener("click", async () => {
+        if (!consent.checked) return say("Cần xác nhận nhân viên đã đồng ý.");
+        uploadBtn.disabled = true;
+        try {
+            await save(photoSamples);
+        } catch {
+            say("Mất kết nối máy chủ — mẫu cũ vẫn còn, thử lại sau.");
+        } finally {
+            uploadBtn.disabled = photoSamples.length < min;
+        }
+    });
+
     btn.addEventListener("click", async () => {
         if (!consent.checked) return say("Cần xác nhận nhân viên đã đồng ý.");
 
@@ -78,17 +180,7 @@ if (root) {
             const descriptors = await collect();
             if (!descriptors) return say("Chưa đủ mẫu trong 60 giây — bấm Bắt đầu chụp để thử lại.");
 
-            say("Đang lưu…", true);
-            const res = await fetch(root.dataset.url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-TOKEN": root.dataset.csrf },
-                body: JSON.stringify({ descriptors, consent: true }),
-            });
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) return say(Object.values(body.errors ?? {}).flat()[0] ?? body.message ?? "Lỗi lưu mẫu, thử lại.");
-
-            countEl.textContent = body.count;
-            say(`Đã lưu ${body.count} mẫu. Nhân viên có thể chấm công.`, true);
+            await save(descriptors);
         } catch {
             say("Mất kết nối máy chủ — mẫu cũ vẫn còn, thử lại sau.");
         } finally {
