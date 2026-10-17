@@ -251,6 +251,8 @@
         </svg>
     </button>
 
+    {{-- Chỉ khách (và người chưa đăng nhập) mới có trợ lý chat; nhân viên nội bộ không cần --}}
+    @if (!auth()->check() || auth()->user()->isCustomer())
     {{-- Chatbot (resources/js/chatbot.js). Đặt cao hơn nút lên đầu trang để không đè nhau --}}
     <button id="chatbot-toggle" type="button" aria-controls="chatbot-panel" aria-expanded="false" aria-label="Chat với trợ lý ZomZop"
         class="fixed bottom-20 right-6 z-50 w-12 h-12 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg flex items-center justify-center transition cursor-pointer">
@@ -275,6 +277,7 @@
         </div>
     </div>
     @endauth
+    @endif
 
     {{-- Toast thông báo --}}
     <div id="toast" class="fixed bottom-6 left-6 z-[200] flex items-center gap-3 bg-slate-800 text-white px-6 py-4 rounded-2xl shadow-xl text-sm font-medium opacity-0 invisible transition-all duration-300 -translate-y-2">

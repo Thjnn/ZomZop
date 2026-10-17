@@ -13,9 +13,11 @@ class AccountController extends Controller
     public function profile(Request $request)
     {
         $user = $request->user();
-        $addressCount = Address::where('user_id', $user->id)->count();
+        $addressCount  = Address::where('user_id', $user->id)->count();
+        $orderCount    = $user->orders()->count();
+        $favoriteCount = $user->favoriteItems()->count();
 
-        return view('account.profile', compact('user', 'addressCount'));
+        return view('account.profile', compact('user', 'addressCount', 'orderCount', 'favoriteCount'));
     }
 
     public function updateProfile(Request $request)

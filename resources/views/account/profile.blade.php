@@ -25,11 +25,11 @@
     {{-- 3 ô thống kê: bấm vào sẽ chuyển trang --}}
     <div class="grid grid-cols-3 gap-4 mb-6">
         <a href="{{ route('orders') }}" class="bg-white rounded-2xl border border-slate-100 p-4 text-center hover:border-red-400 transition">
-            <p class="text-2xl font-bold text-red-500">12</p>{{-- TODO: thay bằng số đơn thật khi module đơn hàng xong --}}
+            <p class="text-2xl font-bold text-red-500">{{ $orderCount }}</p>
             <p class="text-xs text-slate-400">Đơn hàng</p>
         </a>
         <a href="{{ route('favorites.index') }}" class="bg-white rounded-2xl border border-slate-100 p-4 text-center hover:border-red-400 transition">
-            <p class="text-2xl font-bold text-red-500">5</p>{{-- TODO: thay bằng số món yêu thích thật --}}
+            <p class="text-2xl font-bold text-red-500">{{ $favoriteCount }}</p>
             <p class="text-xs text-slate-400">Món yêu thích</p>
         </a>
         <a href="{{ route('addresses.index') }}" class="bg-white rounded-2xl border border-slate-100 p-4 text-center hover:border-red-400 transition">

@@ -55,7 +55,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Chatbot khách hàng (từ khoá + Gemini) — chỉ khách đã đăng nhập
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:customer'])->group(function () {
     Route::get('/chatbot/messages', [App\Http\Controllers\ChatbotController::class, 'messages'])->name('chatbot.messages');
     Route::post('/chatbot/message', [App\Http\Controllers\ChatbotController::class, 'send'])
         ->middleware('throttle:chatbot')->name('chatbot.send');
@@ -66,7 +66,7 @@ Route::get('/menu', function () {
 });
 
 // Các trang thông tin & chính sách
-Route::get('/notifications', function () { return view('notifications.index'); })->name('notifications');
+Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->middleware('auth')->name('notifications');
 Route::get('/coupons', function () {
     $coupons = \App\Models\Coupon::active()
         ->where('is_public', true)
