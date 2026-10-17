@@ -160,9 +160,29 @@
     {{-- Làm mờ trang phía sau khi đang hiện kết quả tìm kiếm tức thời --}}
     <div id="live-search-backdrop" class="hidden fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm"></div>
 
-    <main class="max-w-7xl mx-auto px-4 py-6 space-y-10">
-        @yield('content')
-    </main>
+    <div class="relative">
+        @include('partials.page-skeleton')
+        <main class="max-w-7xl mx-auto px-4 py-6 space-y-10">
+            @yield('content')
+        </main>
+    </div>
+    <script>
+        // Ẩn khung xương khi trang (kể cả ảnh) tải xong; tối đa 4s để không che trang nếu một ảnh treo
+        (function () {
+            const sk = document.getElementById('page-skeleton');
+            let done = false;
+            function hide() {
+                if (done) return;
+                done = true;
+                if (performance.now() < 150) return sk.remove(); // chưa kịp hiện → bỏ luôn, không nháy
+                sk.classList.add('sk-done');
+                setTimeout(() => sk.remove(), 300);
+            }
+            if (document.readyState === 'complete') hide();
+            window.addEventListener('load', hide);
+            setTimeout(hide, 4000);
+        })();
+    </script>
 
     <footer class="bg-white border-t border-slate-100 mt-16 text-slate-600 text-sm">
         <div class="max-w-7xl mx-auto px-4 py-12">
