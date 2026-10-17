@@ -15,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('web')->group(base_path('routes/manager.php'));
             // Khu vực quản trị toàn chuỗi
             Route::middleware('web')->group(base_path('routes/admin.php'));
+            // Trang của nhân viên và bếp
+            Route::middleware('web')->group(base_path('routes/staff.php'));
             // Máy chấm công khuôn mặt ở quầy (API riêng, không qua nhóm 'web')
             Route::group([], base_path('routes/kiosk.php'));
         },

@@ -34,15 +34,14 @@ class LoginRedirectTest extends TestCase
     }
 
     /** Review Focus #3 (giai đoạn 3) */
-    public function test_staff_and_kitchen_login_without_dashboard_go_home(): void
+    public function test_staff_goes_to_own_page_and_kitchen_to_kitchen_display(): void
     {
         $branch = $this->makeBranch();
 
-        foreach (['staff', 'kitchen'] as $role) {
+        foreach (['staff' => 'staff.dashboard', 'kitchen' => 'kitchen.dashboard'] as $role => $route) {
             $user = $this->makeUser($role, $branch);
             $this->post('/login', ['email' => $user->email, 'password' => 'password'])
-                ->assertRedirect(route('home'))
-                ->assertSessionHas('info', 'Khu vực nhân viên đang được xây dựng.');
+                ->assertRedirect(route($route));
             $this->post('/logout');
         }
     }
