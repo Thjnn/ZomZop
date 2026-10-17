@@ -59,10 +59,10 @@ class BranchMenuItem extends Model
     }
 
     /**
-     * Còn tồn kho
+     * Còn tồn kho (null = không giới hạn)
      */
     public function scopeInStock($query)
     {
-        return $query->where('stock_qty', '>', 0);
+        return $query->where(fn ($q) => $q->whereNull('stock_qty')->orWhere('stock_qty', '>', 0));
     }
 }

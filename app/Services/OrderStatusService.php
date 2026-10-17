@@ -57,6 +57,7 @@ class OrderStatusService
 
             if ($to === 'cancelled') {
                 app(CouponService::class)->release($fresh);
+                app(BranchMenu::class)->returnStock($fresh);
             }
 
             OrderHistory::create([

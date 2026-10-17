@@ -33,7 +33,7 @@
                 <tr>
                     <th class="px-4 py-3">Món</th>
                     <th class="px-4 py-3">Giá gốc</th>
-                    <th class="px-4 py-3">Giá chi nhánh · Đang bán · Bán chạy</th>
+                    <th class="px-4 py-3">Giá chi nhánh · Tồn (trống = không giới hạn) · Đang bán · Bán chạy</th>
                 </tr>
             </thead>
             <tbody>
@@ -57,6 +57,9 @@
                                     <input type="number" name="items[{{ $item->id }}][price]" value="{{ old("$key.price", $row?->price) }}" placeholder="{{ $item->base_price }}"
                                            min="1000" max="10000000" step="500" aria-label="Giá chi nhánh {{ $item->name }}"
                                            class="w-32 px-3 py-1.5 rounded-lg border {{ $errors->has("$key.price") ? 'border-red-400' : 'border-slate-200' }}">
+                                    <input type="number" name="items[{{ $item->id }}][stock_qty]" value="{{ old("$key.stock_qty", $row?->stock_qty) }}" placeholder="∞"
+                                           min="0" max="100000" aria-label="Tồn kho {{ $item->name }}" title="Số phần còn bán; 0 = hết hàng, để trống = không giới hạn"
+                                           class="w-20 px-3 py-1.5 rounded-lg border {{ $errors->has("$key.stock_qty") ? 'border-red-400' : (($row?->stock_qty === 0) ? 'border-amber-400 bg-amber-50' : 'border-slate-200') }}">
                                     <input type="hidden" name="items[{{ $item->id }}][is_available]" value="0">
                                     <label class="flex items-center gap-1.5 cursor-pointer">
                                         <input type="checkbox" name="items[{{ $item->id }}][is_available]" value="1" @checked(old("$key.is_available", $on)) class="accent-red-500 w-4 h-4"> Bán

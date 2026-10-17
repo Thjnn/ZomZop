@@ -135,7 +135,12 @@ class CheckoutController extends Controller
         $subtotal = collect($cart['items'])->sum(fn($i) => $i['price'] * $i['quantity']);
 
         // Kiểm tra lại mã + tạo đơn + ghi lượt dùng trong cùng một transaction
-        $order = DB::transaction(function () use ($request, $cart, $user, $subtotal, $coupons) {
+        $order = DB::transaction(function () use ($request, $cart, $user, $subtotal, $coupons, $menu) {
+            $lines = collect($cart['items']);
+            $menu->takeStock((int) $cart['branch_id'],
+                $lines->groupBy('id')->map->sum('quantity')->all(),
+                $lines->pluck('name', 'id')->all());
+
             $deliveryAddress = null;
             if ($request->type === 'delivery') {
                 $address = Address::where('user_id', $user->id)->whereKey($request->address_id)->lockForUpdate()->first();

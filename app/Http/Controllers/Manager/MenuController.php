@@ -50,12 +50,16 @@ class MenuController extends ManagerController
             $rules["items.$id.price"]         = ['nullable', 'integer', 'min:1000', 'max:10000000'];
             $rules["items.$id.is_available"]  = ['required', 'boolean'];
             $rules["items.$id.is_bestseller"] = ['nullable', 'boolean'];
-            $attributes["items.$id.price"] = "Giá \"{$item->name}\"";
+            $rules["items.$id.stock_qty"]     = ['nullable', 'integer', 'min:0', 'max:100000'];
+            $attributes["items.$id.price"]     = "Giá \"{$item->name}\"";
+            $attributes["items.$id.stock_qty"] = "Tồn \"{$item->name}\"";
         }
         $data = $request->validate($rules, [
-            'integer' => ':attribute phải là số nguyên (VD: 45000).',
-            'min'     => ':attribute tối thiểu 1.000đ.',
-            'max'     => ':attribute tối đa 10.000.000đ.',
+            'integer'           => ':attribute phải là số nguyên (VD: 45000).',
+            'min'               => ':attribute tối thiểu 1.000đ.',
+            'max'               => ':attribute tối đa 10.000.000đ.',
+            'items.*.stock_qty.min' => ':attribute không được âm.',
+            'items.*.stock_qty.max' => ':attribute tối đa 100.000 phần.',
         ], $attributes)['items'] ?? [];
 
         $errors = [];
@@ -74,9 +78,10 @@ class MenuController extends ManagerController
                 'price'         => $row['price'] ?? null,
                 'is_available'  => (bool) $row['is_available'],
                 'is_bestseller' => (bool) ($row['is_bestseller'] ?? false),
+                'stock_qty'     => $row['stock_qty'] ?? null,
             ];
-            // Chưa có dòng mà vẫn để mặc định (giá gốc, đang bán, không bán chạy) thì khỏi tạo
-            if (!isset($existing[$id]) && $values === ['price' => null, 'is_available' => true, 'is_bestseller' => false]) {
+            // Chưa có dòng mà vẫn để mặc định (giá gốc, đang bán, không bán chạy, không giới hạn tồn) thì khỏi tạo
+            if (!isset($existing[$id]) && $values === ['price' => null, 'is_available' => true, 'is_bestseller' => false, 'stock_qty' => null]) {
                 continue;
             }
             BranchMenuItem::updateOrCreate(['branch_id' => $branchId, 'menu_item_id' => $id], $values);
