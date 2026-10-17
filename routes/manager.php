@@ -57,7 +57,9 @@ Route::middleware(['auth', 'role:manager'])
         Route::get('/payrolls',[PayrollController::class, 'index'])->name('payrolls.index');
         Route::get('/payrolls/export', [PayrollController::class, 'export'])->name('payrolls.export');
         Route::post('/payrolls/recalculate',[PayrollController::class, 'recalculate'])->name('payrolls.recalculate');
-        Route::put('/payrolls/{payroll}', [PayrollController::class, 'update'])->name('payrolls.update');
+        Route::post('/payrolls/{payroll}/adjustments', [PayrollController::class, 'storeAdjustment'])->name('payrolls.adjustments.store');
+        Route::put('/payroll-adjustments/{adjustment}', [PayrollController::class, 'updateAdjustment'])->name('payrolls.adjustments.update');
+        Route::delete('/payroll-adjustments/{adjustment}', [PayrollController::class, 'destroyAdjustment'])->name('payrolls.adjustments.destroy');
         Route::patch('/payrolls/{payroll}/confirm', [PayrollController::class, 'confirm'])->name('payrolls.confirm');
         Route::patch('/payrolls/{payroll}/pay', [PayrollController::class, 'pay'])->name('payrolls.pay');
 

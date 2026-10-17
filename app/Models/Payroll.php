@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Payroll extends Model
 {
@@ -43,6 +44,28 @@ class Payroll extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(PayrollAdjustment::class)->oldest('id');
+    }
+
+    /** Cộng lại thưởng/phạt từ các khoản; null nếu tổng bị âm (không lưu) */
+    public function recalcAdjustments(): ?static
+    {
+        $sums      = $this->adjustments()->get()->groupBy('type')->map->sum('amount');
+        $bonus     = (int) ($sums['bonus'] ?? 0);
+        $deduction = (int) ($sums['deduction'] ?? 0);
+        $total     = $this->base_salary + $bonus - $deduction;
+
+        if ($total < 0) {
+            return null;
+        }
+
+        $this->update(['bonus' => $bonus, 'deduction' => $deduction, 'total' => $total]);
+
+        return $this;
     }
 
     // ── Helpers ──────────────────────────────────────────────

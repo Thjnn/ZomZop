@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Manager;
 
 use App\Models\Payroll;
+use App\Models\PayrollAdjustment;
 use App\Services\BranchPayroll;
 use App\Support\ExcelReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class PayrollController extends ManagerController
 {
@@ -25,7 +28,7 @@ class PayrollController extends ManagerController
     private function rows(int $branchId, Carbon $month): Collection
     {
         return Payroll::ofBranch($branchId)->ofMonth($month->month, $month->year)
-            ->with('user.latestSalary')
+            ->with(['user.latestSalary', 'adjustments.creator'])
             ->get()
             ->sortBy('user.name')
             ->values();
@@ -117,30 +120,72 @@ class PayrollController extends ManagerController
             ->with('success', 'Đã tính lại lương tháng ' . $month->format('m/Y') . ' (các dòng còn nháp).');
     }
 
-    public function update(Request $request, Payroll $payroll)
+    public function storeAdjustment(Request $request, Payroll $payroll)
     {
-        $this->ensureOwn($payroll);
+        return $this->saveAdjustment($request, $payroll, new PayrollAdjustment(['created_by' => $request->user()->id]), 'Đã thêm');
+    }
 
-        if (!$payroll->isDraft()) {
-            return back()->withErrors(['payroll' => 'Chỉ sửa được dòng lương còn nháp.']);
+    public function updateAdjustment(Request $request, PayrollAdjustment $adjustment)
+    {
+        return $this->saveAdjustment($request, $adjustment->payroll, $adjustment, 'Đã sửa');
+    }
+
+    public function destroyAdjustment(PayrollAdjustment $adjustment)
+    {
+        $payroll = $adjustment->payroll;
+        if ($error = $this->adjustable($payroll)) {
+            return $error;
+        }
+
+        return $this->withinTotal($payroll, fn () => $adjustment->delete(), 'Đã xoá');
+    }
+
+    private function saveAdjustment(Request $request, Payroll $payroll, PayrollAdjustment $adjustment, string $verb)
+    {
+        if ($error = $this->adjustable($payroll)) {
+            return $error;
         }
 
         $data = $request->validate([
-            'bonus'     => ['required', 'integer', 'min:0', 'max:999999999'],
-            'deduction' => ['required', 'integer', 'min:0', 'max:999999999'],
+            'type'   => ['required', Rule::in(array_keys(PayrollAdjustment::TYPES))],
+            'amount' => ['required', 'integer', 'min:1000', 'max:999999999'],
+            'reason' => ['required', 'string', 'max:255'],
         ], [
-            'bonus.*'     => 'Thưởng phải là số nguyên từ 0 đến 999.999.999.',
-            'deduction.*' => 'Phạt phải là số nguyên từ 0 đến 999.999.999.',
+            'type.*'          => 'Chọn thưởng hoặc phạt.',
+            'amount.*'        => 'Số tiền phải là số nguyên từ 1.000 đến 999.999.999.',
+            'reason.required' => 'Vui lòng ghi lý do thưởng / phạt.',
+            'reason.max'      => 'Lý do tối đa 255 ký tự.',
         ]);
 
-        $total = $payroll->base_salary + (int) $data['bonus'] - (int) $data['deduction'];
-        if ($total < 0) {
-            return back()->withErrors(['deduction' => 'Phạt không được lớn hơn lương cơ bản + thưởng.']);
+        return $this->withinTotal($payroll, fn () => $adjustment->fill($data + ['payroll_id' => $payroll->id])->save(), $verb);
+    }
+
+    /** Dòng lương của chi nhánh mình và còn nháp mới được thêm/sửa/xoá khoản */
+    private function adjustable(Payroll $payroll)
+    {
+        $this->ensureOwn($payroll);
+
+        return $payroll->isDraft() ? null : back()->withErrors(['payroll' => 'Chỉ sửa được dòng lương còn nháp.']);
+    }
+
+    /** Ghi thay đổi rồi cộng lại tổng; tổng âm thì huỷ cả thay đổi */
+    private function withinTotal(Payroll $payroll, callable $change, string $verb)
+    {
+        try {
+            DB::transaction(function () use ($payroll, $change) {
+                $change();
+                $payroll->recalcAdjustments() ?? throw new \RangeException();
+            });
+            $ok = true;
+        } catch (\RangeException) {
+            $ok = false;
         }
 
-        $payroll->update(['bonus' => $data['bonus'], 'deduction' => $data['deduction'], 'total' => $total]);
+        $back = redirect()->to(route('manager.payrolls.index', ['month' => sprintf('%d-%02d', $payroll->year, $payroll->month)]) . '#adj-' . $payroll->id);
 
-        return back()->with('success', "Đã cập nhật lương {$payroll->user->name}.");
+        return $ok
+            ? $back->with('success', "{$verb} khoản thưởng / phạt của {$payroll->user->name}.")
+            : $back->withErrors(['amount' => 'Phạt không được lớn hơn lương cơ bản + thưởng.'])->withInput();
     }
 
     public function confirm(Payroll $payroll)

@@ -62,15 +62,17 @@ class PayrollPageTest extends TestCase
         $this->actingAs($manager)->get('/manager/payrolls?month=2026-10');
         $p = Payroll::where('user_id', $staff->id)->first();
 
-        $this->actingAs($manager)->put("/manager/payrolls/{$p->id}", ['bonus' => 50000, 'deduction' => 10000])
+        $this->actingAs($manager)->post("/manager/payrolls/{$p->id}/adjustments", ['type' => 'bonus', 'amount' => 50000, 'reason' => 'Làm thêm ngày lễ'])
             ->assertSessionHas('success');
+        $this->actingAs($manager)->post("/manager/payrolls/{$p->id}/adjustments", ['type' => 'deduction', 'amount' => 10000, 'reason' => 'Đi trễ 2 lần']);
         $this->assertSame(140000, $p->fresh()->total);
 
         $this->actingAs($manager)->patch("/manager/payrolls/{$p->id}/pay")->assertSessionHasErrors('payroll');
         $this->actingAs($manager)->patch("/manager/payrolls/{$p->id}/confirm")->assertSessionHas('success');
         $this->assertSame('confirmed', $p->fresh()->status);
 
-        $this->actingAs($manager)->put("/manager/payrolls/{$p->id}", ['bonus' => 1, 'deduction' => 0])->assertSessionHasErrors('payroll');
+        $this->actingAs($manager)->post("/manager/payrolls/{$p->id}/adjustments", ['type' => 'bonus', 'amount' => 1000, 'reason' => 'x'])->assertSessionHasErrors('payroll');
+        $this->actingAs($manager)->delete('/manager/payroll-adjustments/' . $p->adjustments()->first()->id)->assertSessionHasErrors('payroll');
         $this->assertSame(50000, $p->fresh()->bonus);
 
         $this->actingAs($manager)->patch("/manager/payrolls/{$p->id}/pay")->assertSessionHas('success');
@@ -86,13 +88,41 @@ class PayrollPageTest extends TestCase
         $this->actingAs($manager)->get('/manager/payrolls?month=2026-10');
         $p = Payroll::where('user_id', $staff->id)->first();
 
-        $this->actingAs($manager)->from('/manager/payrolls?month=2026-10')
-            ->put("/manager/payrolls/{$p->id}", ['bonus' => 0, 'deduction' => 100001])
-            ->assertSessionHasErrors('deduction');
+        $this->actingAs($manager)->post("/manager/payrolls/{$p->id}/adjustments", ['type' => 'deduction', 'amount' => 101000, 'reason' => 'Làm hỏng máy'])
+            ->assertSessionHasErrors('amount');
         $this->assertSame(0, $p->fresh()->deduction);
+        $this->assertSame(0, $p->adjustments()->count());   // tổng âm → không lưu khoản
 
-        $this->actingAs($manager)->put("/manager/payrolls/{$p->id}", ['bonus' => -1, 'deduction' => 'x'])
-            ->assertSessionHasErrors(['bonus', 'deduction']);
+        $this->actingAs($manager)->post("/manager/payrolls/{$p->id}/adjustments", ['type' => 'x', 'amount' => -1, 'reason' => ''])
+            ->assertSessionHasErrors(['type', 'amount', 'reason']);
+    }
+
+    public function test_adjustment_reason_can_be_edited_and_deleted(): void
+    {
+        $branch  = $this->makeBranch();
+        $manager = $this->makeUser('manager', $branch);
+        $staff   = $this->setupStaff($branch);
+        $this->actingAs($manager)->get('/manager/payrolls?month=2026-10');
+        $p = Payroll::where('user_id', $staff->id)->first();
+
+        $this->actingAs($manager)->post("/manager/payrolls/{$p->id}/adjustments", ['type' => 'bonus', 'amount' => 30000, 'reason' => 'Khách khen'])
+            ->assertRedirect(route('manager.payrolls.index', ['month' => '2026-10']) . "#adj-{$p->id}");
+        $a = $p->adjustments()->first();
+        $this->assertSame($manager->id, $a->created_by);
+
+        $this->actingAs($manager)->put("/manager/payroll-adjustments/{$a->id}", ['type' => 'bonus', 'amount' => 40000, 'reason' => 'Khách khen trên Google'])
+            ->assertSessionHas('success');
+        $this->assertSame(40000, $p->fresh()->bonus);
+        $this->assertSame(140000, $p->fresh()->total);
+        $this->actingAs($manager)->get('/manager/payrolls?month=2026-10')->assertSee('Khách khen trên Google');
+
+        // tính lại lương giữ nguyên các khoản
+        $this->actingAs($manager)->post('/manager/payrolls/recalculate', ['month' => '2026-10']);
+        $this->assertSame(40000, $p->fresh()->bonus);
+
+        $this->actingAs($manager)->delete("/manager/payroll-adjustments/{$a->id}")->assertSessionHas('success');
+        $this->assertSame(0, $p->fresh()->bonus);
+        $this->assertSame(100000, $p->fresh()->total);
     }
 
     public function test_recalculate_picks_up_new_hours(): void
@@ -146,7 +176,11 @@ class PayrollPageTest extends TestCase
         $p = Payroll::create(['user_id' => $staff->id, 'branch_id' => $other->id, 'month' => 10, 'year' => 2026]);
         $manager = $this->makeUser('manager', $this->makeBranch('A'));
 
-        $this->actingAs($manager)->put("/manager/payrolls/{$p->id}", ['bonus' => 1, 'deduction' => 0])->assertNotFound();
+        $a = $p->adjustments()->create(['type' => 'bonus', 'amount' => 5000, 'reason' => 'Của chi nhánh B']);
+        $this->actingAs($manager)->post("/manager/payrolls/{$p->id}/adjustments", ['type' => 'bonus', 'amount' => 1000, 'reason' => 'x'])->assertNotFound();
+        $this->actingAs($manager)->put("/manager/payroll-adjustments/{$a->id}", ['type' => 'bonus', 'amount' => 1000, 'reason' => 'x'])->assertNotFound();
+        $this->actingAs($manager)->delete("/manager/payroll-adjustments/{$a->id}")->assertNotFound();
+        $this->assertSame(5000, $a->fresh()->amount);
         $this->actingAs($manager)->patch("/manager/payrolls/{$p->id}/confirm")->assertNotFound();
         $this->actingAs($manager)->patch("/manager/payrolls/{$p->id}/pay")->assertNotFound();
         $this->assertSame('draft', $p->fresh()->status);
