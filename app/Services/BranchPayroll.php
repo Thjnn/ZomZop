@@ -72,7 +72,8 @@ class BranchPayroll
                     'base_salary' => $base,
                     'bonus'       => $bonus,
                     'deduction'   => $deduction,
-                    'total'       => $base + $bonus - $deduction,
+                    // Giờ công giảm sau khi đã phạt → không để lương âm
+                    'total'       => max(0, $base + $bonus - $deduction),
                     'status'      => 'draft',
                 ]
             );

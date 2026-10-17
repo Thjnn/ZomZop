@@ -139,11 +139,7 @@ class AuthController extends Controller
             return redirect()->to($customerTarget);
         }
 
-        // Role nội bộ chưa có trang riêng (admin/staff/kitchen) → trang chủ, tránh lỗi route không tồn tại
-        $route = "{$user->role}.dashboard";
-
-        return Route::has($route)
-            ? redirect()->route($route)
-            : redirect()->route('home')->with('info', 'Khu vực nhân viên đang được xây dựng.');
+        // Mỗi role nội bộ đều có trang riêng: admin.dashboard, manager.dashboard, staff.dashboard, kitchen.dashboard
+        return redirect()->route("{$user->role}.dashboard");
     }
 }
