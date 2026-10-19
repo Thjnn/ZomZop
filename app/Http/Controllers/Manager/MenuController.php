@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Manager;
 use App\Models\BranchMenuItem;
 use App\Models\Category;
 use App\Models\MenuItem;
+use App\Models\MenuItemTopping;
 use App\Services\BranchMenu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ class MenuController extends ManagerController
             'q'        => ['nullable', 'string', 'max:50'],
         ])->valid();
 
-        $items = MenuItem::with('category')
+        $items = MenuItem::with(['category', 'toppings'])
             ->when($filters['category'] ?? null, fn ($q, $id) => $q->where('category_id', $id))
             ->when(trim($filters['q'] ?? ''), fn ($q, $s) => $q->where('name', 'like', '%' . addcslashes($s, '%_') . '%'))
             ->orderBy('category_id')->orderBy('name')
@@ -33,6 +34,7 @@ class MenuController extends ManagerController
         return view('manager.menu.index', [
             'items'      => $items,
             'rows'       => $rows,
+            'toppingsOff' => DB::table('branch_unavailable_toppings')->where('branch_id', $branchId)->pluck('menu_item_topping_id')->flip(),
             'categories' => Category::orderBy('sort_order')->get(['id', 'name']),
             'filters'    => $filters,
         ]);
@@ -54,13 +56,16 @@ class MenuController extends ManagerController
             $attributes["items.$id.price"]     = "Giá \"{$item->name}\"";
             $attributes["items.$id.stock_qty"] = "Tồn \"{$item->name}\"";
         }
-        $data = $request->validate($rules, [
+        $rules['toppings']   = ['nullable', 'array'];
+        $rules['toppings.*'] = ['boolean'];
+        $validated = $request->validate($rules, [
             'integer'           => ':attribute phải là số nguyên (VD: 45000).',
             'min'               => ':attribute tối thiểu 1.000đ.',
             'max'               => ':attribute tối đa 10.000.000đ.',
             'items.*.stock_qty.min' => ':attribute không được âm.',
             'items.*.stock_qty.max' => ':attribute tối đa 100.000 phần.',
-        ], $attributes)['items'] ?? [];
+        ], $attributes);
+        $data = $validated['items'] ?? [];
 
         $errors = [];
         foreach ($data as $id => $row) {
@@ -86,6 +91,17 @@ class MenuController extends ManagerController
             }
             BranchMenuItem::updateOrCreate(['branch_id' => $branchId, 'menu_item_id' => $id], $values);
         }
+
+        // Topping: 1 = còn, 0 = hết ở chi nhánh này
+        $toppingInput = $validated['toppings'] ?? [];
+        $toppingIds   = MenuItemTopping::whereIn('id', array_keys($toppingInput))->pluck('id');
+        DB::transaction(function () use ($branchId, $toppingIds, $toppingInput) {
+            DB::table('branch_unavailable_toppings')->where('branch_id', $branchId)->whereIn('menu_item_topping_id', $toppingIds)->delete();
+            DB::table('branch_unavailable_toppings')->insert($toppingIds
+                ->reject(fn ($id) => (bool) $toppingInput[$id])
+                ->map(fn ($id) => ['branch_id' => $branchId, 'menu_item_topping_id' => $id])
+                ->values()->all());
+        });
 
         return back()->with('success', 'Đã lưu thay đổi menu.');
     }

@@ -14,6 +14,8 @@ class CartController extends Controller
             'menu_item_id' => 'required|exists:menu_items,id',
             'quantity'     => 'required|integer|min:1|max:99',
             'note'         => 'nullable|string|max:255',
+            'toppings'     => 'nullable|array|max:20',
+            'toppings.*'   => 'integer|distinct',
         ]);
 
         $branchId = session('selected_branch_id');
@@ -34,6 +36,17 @@ class CartController extends Controller
         }
         $menu->applyPrices([$item], (int) $branchId);
 
+        // Giá topping lấy từ DB, không tin số tiền trình duyệt gửi lên
+        $chosenIds = $request->input('toppings', []);
+        $toppings  = $menu->availableToppings([$item->id], (int) $branchId)->whereIn('id', $chosenIds);
+        if ($toppings->count() !== count($chosenIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Có topping vừa hết tại chi nhánh, vui lòng chọn lại.',
+            ], 422);
+        }
+        $toppings = $toppings->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'price' => $t->price])->values()->all();
+
         $cart = session('cart', ['branch_id' => $branchId, 'items' => []]);
 
         if ($cart['branch_id'] !== $branchId) {
@@ -41,28 +54,30 @@ class CartController extends Controller
             $cart['branch_id'] = $branchId;
         }
 
-        $qty     = (int) $request->quantity;
-        $note    = $request->note ?? '';
-        $itemId  = $item->id;
-        $found   = false;
+        $qty   = (int) $request->quantity;
+        $line  = [
+            'id'       => $item->id,
+            'name'     => $item->name,
+            'image'    => $item->image_url,
+            'price'    => (int) round($item->discounted_price) + array_sum(array_column($toppings, 'price')),
+            'quantity' => $qty,
+            'note'     => $request->note ?? '',
+            'toppings' => $toppings,
+        ];
+        $key   = BranchMenu::lineKey($line);
+        $found = false;
 
         foreach ($cart['items'] as &$ci) {
-            if ($ci['id'] === $itemId && $ci['note'] === $note) {
-                $ci['quantity'] += $qty;
+            if (BranchMenu::lineKey($ci) === $key) {
+                $ci['quantity'] = min(99, $ci['quantity'] + $qty);
                 $found = true;
                 break;
             }
         }
+        unset($ci);
 
         if (!$found) {
-            $cart['items'][] = [
-                'id'       => $item->id,
-                'name'     => $item->name,
-                'image'    => $item->image_url,
-                'price'    => (int) round($item->discounted_price),
-                'quantity' => $qty,
-                'note'     => $note,
-            ];
+            $cart['items'][] = $line;
         }
 
         session(['cart' => $cart]);
@@ -77,19 +92,19 @@ class CartController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'menu_item_id' => 'required|exists:menu_items,id',
-            'quantity'     => 'required|integer|min:0|max:99',
+            'key'      => 'required|string|size:32',
+            'quantity' => 'required|integer|min:0|max:99',
         ]);
 
         $cart = session('cart', ['branch_id' => null, 'items' => []]);
-        $itemId = (int) $request->menu_item_id;
-        $qty    = (int) $request->quantity;
+        $key  = $request->key;
+        $qty  = (int) $request->quantity;
 
         if ($qty === 0) {
-            $cart['items'] = array_values(array_filter($cart['items'], fn($i) => $i['id'] !== $itemId));
+            $cart['items'] = array_values(array_filter($cart['items'], fn($i) => BranchMenu::lineKey($i) !== $key));
         } else {
             foreach ($cart['items'] as &$ci) {
-                if ($ci['id'] === $itemId) {
+                if (BranchMenu::lineKey($ci) === $key) {
                     $ci['quantity'] = $qty;
                     break;
                 }
@@ -109,11 +124,11 @@ class CartController extends Controller
     public function remove(Request $request)
     {
         $request->validate([
-            'menu_item_id' => 'required|exists:menu_items,id',
+            'key' => 'required|string|size:32',
         ]);
 
         $cart = session('cart', ['branch_id' => null, 'items' => []]);
-        $cart['items'] = array_values(array_filter($cart['items'], fn($i) => $i['id'] !== (int) $request->menu_item_id));
+        $cart['items'] = array_values(array_filter($cart['items'], fn($i) => BranchMenu::lineKey($i) !== $request->key));
         session(['cart' => $cart]);
 
         return response()->json([

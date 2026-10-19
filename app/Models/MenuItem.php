@@ -71,6 +71,23 @@ class MenuItem extends Model
             ->orderBy('sort_order');
     }
 
+    /** Topping khách tick thêm (giá chung toàn chuỗi) */
+    public function toppings(): HasMany
+    {
+        return $this->hasMany(MenuItemTopping::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /** Thẻ món dùng để biết có mở popup chọn topping không — 1 truy vấn cho cả trang */
+    public function getHasToppingsAttribute(): bool
+    {
+        return isset(self::idsWithToppings()[$this->id]);
+    }
+
+    private static function idsWithToppings(): \Illuminate\Support\Collection
+    {
+        return once(fn () => MenuItemTopping::distinct()->pluck('menu_item_id')->flip());
+    }
+
     /**
      * Xuất hiện trong các dòng đơn hàng
      */

@@ -29,6 +29,7 @@ $imgSrc = $image ? $image->image_url : $item->image_url;
             data-id="{{ $item->id }}"
             data-name="{{ $item->name }}"
             data-price="{{ $item->discounted_price }}"
+            @if ($item->has_toppings) data-has-toppings="1" @endif
             class="btn-add-cart absolute -bottom-4 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-3 py-1.5 text-sm font-medium text-[#ff5a55] shadow-lg transition hover:-translate-y-0.5 cursor-pointer">
             <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[#ff5a55] text-white">+</span>
             Thêm
@@ -53,5 +54,9 @@ $imgSrc = $image ? $image->image_url : $item->image_url;
             <span class="font-semibold text-slate-800">{{ $item->display_price }}</span>
             @endif
         </div>
+
+        @if ($item->has_toppings)
+        <p class="mt-1 text-xs font-medium text-amber-600">🧀 Có topping</p>
+        @endif
     </div>
 </article>

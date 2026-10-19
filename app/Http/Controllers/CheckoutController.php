@@ -181,6 +181,7 @@ class CheckoutController extends Controller
                     'menu_item_id'   => $item['id'],
                     'name_snapshot'  => $item['name'],
                     'price_snapshot' => $item['price'],
+                    'toppings'       => $item['toppings'] ?? [],
                     'quantity'       => $item['quantity'],
                     'subtotal'       => $item['price'] * $item['quantity'],
                     'note'           => $item['note'] ?? '',

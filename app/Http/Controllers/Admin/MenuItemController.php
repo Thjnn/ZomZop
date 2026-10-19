@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\MenuItem;
 use App\Support\Slug;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -23,6 +24,9 @@ class MenuItemController extends AdminController
         'discount_percent.*'   => 'Phần trăm giảm là số nguyên từ 0 đến 90.',
         'prep_time_minutes.*'  => 'Thời gian chuẩn bị là số phút từ 1 đến 120.',
         'tags.max'             => 'Ô tag tối đa 255 ký tự.',
+        'toppings.max'         => 'Tối đa 20 topping mỗi món.',
+        'toppings.*.name.max'  => 'Tên topping tối đa 80 ký tự.',
+        'toppings.*.price.*'   => 'Giá topping là số nguyên từ 0đ đến 1.000.000đ.',
     ];
 
     private function payload(Request $request): array
@@ -35,12 +39,34 @@ class MenuItemController extends AdminController
             'discount_percent'  => ['required', 'integer', 'min:0', 'max:90'],
             'prep_time_minutes' => ['required', 'integer', 'min:1', 'max:120'],
             'tags'              => ['nullable', 'string', 'max:255'],
+            'toppings'          => ['nullable', 'array', 'max:20'],
+            'toppings.*.id'     => ['nullable', 'integer'],
+            'toppings.*.name'   => ['nullable', 'string', 'max:80'],
+            'toppings.*.price'  => ['required_with:toppings.*.name', 'nullable', 'integer', 'min:0', 'max:1000000'],
         ], self::MESSAGES);
 
         $data['tags']         = $this->parseTags($data['tags'] ?? '');
         $data['is_available'] = $request->boolean('is_available');
 
         return $data;
+    }
+
+    /** Dòng có tên thì giữ/tạo, dòng để trống tên hoặc bị bỏ thì xoá. Đơn cũ đã lưu bản chụp topping nên xoá không ảnh hưởng */
+    private function syncToppings(MenuItem $item, array $rows): void
+    {
+        $keep = [];
+        foreach (array_values($rows) as $i => $row) {
+            $name = trim($row['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+            // Đi qua quan hệ $item->toppings() nên id của món khác không sửa được
+            $keep[] = $item->toppings()->updateOrCreate(
+                ['id' => $row['id'] ?? null],
+                ['name' => $name, 'price' => (int) $row['price'], 'sort_order' => $i]
+            )->id;
+        }
+        $item->toppings()->whereNotIn('id', $keep)->delete();
     }
 
     /** "Bò, phô mai, ,bò " → ['bò', 'phô mai'] — chữ thường, bỏ trống, bỏ trùng */
@@ -90,9 +116,11 @@ class MenuItemController extends AdminController
     public function store(Request $request)
     {
         $data = $this->payload($request);
+        $toppings = Arr::pull($data, 'toppings') ?? [];
         $data['slug'] = Slug::unique(MenuItem::withTrashed(), $data['name'], 'mon');
 
         $item = MenuItem::create($data);
+        $this->syncToppings($item, $toppings);
         $this->log('menu_item.create', $item, ['after' => $data]);
 
         // Có trang ảnh (Task 3) thì đưa admin sang thêm ảnh luôn
@@ -112,9 +140,12 @@ class MenuItemController extends AdminController
     /** Đổi tên KHÔNG đổi slug. Giá riêng của chi nhánh (branch_menu_items.price) giữ nguyên */
     public function update(Request $request, MenuItem $menuItem)
     {
-        $menuItem->fill($this->payload($request));
+        $data = $this->payload($request);
+        $toppings = Arr::pull($data, 'toppings') ?? [];
+        $menuItem->fill($data);
         $changes = AdminLog::diff($menuItem);
         $menuItem->save();
+        $this->syncToppings($menuItem, $toppings);
         $this->log('menu_item.update', $menuItem, $changes);
 
         return redirect()->route('admin.menu-items.index')->with('success', "Đã cập nhật {$menuItem->name}.");

@@ -31,6 +31,7 @@
                     <div class="flex justify-between py-2 text-sm border-b border-slate-50">
                         <div>
                             <p>{{ $item->quantity }} × {{ $item->name_snapshot }}</p>
+                            @if ($item->topping_names) <p class="text-xs text-slate-500">+ {{ $item->topping_names }}</p> @endif
                             @if ($item->note) <p class="text-xs text-amber-600">Ghi chú: {{ $item->note }}</p> @endif
                         </div>
                         <span class="whitespace-nowrap">{{ $money($item->subtotal) }}</span>

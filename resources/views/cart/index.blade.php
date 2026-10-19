@@ -45,12 +45,15 @@
                 $itemTotal = $item['price'] * $item['quantity'];
                 $total += $itemTotal;
             @endphp
-            <div class="flex items-center gap-4 p-4 cart-item" data-item-id="{{ $item['id'] }}">
+            <div class="flex items-center gap-4 p-4 cart-item" data-item-id="{{ $item['id'] }}" data-key="{{ \App\Services\BranchMenu::lineKey($item) }}">
                 <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}"
                     class="w-20 h-20 rounded-2xl object-cover flex-shrink-0 bg-[#f6e6d6]">
 
                 <div class="flex-1 min-w-0">
                     <h4 class="font-semibold text-slate-800 text-sm">{{ $item['name'] }}</h4>
+                    @if (!empty($item['toppings']))
+                    <p class="text-xs text-slate-500 mt-0.5">+ {{ implode(', ', array_column($item['toppings'], 'name')) }}</p>
+                    @endif
                     @if ($item['note'])
                     <p class="text-xs text-slate-400 mt-0.5">📝 {{ $item['note'] }}</p>
                     @endif
@@ -136,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.querySelectorAll('.cart-item').forEach(row => {
-        const itemId = row.dataset.itemId;
+        const key = row.dataset.key;
         const qtyEl = row.querySelector('.cart-qty');
         const priceEl = row.querySelector('.cart-item-total');
         const unitPrice = parseInt(priceEl.textContent.replace(/[^0-9]/g, '')) / parseInt(qtyEl.textContent);
@@ -145,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
             qtyEl.textContent = newQty;
             priceEl.textContent = new Intl.NumberFormat('vi-VN').format(unitPrice * newQty) + ' đ';
             syncCart();
-            callApi('{{ route("cart.update") }}', { menu_item_id: itemId, quantity: newQty });
+            callApi('{{ route("cart.update") }}', { key, quantity: newQty });
         }
 
         row.querySelector('.btn-cart-minus').addEventListener('click', () => {
@@ -161,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         function removeItem() {
-            callApi('{{ route("cart.remove") }}', { menu_item_id: itemId }, (data) => {
+            callApi('{{ route("cart.remove") }}', { key }, (data) => {
                 const badge = document.getElementById('cart-badge');
                 if (badge) badge.textContent = data.count;
                 row.remove();

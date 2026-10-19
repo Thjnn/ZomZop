@@ -14,6 +14,7 @@ class OrderItem extends Model
         'menu_item_id',
         'name_snapshot',
         'price_snapshot',
+        'toppings',
         'quantity',
         'subtotal',
         'note',
@@ -21,6 +22,7 @@ class OrderItem extends Model
 
     protected $casts = [
         'price_snapshot' => 'integer',
+        'toppings'       => 'array',
         'subtotal'       => 'integer',
         'quantity'       => 'integer',
     ];
@@ -28,6 +30,12 @@ class OrderItem extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /** "Cà chua, Thêm thịt" — rỗng nếu không chọn topping */
+    public function getToppingNamesAttribute(): string
+    {
+        return implode(', ', array_column($this->toppings ?? [], 'name'));
     }
 
     /** MenuItem gốc — dùng để lấy ảnh, slug, v.v. */

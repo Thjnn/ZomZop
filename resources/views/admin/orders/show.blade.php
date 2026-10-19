@@ -16,7 +16,7 @@
                 <thead class="text-left text-xs text-slate-400 border-b border-slate-100"><tr><th class="py-2">Món</th><th>SL</th><th class="text-right">Thành tiền</th></tr></thead>
                 <tbody>
                     @foreach ($order->items as $item)
-                        <tr class="border-b border-slate-50"><td class="py-2">{{ $item->name_snapshot }} @if ($item->note)<span class="text-xs text-slate-400">({{ $item->note }})</span>@endif</td><td>{{ $item->quantity }}</td><td class="text-right">{{ $money($item->subtotal) }}</td></tr>
+                        <tr class="border-b border-slate-50"><td class="py-2">{{ $item->name_snapshot }} @if ($item->topping_names)<span class="block text-xs text-slate-500">+ {{ $item->topping_names }}</span>@endif @if ($item->note)<span class="text-xs text-slate-400">({{ $item->note }})</span>@endif</td><td>{{ $item->quantity }}</td><td class="text-right">{{ $money($item->subtotal) }}</td></tr>
                     @endforeach
                 </tbody>
             </table>

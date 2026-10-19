@@ -35,14 +35,14 @@ function requireLogin() {
     setTimeout(() => redirectToLogin(), 1500);
 }
 
-function addToCart(menuItemId, quantity, note) {
+function addToCart(menuItemId, quantity, note, toppings = []) {
     fetch("/cart/add", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content,
         },
-        body: JSON.stringify({ menu_item_id: menuItemId, quantity, note }),
+        body: JSON.stringify({ menu_item_id: menuItemId, quantity, note, toppings }),
     })
         .then((res) => res.json())
         .then((data) => {
@@ -53,6 +53,8 @@ function addToCart(menuItemId, quantity, note) {
             } else if (data.redirect) {
                 showToast(data.message, "⚠️");
                 setTimeout(() => (window.location.href = data.redirect), 1500);
+            } else if (data.message) {
+                showToast(data.message, "⚠️");
             }
         })
         .catch((err) => console.error("Lỗi thêm giỏ hàng:", err));
@@ -108,6 +110,9 @@ async function openItemModal(id) {
             document.getElementById("modal-badge").classList.add("hidden");
         }
 
+        renderToppings(item.toppings ?? []);
+        updateModalTotal();
+
         document.getElementById("item-modal").classList.remove("hidden");
         document.body.style.overflow = "hidden";
     } catch (err) {
@@ -120,9 +125,42 @@ function closeItemModalDirect() {
     document.body.style.overflow = "";
 }
 
+function renderToppings(toppings) {
+    const box = document.getElementById("modal-toppings-box");
+    const list = document.getElementById("modal-toppings");
+    list.replaceChildren(
+        ...toppings.map((t) => {
+            const label = document.createElement("label");
+            label.className =
+                "flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm cursor-pointer hover:border-red-300 has-[:checked]:border-red-400 has-[:checked]:bg-red-50";
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.value = t.id;
+            input.dataset.price = t.price;
+            input.className = "accent-red-500 w-4 h-4";
+            input.addEventListener("change", updateModalTotal);
+            const name = document.createElement("span");
+            name.className = "flex-1 text-slate-700";
+            name.textContent = t.name;
+            const price = document.createElement("span");
+            price.className = "font-semibold text-slate-500";
+            price.textContent = "+" + t.price.toLocaleString("vi-VN") + " đ";
+            label.append(input, name, price);
+            return label;
+        }),
+    );
+    box.classList.toggle("hidden", toppings.length === 0);
+}
+
+function checkedToppings() {
+    return [...document.querySelectorAll("#modal-toppings input:checked")];
+}
+
 function updateModalTotal() {
     if (!modalItem) return;
-    const total = modalItem.discounted_price * modalQty;
+    // Topping không giảm theo % của món
+    const extra = checkedToppings().reduce((sum, el) => sum + Number(el.dataset.price), 0);
+    const total = (Math.round(modalItem.discounted_price) + extra) * modalQty;
     const formatted = total.toLocaleString("vi-VN") + " đ";
     if (modalItem.is_on_sale) {
         document.getElementById("modal-discounted-price").textContent =
@@ -164,7 +202,12 @@ document.addEventListener("DOMContentLoaded", () => {
         .getElementById("modal-add-cart-btn")
         .addEventListener("click", () => {
             if (!modalItem) return;
-            addToCart(modalItem.id, modalQty, "");
+            addToCart(
+                modalItem.id,
+                modalQty,
+                "",
+                checkedToppings().map((el) => Number(el.value)),
+            );
             closeItemModalDirect();
         });
 
@@ -191,11 +234,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Click toàn trang — 1 listener duy nhất
     document.addEventListener("click", (e) => {
-        // Nút Thêm trên card → thêm giỏ, không mở modal
+        // Nút Thêm trên card → thêm giỏ luôn; món có topping thì mở modal để chọn
         const addBtn = e.target.closest(".btn-add-cart");
         if (addBtn) {
             e.stopPropagation();
-            addToCart(addBtn.dataset.id, 1, "");
+            if (addBtn.dataset.hasToppings) openItemModal(addBtn.dataset.id);
+            else addToCart(addBtn.dataset.id, 1, "");
             return;
         }
 

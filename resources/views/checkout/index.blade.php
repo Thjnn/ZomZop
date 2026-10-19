@@ -94,7 +94,7 @@
             <div class="zc-summary-head"><h2>Đơn của bạn</h2><span>{{ collect($cart['items'])->sum('quantity') }} món</span></div>
             <div class="zc-products">
                 @foreach($cart['items'] as $item)
-                <div class="zc-product"><img src="{{ $item['image'] }}" alt="{{ $item['name'] }}"><div class="zc-product-info"><strong>{{ $item['name'] }}</strong><small>Số lượng: {{ $item['quantity'] }}</small></div><span class="zc-product-price">{{ $money($item['price'] * $item['quantity']) }}</span></div>
+                <div class="zc-product"><img src="{{ $item['image'] }}" alt="{{ $item['name'] }}"><div class="zc-product-info"><strong>{{ $item['name'] }}</strong>@if(!empty($item['toppings']))<small>+ {{ implode(', ', array_column($item['toppings'], 'name')) }}</small>@endif<small>Số lượng: {{ $item['quantity'] }}</small></div><span class="zc-product-price">{{ $money($item['price'] * $item['quantity']) }}</span></div>
                 @endforeach
             </div>
             <div class="zc-voucher-wrap">

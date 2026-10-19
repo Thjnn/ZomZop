@@ -69,6 +69,18 @@
                                         <input type="checkbox" name="items[{{ $item->id }}][is_bestseller]" value="1" @checked(old("$key.is_bestseller", $row?->is_bestseller)) class="accent-red-500 w-4 h-4"> 🔥 Bán chạy
                                     </label>
                                 </div>
+                                @if ($item->toppings->isNotEmpty())
+                                    <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                                        <span>Topping còn:</span>
+                                        @foreach ($item->toppings as $t)
+                                            <input type="hidden" name="toppings[{{ $t->id }}]" value="0">
+                                            <label class="flex items-center gap-1 cursor-pointer">
+                                                <input type="checkbox" name="toppings[{{ $t->id }}]" value="1" @checked(old("toppings.{$t->id}", !isset($toppingsOff[$t->id]))) class="accent-red-500 w-3.5 h-3.5">
+                                                {{ $t->name }} ({{ $money($t->price) }})
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @endif
                             @endif
                         </td>
                     </tr>

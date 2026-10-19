@@ -4,8 +4,11 @@ namespace App\Services;
 
 use App\Models\BranchMenuItem;
 use App\Models\MenuItem;
+use App\Models\MenuItemTopping;
 use App\Models\Order;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -13,6 +16,8 @@ use Illuminate\Validation\ValidationException;
  * - Đang bán: menu_items.is_available = 1, danh mục đang hiện, và chi nhánh không tắt món (không có dòng = vẫn bán).
  * - Tồn kho: branch_menu_items.stock_qty null = không giới hạn, 0 = hết hàng (coi như không bán).
  * - Giá: branch_menu_items.price (nếu có) thay base_price; discount_percent vẫn áp lên.
+ * - Topping: giá chung, không giảm theo %; chi nhánh tắt topping qua branch_unavailable_toppings.
+ *   Dòng giỏ: price = giá món + tổng topping, toppings = [{id, name, price}].
  */
 class BranchMenu
 {
@@ -70,6 +75,24 @@ class BranchMenu
         return (int) round($copy->discounted_price);
     }
 
+    /** Topping còn bán (chưa bị chi nhánh tắt) của các món */
+    public function availableToppings(array $itemIds, ?int $branchId): Collection
+    {
+        return MenuItemTopping::whereIn('menu_item_id', $itemIds)
+            ->when($branchId, fn ($q) => $q->whereNotIn('id', DB::table('branch_unavailable_toppings')
+                ->where('branch_id', $branchId)->select('menu_item_topping_id')))
+            ->orderBy('sort_order')->orderBy('id')
+            ->get();
+    }
+
+    /** Cùng món + cùng topping + cùng ghi chú = cùng một dòng trong giỏ */
+    public static function lineKey(array $line): string
+    {
+        $toppings = collect($line['toppings'] ?? [])->pluck('id')->sort()->implode(',');
+
+        return md5($line['id'] . '|' . $toppings . '|' . ($line['note'] ?? ''));
+    }
+
     public function refreshCart(array $cart): array
     {
         $branchId = $cart['branch_id'] ?? null;
@@ -81,6 +104,7 @@ class BranchMenu
         $available = $this->filterAvailable(MenuItem::whereIn('id', collect($cart['items'])->pluck('id')), $branchId)
             ->get()->keyBy('id');
         $this->applyPrices($available, $branchId);
+        $toppings = $this->availableToppings($available->keys()->all(), $branchId)->keyBy('id');
 
         $items = [];
         foreach ($cart['items'] as $line) {
@@ -90,16 +114,34 @@ class BranchMenu
                 continue;
             }
 
-            $price = (int) round($item->discounted_price);
+            $kept = [];
+            foreach ($line['toppings'] ?? [] as $chosen) {
+                $topping = $toppings[$chosen['id']] ?? null;
+                if (!$topping || $topping->menu_item_id !== $item->id) {
+                    $changed[] = "{$line['name']}: topping {$chosen['name']} tạm hết, đã bỏ.";
+                    continue;
+                }
+                $kept[] = ['id' => $topping->id, 'name' => $topping->name, 'price' => $topping->price];
+            }
+            $line['toppings'] = $kept;
+
+            $price = (int) round($item->discounted_price) + array_sum(array_column($kept, 'price'));
             if ($price !== (int) $line['price']) {
                 $changed[] = sprintf('%s: giá đổi từ %sđ thành %sđ.', $line['name'],
                     number_format($line['price'], 0, ',', '.'), number_format($price, 0, ',', '.'));
                 $line['price'] = $price;
             }
-            $items[] = $line;
+
+            // Bỏ topping hết hàng có thể làm 2 dòng thành giống nhau → gộp lại
+            $key = self::lineKey($line);
+            if (isset($items[$key])) {
+                $items[$key]['quantity'] = min(99, $items[$key]['quantity'] + $line['quantity']);
+                continue;
+            }
+            $items[$key] = $line;
         }
 
-        $cart['items'] = $items;
+        $cart['items'] = array_values($items);
 
         return ['cart' => $cart, 'changed' => $changed];
     }

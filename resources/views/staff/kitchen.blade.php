@@ -43,6 +43,7 @@
                                 @foreach ($order->items as $item)
                                     <li>
                                         <span class="font-bold">{{ $item->quantity }} ×</span> {{ $item->name_snapshot }}
+                                        @if ($item->topping_names) <span class="block text-base font-semibold text-red-600">+ {{ $item->topping_names }}</span> @endif
                                         @if ($item->note) <span class="block text-sm text-amber-700">↳ {{ $item->note }}</span> @endif
                                     </li>
                                 @endforeach

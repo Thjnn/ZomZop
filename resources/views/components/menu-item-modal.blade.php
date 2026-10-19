@@ -37,6 +37,12 @@
             <p id="modal-category" class="text-xs text-slate-400 mb-3"></p>
             <p id="modal-description" class="text-sm text-slate-500 leading-relaxed mb-4"></p>
 
+            {{-- Topping: item-modal.js đổ checkbox vào, ẩn nếu món không có topping --}}
+            <fieldset id="modal-toppings-box" class="hidden mb-4">
+                <legend class="text-sm font-semibold text-slate-700 mb-2">Thêm topping</legend>
+                <div id="modal-toppings" class="grid gap-2 max-h-48 overflow-y-auto"></div>
+            </fieldset>
+
             <div class="border-t border-slate-100 mb-4"></div>
 
             <div class="flex items-center justify-between gap-4">

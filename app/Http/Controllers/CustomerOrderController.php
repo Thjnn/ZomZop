@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\MenuItem;
 use App\Models\Review;
 use App\Services\BranchMenu;
 use App\Services\OrderStatusService;
@@ -43,18 +42,14 @@ class CustomerOrderController extends Controller
         if (!$order->branch?->is_active) {
             throw ValidationException::withMessages(['order' => 'Chi nhánh của đơn này đã tạm đóng. Vui lòng chọn chi nhánh khác và thêm món từ thực đơn.']);
         }
-        $order->loadMissing('items');
-        $available = $menu->filterAvailable(MenuItem::with('images')->whereIn('id', $order->items->pluck('menu_item_id')), $order->branch_id)->get()->keyBy('id');
-        $menu->applyPrices($available, $order->branch_id);
-        $items = []; $changes = [];
-        foreach ($order->items as $line) {
-            $item = $available->get($line->menu_item_id);
-            if (!$item) { $changes[] = $line->name_snapshot . ': đã ngừng bán, không thêm lại.'; continue; }
-            $price = (int) round($item->discounted_price);
-            if ($price !== (int) $line->price_snapshot) { $changes[] = $item->name . ': áp dụng giá hiện tại ' . number_format($price, 0, ',', '.') . 'đ.'; }
-            $items[] = ['id' => $item->id, 'name' => $item->name, 'image' => $item->image_url, 'price' => $price, 'quantity' => min(99, $line->quantity), 'note' => $line->note ?? ''];
-        }
-        return ['cart' => ['branch_id' => $order->branch_id, 'items' => $items], 'changes' => $changes];
+        $order->loadMissing('items.menuItem.images');
+        // Dựng giỏ theo đơn cũ (giá + topping lúc đặt) rồi để refreshCart áp giá hiện tại, bỏ món/topping đã hết
+        $items = $order->items->map(fn ($line) => [
+            'id' => $line->menu_item_id, 'name' => $line->menuItem?->name ?? $line->name_snapshot, 'image' => $line->menuItem?->image_url ?? '',
+            'price' => (int) $line->price_snapshot, 'quantity' => min(99, $line->quantity), 'note' => $line->note ?? '', 'toppings' => $line->toppings ?? [],
+        ])->all();
+        $result = $menu->refreshCart(['branch_id' => $order->branch_id, 'items' => $items]);
+        return ['cart' => $result['cart'], 'changes' => $result['changed']];
     }
 
     public function reorderPreview(Request $request, Order $order, BranchMenu $menu)
