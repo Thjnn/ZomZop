@@ -70,7 +70,7 @@ class ToppingTest extends TestCase
         $this->assertEmpty(session('cart.items', []));
 
         $this->getJson("/menu-items/{$burger->id}/detail")
-            ->assertJsonPath('toppings', [['id' => $meat->id, 'name' => 'Thêm thịt', 'price' => 20000]]);
+            ->assertJsonPath('toppings', [['id' => $meat->id, 'name' => 'Thêm thịt', 'price' => 20000, 'icon_url' => null]]);
     }
 
     public function test_refresh_cart_drops_topping_turned_off_and_reprices(): void
@@ -124,10 +124,16 @@ class ToppingTest extends TestCase
 
         $this->actingAs($this->makeUser('admin'))->put(route('admin.menu-items.update', $burger), $form + ['toppings' => [
             ['id' => $old->id, 'name' => '', 'price' => ''],          // xoá tên = bỏ topping
-            ['id' => null, 'name' => 'Cà chua', 'price' => 5000],
+            ['id' => null, 'name' => 'Cà chua', 'price' => 5000, 'icon' => 'icon-ca-chua.png'],
             ['id' => null, 'name' => '', 'price' => ''],
         ]])->assertSessionHasNoErrors();
         $this->assertSame(['Cà chua'], $burger->toppings()->pluck('name')->all());
+        $this->assertSame(asset('images/toppings/icon-ca-chua.png'), $burger->toppings()->sole()->icon_url);
+
+        // Icon không có trong thư mục (gõ tay đường dẫn lạ) bị từ chối
+        $this->put(route('admin.menu-items.update', $burger), $form + ['toppings' => [
+            ['id' => null, 'name' => 'Lạ', 'price' => 1000, 'icon' => '../../.env'],
+        ]])->assertSessionHasErrors('toppings.0.icon');
 
         $tomato = $burger->toppings()->sole();
         $this->actingAs($this->makeUser('manager', $branch))

@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Models\AdminLog;
 use App\Models\Category;
 use App\Models\MenuItem;
+use App\Models\MenuItemTopping;
 use App\Support\Slug;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class MenuItemController extends AdminController
@@ -27,6 +29,7 @@ class MenuItemController extends AdminController
         'toppings.max'         => 'Tối đa 20 topping mỗi món.',
         'toppings.*.name.max'  => 'Tên topping tối đa 80 ký tự.',
         'toppings.*.price.*'   => 'Giá topping là số nguyên từ 0đ đến 1.000.000đ.',
+        'toppings.*.icon.in'   => 'Icon topping không còn trong thư mục public/images/toppings.',
     ];
 
     private function payload(Request $request): array
@@ -43,6 +46,7 @@ class MenuItemController extends AdminController
             'toppings.*.id'     => ['nullable', 'integer'],
             'toppings.*.name'   => ['nullable', 'string', 'max:80'],
             'toppings.*.price'  => ['required_with:toppings.*.name', 'nullable', 'integer', 'min:0', 'max:1000000'],
+            'toppings.*.icon'   => ['nullable', Rule::in(array_keys(MenuItemTopping::iconOptions()))],
         ], self::MESSAGES);
 
         $data['tags']         = $this->parseTags($data['tags'] ?? '');
@@ -63,7 +67,7 @@ class MenuItemController extends AdminController
             // Đi qua quan hệ $item->toppings() nên id của món khác không sửa được
             $keep[] = $item->toppings()->updateOrCreate(
                 ['id' => $row['id'] ?? null],
-                ['name' => $name, 'price' => (int) $row['price'], 'sort_order' => $i]
+                ['name' => $name, 'price' => (int) $row['price'], 'icon' => $row['icon'] ?? null, 'sort_order' => $i]
             )->id;
         }
         $item->toppings()->whereNotIn('id', $keep)->delete();

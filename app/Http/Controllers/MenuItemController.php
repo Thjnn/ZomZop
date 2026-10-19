@@ -47,7 +47,7 @@ class MenuItemController extends Controller
             'category'         => $item->category?->name,
             'tags'             => $item->tags,
             'toppings'         => $menu->availableToppings([$item->id], $menu->currentBranchId())
-                ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'price' => $t->price])->values(),
+                ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'price' => $t->price, 'icon_url' => $t->icon_url])->values(),
         ]);
     }
 }

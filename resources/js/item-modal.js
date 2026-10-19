@@ -139,13 +139,23 @@ function renderToppings(toppings) {
             input.dataset.price = t.price;
             input.className = "accent-red-500 w-4 h-4";
             input.addEventListener("change", updateModalTotal);
+            let icon;
+            if (t.icon_url) {
+                icon = document.createElement("img");
+                icon.src = t.icon_url;
+                icon.alt = "";
+                icon.className = "h-7 w-7 object-contain";
+            } else {
+                icon = document.createElement("span");
+                icon.className = "mx-2.5 h-2 w-2 rounded-full bg-amber-400";
+            }
             const name = document.createElement("span");
             name.className = "flex-1 text-slate-700";
             name.textContent = t.name;
             const price = document.createElement("span");
             price.className = "font-semibold text-slate-500";
             price.textContent = "+" + t.price.toLocaleString("vi-VN") + " đ";
-            label.append(input, name, price);
+            label.append(input, icon, name, price);
             return label;
         }),
     );
