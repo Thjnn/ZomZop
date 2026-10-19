@@ -78,8 +78,8 @@
                     <div class="zc-payments">
                         @forelse($paymentMethods as $method)
                         <label class="zc-payment"><input type="radio" name="payment_method" value="{{ $method }}" @checked(old('payment_method', $paymentMethods[0] ?? '') === $method) required>
-                            <span class="zc-pay-icon" aria-hidden="true">{{ ['cash' => '₫', 'momo' => 'Mo', 'vnpay' => 'VN'][$method] }}</span>
-                            <span><strong>{{ \App\Support\PaymentMethods::LABELS[$method] }}</strong><small>{{ $method === 'cash' ? 'Thanh toán khi nhận món' : 'Phương thức thanh toán trực tuyến' }}</small></span>
+                            <span class="zc-pay-icon" aria-hidden="true">{{ ['cash' => '₫', 'bank' => 'QR', 'momo' => 'Mo', 'vnpay' => 'VN'][$method] }}</span>
+                            <span><strong>{{ \App\Support\PaymentMethods::LABELS[$method] }}</strong><small>{{ ['cash' => 'Thanh toán khi nhận món', 'bank' => 'Quét mã VietQR bằng app ngân hàng sau khi đặt'][$method] ?? 'Phương thức thanh toán trực tuyến' }}</small></span>
                         </label>
                         @empty<p class="zc-muted">Cửa hàng đang tạm ngưng thanh toán. Vui lòng quay lại sau.</p>@endforelse
                     </div>

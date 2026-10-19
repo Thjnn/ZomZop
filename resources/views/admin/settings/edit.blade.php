@@ -26,7 +26,7 @@
                     <input type="checkbox" name="payment_{{ $key }}" value="1" @checked(old("payment_{$key}", in_array($key, $enabled, true))) class="accent-red-500"> {{ $label }}
                 </label>
             @endforeach
-            <p class="text-xs text-slate-400">MoMo/VNPay hiện chưa nối cổng thanh toán — khách chọn thì chỉ ghi nhận phương thức.</p>
+            <p class="text-xs text-slate-400">Chuyển khoản hiện mã VietQR theo tài khoản trong .env (BANK_*), quản lý tự xác nhận khi nhận tiền. MoMo/VNPay hiện chưa nối cổng thanh toán — khách chọn thì chỉ ghi nhận phương thức.</p>
         </fieldset>
 
         <button class="justify-self-start px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold cursor-pointer">Lưu cài đặt</button>

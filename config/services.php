@@ -35,6 +35,14 @@ return [
         ],
     ],
 
+    // Tài khoản nhận chuyển khoản (VietQR). BANK_ID là mã ngân hàng theo vietqr.io, vd vcb
+    'bank' => [
+        'id'      => env('BANK_ID'),
+        'name'    => env('BANK_NAME'),
+        'account' => env('BANK_ACCOUNT_NUMBER'),
+        'holder'  => env('BANK_ACCOUNT_HOLDER'),
+    ],
+
     'gemini' => [
         'key'   => env('GEMINI_API_KEY'),
         'model' => env('GEMINI_MODEL', 'gemini-3.1-flash-lite'),

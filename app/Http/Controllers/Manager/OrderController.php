@@ -140,4 +140,18 @@ class OrderController extends ManagerController
 
         return back()->with('success', "Đơn {$order->order_code}: " . OrderStatusService::LABELS[$data['status']] . '.');
     }
+
+    /** Quản lý đã thấy tiền chuyển khoản về tài khoản → đánh dấu đã trả */
+    public function markPaid(Order $order)
+    {
+        $this->ensureSameBranch($order);
+
+        if ($order->payment_method !== 'bank' || $order->status === 'cancelled') {
+            return back()->withErrors(['status' => 'Chỉ xác nhận tiền cho đơn chuyển khoản chưa huỷ.']);
+        }
+
+        $order->update(['payment_status' => 'paid']);
+
+        return back()->with('success', "Đơn {$order->order_code}: đã nhận tiền chuyển khoản.");
+    }
 }

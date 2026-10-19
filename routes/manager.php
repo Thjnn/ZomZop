@@ -22,6 +22,7 @@ Route::middleware(['auth', 'role:manager'])
         Route::get('/orders/export', [OrderController::class, 'export'])->name('orders.export');
         Route::get('/orders/{order}',[OrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status');
+        Route::patch('/orders/{order}/paid', [OrderController::class, 'markPaid'])->name('orders.paid');
 
         Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
         Route::put('/menu', [MenuController::class, 'update'])->name('menu.update');

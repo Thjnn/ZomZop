@@ -18,6 +18,7 @@
 @empty<li>Đơn được tạo lúc {{ $order->created_at->format('d/m/Y H:i') }}. Chưa có lịch sử cập nhật.</li>@endforelse
 </ol>
 </section>
+@include('checkout.bank-transfer')
 <section class="bg-white rounded-2xl border p-5 space-y-4">
 @include('account.order-items')
 <div class="border-t pt-4 space-y-2">

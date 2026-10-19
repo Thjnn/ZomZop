@@ -11,7 +11,7 @@ class ReportController extends ManagerController
     use ParsesDateRange;
 
     public const TYPE_LABELS = ['takeaway' => 'Mang đi', 'delivery' => 'Giao hàng'];
-    public const PAY_LABELS  = ['cash' => 'Tiền mặt', 'momo' => 'MoMo', 'vnpay' => 'VNPay'];
+    public const PAY_LABELS  = \App\Support\PaymentMethods::LABELS;
 
     public function index(Request $request, BranchReport $report)
     {

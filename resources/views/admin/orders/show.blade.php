@@ -34,7 +34,7 @@
                 <p><span class="text-slate-400">Khách:</span> {{ $order->user?->name }} · {{ $order->user?->phone ?? $order->user?->email }}</p>
                 <p><span class="text-slate-400">Hình thức:</span> {{ $order->type === 'delivery' ? 'Giao hàng' : 'Mang đi' }}</p>
                 @if ($order->delivery_address) <p><span class="text-slate-400">Địa chỉ:</span> {{ $order->delivery_address }}</p> @endif
-                <p><span class="text-slate-400">Thanh toán:</span> {{ strtoupper($order->payment_method) }} · {{ $order->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</p>
+                <p><span class="text-slate-400">Thanh toán:</span> {{ \App\Support\PaymentMethods::LABELS[$order->payment_method] ?? $order->payment_method }} · {{ $order->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</p>
                 @if ($order->note) <p><span class="text-slate-400">Ghi chú:</span> {{ $order->note }}</p> @endif
             </div>
             <div class="bg-white rounded-2xl border border-slate-100 p-5">

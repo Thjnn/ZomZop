@@ -96,7 +96,16 @@
                 <p class="text-slate-500">{{ $order->user?->phone ?? 'Chưa có SĐT' }}</p>
                 <p class="text-slate-500">{{ $order->type === 'delivery' ? 'Giao hàng' : 'Mang đi' }}</p>
                 @if ($order->delivery_address) <p class="text-slate-500">📍 {{ $order->delivery_address }}</p> @endif
-                <p class="text-slate-500">Thanh toán: {{ strtoupper($order->payment_method) }} · {{ $order->payment_status === 'paid' ? 'Đã trả' : 'Chưa trả' }}</p>
+                <p class="text-slate-500">Thanh toán: {{ \App\Support\PaymentMethods::LABELS[$order->payment_method] ?? $order->payment_method }} · {{ $order->payment_status === 'paid' ? 'Đã trả' : 'Chưa trả' }}</p>
+                @if ($order->payment_method === 'bank')
+                    <p class="text-slate-500">Nội dung CK cần có: <strong>{{ \App\Support\PaymentMethods::transferNote($order) }}</strong></p>
+                    @if (!$order->isPaid() && $order->status !== 'cancelled')
+                        <form method="POST" action="{{ route('manager.orders.paid', $order) }}" class="pt-2">
+                            @csrf @method('PATCH')
+                            <button class="w-full px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold cursor-pointer">Đã nhận {{ number_format($order->total, 0, ',', '.') }}đ</button>
+                        </form>
+                    @endif
+                @endif
                 @if ($order->note) <p class="text-amber-600">Ghi chú: {{ $order->note }}</p> @endif
             </section>
         </div>

@@ -83,7 +83,8 @@ class BranchReportTest extends TestCase
         ], $report->byType($branch->id, $from, $to));
         $this->assertSame([
             'cash'  => ['orders' => 1, 'revenue' => 40000],
-            'momo'  => ['orders' => 1, 'revenue' => 60000],
+            'bank'  => ['orders' => 0, 'revenue' => 0],
+            'momo'  =>['orders' => 1, 'revenue' => 60000],
             'vnpay' => ['orders' => 0, 'revenue' => 0],
         ], $report->byPayment($branch->id, $from, $to));
     }

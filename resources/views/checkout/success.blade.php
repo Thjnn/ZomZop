@@ -34,7 +34,7 @@
         @endif
         <div class="flex items-center justify-between">
             <span class="text-sm text-slate-500">Phương thức thanh toán</span>
-            <span class="font-semibold text-slate-700">{{ match($order->payment_method) { 'cash' => 'Tiền mặt', 'momo' => 'MoMo', 'vnpay' => 'VNPAY', default => $order->payment_method } }}</span>
+            <span class="font-semibold text-slate-700">{{ \App\Support\PaymentMethods::LABELS[$order->payment_method] ?? $order->payment_method }}</span>
         </div>
         <div class="flex items-center justify-between">
             <span class="text-sm text-slate-500">Trạng thái</span>
@@ -45,6 +45,8 @@
             <span class="text-red-500 text-xl">{{ number_format($order->total, 0, ',', '.') }} đ</span>
         </div>
     </div>
+
+    @include('checkout.bank-transfer')
 
     <div class="bg-blue-50 rounded-2xl p-4 text-sm text-blue-700 text-left flex items-start gap-3">
         <span class="text-lg mt-0.5">📌</span>
