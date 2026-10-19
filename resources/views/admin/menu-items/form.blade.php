@@ -62,14 +62,14 @@
                     <input type="number" name="toppings[{{ $i }}][price]" value="{{ $t['price'] ?? '' }}" min="0" max="1000000" step="500" placeholder="Giá (đ)" aria-label="Giá topping {{ $i + 1 }}"
                            class="{{ $input }} {{ $errors->has("toppings.$i.price") ? 'border-red-400' : '' }}">
                     <select name="toppings[{{ $i }}][icon]" aria-label="Icon topping {{ $i + 1 }}" class="{{ $input }} col-start-2 sm:col-start-auto col-span-2 sm:col-span-1">
-                        <option value="">— Không icon —</option>
+                        <option value="">— Tự chọn theo tên —</option>
                         @foreach ($iconOptions as $file => $label)
                             <option value="{{ $file }}" @selected(($t['icon'] ?? null) === $file)>{{ $label }}</option>
                         @endforeach
                     </select>
                 </div>
             @endforeach
-            <p class="text-xs text-slate-400">Cần thêm dòng? Lưu lại, form sẽ có thêm 3 dòng trống. Icon lấy từ thư mục public/images/toppings (thả file vào là chọn được, nên ≤ 128px).</p>
+            <p class="text-xs text-slate-400">Cần thêm dòng? Lưu lại, form sẽ có thêm 3 dòng trống. Icon lấy từ thư mục public/images/toppings (thả file vào là chọn được, nên ≤ 128px); để "Tự chọn" thì hệ thống đoán theo tên, không khớp thì hiện chấm tròn.</p>
         </fieldset>
         <label class="flex items-center gap-2">
             <input type="checkbox" name="is_available" value="1" @checked(old('is_available', $item?->is_available ?? true)) class="accent-red-500"> Đang bán toàn chuỗi

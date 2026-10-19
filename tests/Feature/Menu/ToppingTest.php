@@ -145,6 +145,23 @@ class ToppingTest extends TestCase
         $this->assertSame(0, DB::table('branch_unavailable_toppings')->count());
     }
 
+    public function test_guesses_icon_from_name_by_whole_word(): void
+    {
+        $this->assertSame('icon-phomai.png', MenuItemTopping::guessIcon('Thêm Phô mai'));
+        $this->assertSame('icon-bacon.png', MenuItemTopping::guessIcon('Thịt xông khói'));
+        $this->assertSame('icon-trung-chien.png', MenuItemTopping::guessIcon('Thêm trứng'));
+        $this->assertNull(MenuItemTopping::guessIcon('Sốt mayonnaise'));   // "sot" không được khớp "ot"
+        $this->assertNull(MenuItemTopping::guessIcon('Bơ'));
+
+        // Admin để "Tự chọn" → lưu icon đoán được
+        $burger = $this->makeMenuItem('Burger');
+        $this->actingAs($this->makeUser('admin'))->put(route('admin.menu-items.update', $burger), [
+            'category_id' => $burger->category_id, 'name' => 'Burger', 'base_price' => 50000, 'discount_percent' => 0, 'prep_time_minutes' => 10,
+            'toppings' => [['id' => null, 'name' => 'Thêm cà chua', 'price' => 5000, 'icon' => '']],
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('icon-ca-chua.png', $burger->toppings()->sole()->icon);
+    }
+
     public function test_card_add_button_opens_modal_only_for_items_with_toppings(): void
     {
         $branch = $this->makeBranch();

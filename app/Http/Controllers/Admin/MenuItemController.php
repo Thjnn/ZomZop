@@ -67,7 +67,7 @@ class MenuItemController extends AdminController
             // Đi qua quan hệ $item->toppings() nên id của món khác không sửa được
             $keep[] = $item->toppings()->updateOrCreate(
                 ['id' => $row['id'] ?? null],
-                ['name' => $name, 'price' => (int) $row['price'], 'icon' => $row['icon'] ?? null, 'sort_order' => $i]
+                ['name' => $name, 'price' => (int) $row['price'], 'icon' => ($row['icon'] ?? null) ?: MenuItemTopping::guessIcon($name), 'sort_order' => $i]
             )->id;
         }
         $item->toppings()->whereNotIn('id', $keep)->delete();
