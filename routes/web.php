@@ -16,6 +16,10 @@ Route::middleware('guest')->group(function () {
     Route::post('/login',    [AuthController::class, 'login']);
     Route::get('/register',  [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
+    Route::get('/auth/{provider}', [\App\Http\Controllers\Auth\SocialAuthController::class, 'redirect'])
+        ->whereIn('provider', ['google', 'facebook'])->name('social.redirect');
+    Route::get('/auth/{provider}/callback', [\App\Http\Controllers\Auth\SocialAuthController::class, 'callback'])
+        ->whereIn('provider', ['google', 'facebook'])->name('social.callback');
 });
 
 Route::middleware('auth')->group(function () {

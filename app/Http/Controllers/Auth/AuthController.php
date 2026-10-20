@@ -124,7 +124,7 @@ class AuthController extends Controller
     // ── HELPER ───────────────────────────────────────────────
 
     /** Redirect đúng trang theo role sau khi login */
-    private function redirectByRole(User $user)
+    protected function redirectByRole(User $user)
     {
         // Lấy và xoá trang đã ghi nhớ trước khi đăng nhập; để lại trong session
         // thì lần redirect()->intended() sau (vd. chọn chi nhánh) sẽ nhảy lung tung

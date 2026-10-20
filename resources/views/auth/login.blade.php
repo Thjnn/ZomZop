@@ -101,6 +101,8 @@
                 <div class="flex-1 border-t border-gray-200"></div>
             </div>
 
+            @include('auth.partials.social-buttons')
+
             {{-- Link đăng ký --}}
             <p class="text-center text-sm text-gray-600">
                 Chưa có tài khoản?

@@ -151,6 +151,8 @@
                 <div class="flex-1 border-t border-gray-200"></div>
             </div>
 
+            @include('auth.partials.social-buttons', ['verb' => 'Đăng ký'])
+
             {{-- Link đăng nhập --}}
             <p class="text-center text-sm text-gray-600">
                 Đã có tài khoản?

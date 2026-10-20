@@ -43,6 +43,20 @@ return [
         'holder'  => env('BANK_ACCOUNT_HOLDER'),
     ],
 
+    // Đăng nhập bằng Google / Facebook. Chưa điền client_id thì nút tương ứng tự ẩn.
+    // URL trả về phải khai báo y hệt trong Google Cloud Console / Meta for Developers.
+    'google' => [
+        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect'      => env('APP_URL').'/auth/google/callback',
+    ],
+
+    'facebook' => [
+        'client_id'     => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect'      => env('APP_URL').'/auth/facebook/callback',
+    ],
+
     'gemini' => [
         'key'   => env('GEMINI_API_KEY'),
         'model' => env('GEMINI_MODEL', 'gemini-3.1-flash-lite'),
