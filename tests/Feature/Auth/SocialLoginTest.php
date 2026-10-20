@@ -97,9 +97,10 @@ class SocialLoginTest extends TestCase
         $this->assertSame(0, User::whereNotNull('google_id')->count());
     }
 
-    public function test_buttons_hidden_and_routes_off_without_config(): void
+    public function test_buttons_always_shown_and_unconfigured_provider_says_so(): void
     {
-        $this->get('/login')->assertSee('Đăng nhập bằng Google')->assertDontSee('bằng Facebook');
-        $this->get('/auth/facebook')->assertNotFound();
+        $this->get('/login')->assertSee('Đăng nhập bằng Google')->assertSee('Đăng nhập bằng Facebook');
+        $this->get('/register')->assertSee('Đăng ký bằng Google')->assertSee('Đăng ký bằng Facebook');
+        $this->get('/auth/facebook')->assertRedirect(route('login'))->assertSessionHasErrors('email');
     }
 }

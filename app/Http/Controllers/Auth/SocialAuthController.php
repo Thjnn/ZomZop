@@ -16,7 +16,9 @@ class SocialAuthController extends AuthController
 {
     public function redirect(string $provider)
     {
-        abort_unless(config("services.{$provider}.client_id"), 404);
+        if (!config("services.{$provider}.client_id")) {
+            return redirect()->route('login')->withErrors(['email' => 'Đăng nhập bằng '.ucfirst($provider).' chưa được cấu hình.']);
+        }
 
         return Socialite::driver($provider)->redirect();
     }

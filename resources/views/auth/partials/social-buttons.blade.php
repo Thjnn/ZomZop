@@ -1,8 +1,6 @@
-{{-- Nút đăng nhập Google / Facebook — chỉ hiện nút đã cấu hình client_id trong .env --}}
+{{-- Nút đăng nhập Google / Facebook (chưa cấu hình client_id thì bấm vào sẽ báo lỗi, không ẩn) --}}
 @php($verb = $verb ?? 'Đăng nhập')
-@if (config('services.google.client_id') || config('services.facebook.client_id'))
     <div class="space-y-3 mb-6">
-        @if (config('services.google.client_id'))
             <a href="{{ route('social.redirect', 'google') }}"
                class="w-full flex items-center justify-center gap-3 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 rounded-lg transition duration-200">
                 <svg class="w-5 h-5" viewBox="0 0 48 48" aria-hidden="true">
@@ -13,8 +11,6 @@
                 </svg>
                 {{ $verb }} bằng Google
             </a>
-        @endif
-        @if (config('services.facebook.client_id'))
             <a href="{{ route('social.redirect', 'facebook') }}"
                class="w-full flex items-center justify-center gap-3 bg-[#1877F2] hover:bg-[#166FE5] text-white font-medium py-3 rounded-lg transition duration-200">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -22,6 +18,4 @@
                 </svg>
                 {{ $verb }} bằng Facebook
             </a>
-        @endif
     </div>
-@endif
