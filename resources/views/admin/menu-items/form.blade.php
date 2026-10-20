@@ -6,7 +6,7 @@
     @php $input = 'w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-red-400 focus:outline-none'; @endphp
     <h1 class="text-xl font-bold mb-4">{{ $item ? 'Sửa món: ' . $item->name : 'Thêm món' }}</h1>
 
-    <form method="POST" action="{{ $item ? route('admin.menu-items.update', $item) : route('admin.menu-items.store') }}"
+    <form method="POST" action="{{ $item ? route('admin.menu-items.update', $item) : route('admin.menu-items.store') }}" enctype="multipart/form-data"
           class="bg-white rounded-2xl border border-slate-100 p-6 max-w-2xl grid gap-4 text-sm">
         @csrf
         @if ($item) @method('PUT') @endif
@@ -38,6 +38,16 @@
                 <input type="number" name="prep_time_minutes" min="1" max="120" required value="{{ old('prep_time_minutes', $item?->prep_time_minutes ?? 10) }}" class="{{ $input }}">
             </label>
         </div>
+        @if ($item)
+            <p>Ảnh món: <a href="{{ route('admin.menu-items.images', $item) }}" class="text-red-500 hover:underline">quản lý ảnh ({{ $item->images()->count() }})</a></p>
+        @else
+            <label class="grid gap-1">Ảnh món (jpg/png/webp, ≤ 2MB mỗi ảnh, tối đa {{ \App\Http\Controllers\Admin\MenuItemImageController::MAX_IMAGES }} ảnh; ảnh đầu tiên làm ảnh chính)
+                <input type="file" name="images[]" multiple accept="image/jpeg,image/png,image/webp" class="{{ $input }}">
+                @if ($errors->has('images') || $errors->has('images.*'))
+                    <span class="text-xs text-red-500">{{ $errors->first('images') ?: $errors->first('images.*') }} — vui lòng chọn lại ảnh.</span>
+                @endif
+            </label>
+        @endif
         <label class="grid gap-1">Tag (cách nhau dấu phẩy, VD: bò, cay, bestseller, chay)
             <input name="tags" value="{{ old('tags', $item ? implode(', ', $item->tagList()) : '') }}" maxlength="255" class="{{ $input }}">
         </label>

@@ -39,6 +39,25 @@ class MenuItemImageTest extends TestCase
         return $this->post("/admin/menu-items/{$item->id}/images", ['images' => $files]);
     }
 
+    public function test_create_form_uploads_images_and_rejects_bad_file(): void
+    {
+        $category = \App\Models\Category::firstOrCreate(['slug' => 'burger'], ['name' => 'Burger']);
+        $data = ['category_id' => $category->id, 'name' => 'Burger Gà', 'base_price' => 49000, 'discount_percent' => 0, 'prep_time_minutes' => 8];
+        $this->actingAs($this->makeUser('admin'));
+
+        $this->post('/admin/menu-items', $data + ['images' => [UploadedFile::fake()->create('x.pdf', 10, 'application/pdf')]])
+            ->assertSessionHasErrors('images.0');
+        $this->assertSame(0, \App\Models\MenuItem::count()); // lỗi ảnh thì không tạo món
+
+        $this->post('/admin/menu-items', $data + ['images' => [
+            UploadedFile::fake()->image('a.jpg', 600, 600), UploadedFile::fake()->image('b.jpg', 600, 600),
+        ]])->assertRedirect()->assertSessionHasNoErrors();
+
+        $item = \App\Models\MenuItem::firstOrFail();
+        $this->assertSame(2, $item->images()->count());
+        $this->assertSame(1, $item->images()->where('is_primary', true)->count());
+    }
+
     public function test_customer_and_manager_cannot_manage_images(): void
     {
         $branch = $this->makeBranch();

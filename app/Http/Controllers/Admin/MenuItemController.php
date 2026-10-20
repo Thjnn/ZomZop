@@ -119,6 +119,16 @@ class MenuItemController extends AdminController
 
     public function store(Request $request)
     {
+        $max = MenuItemImageController::MAX_IMAGES;
+        $request->validate([
+            'images'   => ['nullable', 'array', "max:{$max}"],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ], [
+            'images.max'     => "Tối đa {$max} ảnh mỗi món.",
+            'images.*.image' => 'Tệp tải lên phải là hình ảnh.',
+            'images.*.mimes' => 'Ảnh chỉ nhận jpg, png, webp.',
+            'images.*.max'   => 'Mỗi ảnh tối đa 2MB.',
+        ]);
         $data = $this->payload($request);
         $toppings = Arr::pull($data, 'toppings') ?? [];
         $data['slug'] = Slug::unique(MenuItem::withTrashed(), $data['name'], 'mon');
@@ -127,9 +137,14 @@ class MenuItemController extends AdminController
         $this->syncToppings($item, $toppings);
         $this->log('menu_item.create', $item, ['after' => $data]);
 
-        // Có trang ảnh (Task 3) thì đưa admin sang thêm ảnh luôn
+        if ($files = $request->file('images')) {
+            $names = MenuItemImageController::attach($item, $files);
+            $this->log('menu_item.image_add', $item, ['after' => ['images' => $names]]);
+        }
+
+        // Đưa admin sang trang ảnh để xem/sắp xếp ảnh vừa thêm
         return Route::has('admin.menu-items.images')
-            ? redirect()->route('admin.menu-items.images', $item)->with('success', "Đã thêm {$item->name}. Thêm ảnh cho món ở đây.")
+            ? redirect()->route('admin.menu-items.images', $item)->with('success', "Đã thêm {$item->name}." . ($files ? '' : ' Thêm ảnh cho món ở đây.'))
             : redirect()->route('admin.menu-items.index')->with('success', "Đã thêm {$item->name}.");
     }
 

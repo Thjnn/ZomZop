@@ -38,11 +38,20 @@ class MenuItemImageController extends AdminController
             'images.*.max'    => 'Mỗi ảnh tối đa 2MB.',
         ]);
 
+        $names = self::attach($menuItem, $request->file('images'));
+        $this->log('menu_item.image_add', $menuItem, ['after' => ['images' => $names]]);
+
+        return back()->with('success', 'Đã thêm ' . count($names) . ' ảnh.');
+    }
+
+    /** Lưu file + tạo dòng ảnh; dùng chung cho trang ảnh và form tạo món. Trả về tên file đã lưu */
+    public static function attach(MenuItem $menuItem, array $files): array
+    {
         $hasPrimary = $menuItem->images()->where('is_primary', true)->exists();
         $nextOrder  = (int) $menuItem->images()->max('sort_order') + 1;
         $names      = [];
 
-        foreach ($request->file('images') as $i => $file) {
+        foreach (array_values($files) as $i => $file) {
             $names[] = $name = PublicUpload::store($file, 'products');
             $menuItem->images()->create([
                 'image'      => $name,
@@ -51,9 +60,8 @@ class MenuItemImageController extends AdminController
                 'is_primary' => !$hasPrimary && $i === 0, // món chưa có ảnh chính → ảnh đầu tiên làm ảnh chính
             ]);
         }
-        $this->log('menu_item.image_add', $menuItem, ['after' => ['images' => $names]]);
 
-        return back()->with('success', 'Đã thêm ' . count($names) . ' ảnh.');
+        return $names;
     }
 
     public function primary(MenuItem $menuItem, MenuItemImage $image)
