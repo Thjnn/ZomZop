@@ -10,7 +10,7 @@
         @if ($variant === 'home')
             {{-- Banner + danh mục --}}
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="sk lg:col-span-2 rounded-2xl h-[220px] sm:h-[280px] lg:h-[320px]"></div>
+                <div class="sk lg:col-span-2 rounded-2xl aspect-video lg:self-start"></div>
                 <div class="bg-slate-100/60 rounded-2xl p-6 border border-slate-200/50">
                     <div class="sk h-4 w-36 mx-auto mb-5 rounded-full"></div>
                     <div class="grid grid-cols-3 gap-3">
