@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZomZop — CSDL</title>
+<script>
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('theme'); } catch (e) {}
+    var dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<style>
+  :root {
+    --bg: #FAF9F5; --surface: #FFFFFF; --surface2: #F0EEE6;
+    --ink: #141413; --body: #3D3D3A; --muted: #87867F;
+    --line: #D1CFC5; --line-soft: #E6E3DA;
+    --clay: #D97757; --shadow: rgba(0,0,0,0.08);
+    --d-account: #5B7E96; --d-order: #D97757; --d-menu: #788C5D;
+    --d-staff: #8B6BB0; --d-stats: #C9A45C; --d-system: #87867F;
+    --sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+  }
+  html.dark {
+    --bg: #141413; --surface: #1F1F1D; --surface2: #2A2A28;
+    --ink: #FAF9F5; --body: #D1CFC5; --muted: #8F8E87;
+    --line: #3D3D3A; --line-soft: #2A2A28;
+    --clay: #E48A6E; --shadow: rgba(0,0,0,0.4);
+    --d-account: #7FA3BC; --d-order: #E48A6E; --d-menu: #9DB07C;
+    --d-staff: #AE93D0; --d-stats: #D4B36F; --d-system: #8F8E87;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--body); font-family: var(--sans); display: flex; flex-direction: column; overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+  .bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--line-soft); flex: none; }
+  .bar h1 { font-weight: 600; font-size: 18px; color: var(--ink); }
+  .bar .sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .spacer { flex: 1; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip, .btn { font-family: var(--mono); font-size: 11px; padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; transition: all .15s ease; }
+  .chip:hover, .btn:hover { color: var(--ink); border-color: var(--muted); }
+  .chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .chip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+  .btn { border-radius: 6px; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.08em; padding: 5px 10px; }
+  #q { font-family: var(--mono); font-size: 11.5px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); width: 150px; }
+
+  .stage { flex: 1; position: relative; min-height: 0; }
+  .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; user-select: none; }
+  .stage.grabbing svg { cursor: grabbing; }
+
+  /* bảng */
+  .tbl { cursor: pointer; transition: opacity .2s ease; }
+  .tbl .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.3; }
+  .tbl .hd { fill: var(--dc); }
+  .tbl .tn { font-family: var(--mono); font-size: 13px; font-weight: 700; fill: #fff; pointer-events: none; }
+  html.dark .tbl .tn { fill: #141413; }
+  .tbl .tag { font-family: var(--mono); font-size: 9.5px; fill: #fff; opacity: .85; pointer-events: none; }
+  html.dark .tbl .tag { fill: #141413; }
+  .tbl .cn { font-family: var(--mono); font-size: 11.5px; fill: var(--body); pointer-events: none; }
+  .tbl .ct { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); pointer-events: none; }
+  .tbl .pk { fill: var(--ink); font-weight: 700; }
+  .tbl .fk { fill: var(--dc); font-weight: 600; }
+  .tbl .ic { font-family: var(--mono); font-size: 9px; font-weight: 700; pointer-events: none; }
+  .tbl .ic.p { fill: var(--d-stats); }
+  .tbl .ic.f { fill: var(--dc); }
+  .tbl .ic.u { fill: var(--muted); }
+  .tbl .rowbg { fill: transparent; }
+  .tbl .rowbg.alt { fill: var(--surface2); opacity: .5; }
+  .tbl:hover .box { stroke: var(--muted); }
+  .tbl.sel .box { stroke: var(--ink); stroke-width: 2.2; }
+  .d-account { --dc: var(--d-account); } .d-order { --dc: var(--d-order); } .d-menu { --dc: var(--d-menu); }
+  .d-staff { --dc: var(--d-staff); } .d-stats { --dc: var(--d-stats); } .d-system { --dc: var(--d-system); }
+
+  /* quan hệ */
+  .rel { fill: none; stroke: var(--muted); stroke-width: 1.3; opacity: .45; marker-start: url(#many); marker-end: url(#one); transition: opacity .2s ease; }
+  .stage.focus .tbl { opacity: .18; }
+  .stage.focus .tbl.lit { opacity: 1; }
+  .stage.focus .rel { opacity: .05; }
+  .stage.focus .rel.lit { opacity: 1; stroke: var(--clay); stroke-width: 2; marker-start: url(#many-c); marker-end: url(#one-c); stroke-dasharray: 7 5; animation: march .9s linear infinite; }
+  @keyframes march { to { stroke-dashoffset: -12; } }
+  @media (prefers-reduced-motion: reduce) { .stage.focus .rel.lit { animation: none; } }
+  .mk { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+  .mk.c { stroke: var(--clay); }
+  .glabel { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; fill: var(--muted); }
+
+  .card { position: absolute; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; box-shadow: 0 6px 24px var(--shadow); }
+  .card.hide { display: none; }
+  .x { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; }
+  .x:hover { color: var(--ink); border-color: var(--line); }
+  #detail { right: 16px; bottom: 16px; width: 360px; max-height: calc(100% - 32px); overflow: auto; }
+  #detail h3 { font-family: var(--mono); font-size: 15px; color: var(--ink); margin: 0 24px 2px 0; }
+  #detail .meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-bottom: 8px; }
+  #detail p { font-size: 12.5px; line-height: 1.55; }
+  #detail ul { margin: 8px 0 0 0; list-style: none; }
+  #detail li { font-family: var(--mono); font-size: 11px; line-height: 1.7; color: var(--body); }
+  #detail li b { color: var(--clay); font-weight: 600; cursor: pointer; }
+  #detail .lh { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-top: 10px; }
+  .zoom { position: absolute; top: 12px; left: 16px; display: flex; gap: 4px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
+  .zoom button { min-width: 26px; height: 26px; border: 0; border-radius: 5px; background: transparent; color: var(--body); cursor: pointer; font-family: var(--mono); font-size: 13px; padding: 0 6px; }
+  .zoom button:hover { background: var(--surface2); color: var(--ink); }
+  .legend { position: absolute; top: 14px; right: 16px; font-family: var(--mono); font-size: 10.5px; color: var(--muted); display: flex; gap: 12px; }
+  .legend b { color: var(--ink); }
+  @media (max-width: 880px) { #detail { left: 16px; right: 16px; width: auto; max-height: 45%; } .legend { display: none; } #q { width: 110px; } }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>ZomZop — sơ đồ CSDL</h1>
+    <div class="sub">34 bảng · 46 khoá ngoại · lấy từ DB thật</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-d="all">Tất cả</button>
+    <button class="chip" data-d="account"><i style="background:var(--d-account)"></i>Tài khoản</button>
+    <button class="chip" data-d="order"><i style="background:var(--d-order)"></i>Đơn & voucher</button>
+    <button class="chip" data-d="menu"><i style="background:var(--d-menu)"></i>Chi nhánh & món</button>
+    <button class="chip" data-d="staff"><i style="background:var(--d-staff)"></i>Nhân sự</button>
+    <button class="chip" data-d="stats"><i style="background:var(--d-stats)"></i>Thống kê</button>
+    <button class="chip" data-d="system"><i style="background:var(--d-system)"></i>Hệ thống</button>
+  </div>
+  <input id="q" placeholder="tìm bảng/cột…" autocomplete="off">
+  <button class="btn" id="themeToggle">Giao diện</button>
+</div>
+
+<div class="stage" id="stage">
+<svg id="svg" viewBox="0 0 2360 1290" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Sơ đồ quan hệ thực thể ZomZop">
+  <defs>
+    <!-- chân gà (nhiều) ở đầu khoá ngoại, gạch đôi (một) ở bảng được tham chiếu -->
+    <marker id="many" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+      <path class="mk" d="M0,6 L12,0 M0,6 L12,6 M0,6 L12,12"/>
+    </marker>
+    <marker id="one" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path class="mk" d="M5,0 L5,12 M9,0 L9,12"/>
+    </marker>
+    <marker id="many-c" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+      <path class="mk c" d="M0,6 L12,0 M0,6 L12,6 M0,6 L12,12"/>
+    </marker>
+    <marker id="one-c" viewBox="0 0 12 12" refX="12" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path class="mk c" d="M5,0 L5,12 M9,0 L9,12"/>
+    </marker>
+  </defs>
+  <g id="svg-content">
+    <g id="rels"></g>
+    <g id="tbls"></g>
+  </g>
+</svg>
+
+  <div class="zoom">
+    <button id="zout" title="Thu nhỏ">−</button>
+    <button id="zlvl" title="Về 100%">100%</button>
+    <button id="zin" title="Phóng to">+</button>
+  </div>
+  <div class="legend"><span><b>PK</b> khoá chính</span><span><b>FK</b> khoá ngoại</span><span><b>UQ</b> duy nhất</span><span><b>?</b> nullable</span><span>⊸ nhiều — ‖ một</span></div>
+
+  <div class="card" id="detail">
+    <button class="x" id="dclose" aria-label="Đóng">×</button>
+    <h3 id="d-title">Bấm vào một bảng</h3>
+    <div class="meta" id="d-meta">kéo để di chuyển · lăn chuột để zoom</div>
+    <p id="d-body">Bấm một bảng để làm sáng các quan hệ của nó. Các nút phía trên lọc theo nhóm nghiệp vụ. Ô tìm kiếm khớp cả tên bảng lẫn tên cột.</p>
+    <div id="d-rels"></div>
+  </div>
+</div>
+
+<script>
+const SCHEMA = {"users":{"c":[["id","bigint unsigned","P"],["name","varchar",""],["email","varchar","U"],["email_verified_at","timestamp","?"],["password","varchar",""],["phone","varchar","?"],["role","enum",""],["branch_id","bigint unsigned","?","branches"],["started_at","date","?"],["address","text","?"],["avatar","varchar","?"],["is_active","tinyint",""],["remember_token","varchar","?"],["zalo_id","varchar","?"],["zalo_opted_in","tinyint",""],["email_opted_in","tinyint",""],["birthday","date","?"],["gender","varchar","?"]],"ts":1,"sd":1},"addresses":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","","users"],["label","varchar",""],["name","varchar",""],["phone","varchar",""],["address","varchar",""],["note","varchar","?"],["is_default","tinyint",""]],"ts":1,"sd":0},"favorites":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","","users"],["menu_item_id","bigint unsigned","","menu_items"]],"ts":1,"sd":0},"ai_chat_sessions":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","?","users"],["session_token","varchar","U"],["messages","json","?"],["context","json","?"],["message_count","int unsigned",""]],"ts":1,"sd":0},"contact_messages":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","?","users"],["name","varchar",""],["email","varchar",""],["phone","varchar","?"],["message","text",""],["handled_at","timestamp","?"]],"ts":1,"sd":0},"support_tickets":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","","users"],["order_id","bigint unsigned","?","orders"],["subject","varchar",""],["status","enum",""]],"ts":1,"sd":0},"support_messages":{"c":[["id","bigint unsigned","P"],["ticket_id","bigint unsigned","","support_tickets"],["sender_id","bigint unsigned","","users"],["message","text",""],["is_read","tinyint",""]],"ts":1,"sd":0},"admin_logs":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","?","users"],["action","varchar",""],["subject_type","varchar","?"],["subject_id","bigint unsigned","?"],["changes","json","?"],["ip","varchar","?"]],"ts":1,"sd":0},"coupons":{"c":[["id","bigint unsigned","P"],["code","varchar","U"],["type","enum",""],["scope","enum",""],["description","varchar","?"],["value","decimal",""],["max_discount","decimal","?"],["min_order_value","decimal",""],["max_uses","int unsigned",""],["used_count","int unsigned",""],["max_uses_per_user","int unsigned",""],["is_active","tinyint",""],["is_public","tinyint",""],["started_at","timestamp","?"],["expired_at","timestamp","?"]],"ts":1,"sd":0},"coupon_usages":{"c":[["id","bigint unsigned","P"],["coupon_id","bigint unsigned","","coupons"],["user_id","bigint unsigned","","users"],["order_id","bigint unsigned","","orders"],["used_at","timestamp","?"]],"ts":0,"sd":0},"coupon_notifications":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","","users"],["coupon_id","bigint unsigned","","coupons"],["channel","enum",""],["status","enum",""],["sent_at","timestamp","?"]],"ts":1,"sd":0},"reviews":{"c":[["id","bigint unsigned","P"],["order_id","bigint unsigned","U","orders"],["user_id","bigint unsigned","","users"],["branch_id","bigint unsigned","","branches"],["rating","tinyint unsigned",""],["delivery_rating","tinyint unsigned","?"],["comment","text","?"],["reply","text","?"],["replied_at","timestamp","?"]],"ts":1,"sd":0},"orders":{"c":[["id","bigint unsigned","P"],["order_code","varchar","U"],["user_id","bigint unsigned","","users"],["branch_id","bigint unsigned","","branches"],["kitchen_by","bigint unsigned","?","users"],["type","enum",""],["delivery_speed","enum",""],["status","enum",""],["subtotal","decimal",""],["shipping_fee","decimal",""],["discount","decimal",""],["total","decimal",""],["payment_method","enum",""],["payment_status","enum",""],["delivery_address","text","?"],["estimated_time","timestamp","?"],["pickup_code","varchar","?"],["coupon_id","bigint unsigned","?","coupons"],["note","text","?"]],"ts":1,"sd":0},"order_items":{"c":[["id","bigint unsigned","P"],["order_id","bigint unsigned","","orders"],["menu_item_id","bigint unsigned","","menu_items"],["name_snapshot","varchar",""],["price_snapshot","decimal",""],["quantity","int unsigned",""],["subtotal","decimal",""],["note","text","?"]],"ts":1,"sd":0},"order_histories":{"c":[["id","bigint unsigned","P"],["order_id","bigint unsigned","","orders"],["from_status","enum","?"],["to_status","enum",""],["changed_by","bigint unsigned","","users"],["note","text","?"]],"ts":1,"sd":0},"face_descriptors":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","","users"],["descriptor","json",""]],"ts":1,"sd":0},"salary_configs":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","","users"],["type","enum",""],["rate","decimal",""],["probation_rate","decimal","?"],["effective_from","date",""]],"ts":1,"sd":0},"branches":{"c":[["id","bigint unsigned","P"],["name","varchar",""],["address","varchar",""],["phone","varchar","?"],["lat","decimal","?"],["lng","decimal","?"],["open_time","time",""],["close_time","time",""],["slot_minutes","int unsigned",""],["max_orders_per_slot","int unsigned",""],["is_active","tinyint",""],["image","varchar","?"]],"ts":1,"sd":1},"shifts":{"c":[["id","bigint unsigned","P"],["branch_id","bigint unsigned","","branches"],["name","varchar",""],["start_time","time",""],["end_time","time",""]],"ts":1,"sd":0},"kiosk_devices":{"c":[["id","bigint unsigned","P"],["branch_id","bigint unsigned","","branches"],["name","varchar",""],["token_hash","varchar","U"],["last_used_at","timestamp","?"],["revoked_at","timestamp","?"]],"ts":1,"sd":0},"attendances":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","","users"],["branch_id","bigint unsigned","","branches"],["shift_id","bigint unsigned","","shifts"],["check_in","timestamp","?"],["check_out","timestamp","?"],["method","enum",""],["face_confidence","decimal","?"],["photo_path","varchar","?"],["note","text","?"],["late_reason","varchar","?"],["early_reason","varchar","?"]],"ts":1,"sd":0},"payrolls":{"c":[["id","bigint unsigned","P"],["user_id","bigint unsigned","","users"],["branch_id","bigint unsigned","","branches"],["month","tinyint unsigned",""],["year","smallint unsigned",""],["total_hours","decimal",""],["total_days","int unsigned",""],["base_salary","decimal",""],["bonus","decimal",""],["deduction","decimal",""],["total","decimal",""],["status","enum",""]],"ts":1,"sd":0},"payroll_adjustments":{"c":[["id","bigint unsigned","P"],["payroll_id","bigint unsigned","","payrolls"],["type","enum",""],["amount","decimal",""],["reason","varchar",""],["created_by","bigint unsigned","?","users"]],"ts":1,"sd":0},"categories":{"c":[["id","bigint unsigned","P"],["name","varchar",""],["slug","varchar","U"],["icon","varchar","?"],["sort_order","int unsigned",""],["is_active","tinyint",""]],"ts":1,"sd":0},"menu_items":{"c":[["id","bigint unsigned","P"],["category_id","bigint unsigned","","categories"],["name","varchar",""],["slug","varchar","U"],["description","text","?"],["base_price","decimal",""],["discount_percent","tinyint unsigned",""],["image","varchar","?"],["is_available","tinyint",""],["tags","json","?"],["prep_time_minutes","int unsigned",""]],"ts":1,"sd":1},"menu_item_images":{"c":[["id","bigint unsigned","P"],["menu_item_id","bigint unsigned","","menu_items"],["image","varchar",""],["alt_text","varchar","?"],["sort_order","int unsigned",""],["is_primary","tinyint",""]],"ts":1,"sd":0},"branch_menu_items":{"c":[["id","bigint unsigned","P"],["branch_id","bigint unsigned","","branches"],["menu_item_id","bigint unsigned","","menu_items"],["price","decimal","?"],["is_available","tinyint",""],["is_bestseller","tinyint",""],["is_chef_pick","tinyint",""],["stock_qty","int unsigned",""]],"ts":1,"sd":0},"daily_sales_summary":{"c":[["id","bigint unsigned","P"],["branch_id","bigint unsigned","","branches"],["menu_item_id","bigint unsigned","","menu_items"],["date","date",""],["day_of_week","tinyint unsigned",""],["total_qty","int unsigned",""],["total_revenue","decimal",""],["order_type_breakdown","json","?"]],"ts":1,"sd":0},"sales_predictions":{"c":[["id","bigint unsigned","P"],["branch_id","bigint unsigned","","branches"],["menu_item_id","bigint unsigned","","menu_items"],["predicted_date","date",""],["predicted_qty","int unsigned",""],["actual_qty","int unsigned","?"],["confidence","decimal","?"]],"ts":1,"sd":0},"settings":{"c":[["id","bigint unsigned","P"],["key","varchar","U"],["value","text","?"],["group","enum",""]],"ts":1,"sd":0},"banners":{"c":[["id","bigint unsigned","P"],["title","varchar",""],["image","varchar",""],["link","varchar","?"],["sort_order","int unsigned",""],["is_active","tinyint",""],["started_at","timestamp","?"],["ended_at","timestamp","?"]],"ts":1,"sd":0},"chatbot_keywords":{"c":[["id","bigint unsigned","P"],["keywords","varchar",""],["reply","text",""],["link_url","varchar","?"],["link_label","varchar","?"],["is_active","tinyint",""]],"ts":1,"sd":0},"sessions":{"c":[["id","varchar","P"],["user_id","bigint unsigned","?"],["ip_address","varchar","?"],["user_agent","text","?"],["payload","longtext",""],["last_activity","int",""]],"ts":0,"sd":0},"jobs":{"c":[["id","bigint unsigned","P"],["queue","varchar",""],["payload","longtext",""],["attempts","smallint unsigned",""],["reserved_at","int unsigned","?"],["available_at","int unsigned",""]],"ts":1,"sd":0}};
+
+// vị trí & nhóm của từng bảng (cột cách nhau 290)
+const X = [40, 330, 620, 910, 1200, 1490, 1780, 2070];
+const LAYOUT = {
+  addresses:            [0, 60,   'account'],
+  favorites:            [0, 270,  'account'],
+  ai_chat_sessions:     [0, 390,  'account'],
+  contact_messages:     [0, 565,  'account'],
+  support_tickets:      [0, 760,  'account'],
+  support_messages:     [0, 920,  'account'],
+  admin_logs:           [0, 1080, 'account'],
+  coupons:              [1, 60,   'order'],
+  coupon_usages:        [1, 400,  'order'],
+  coupon_notifications: [1, 560,  'order'],
+  reviews:              [1, 740,  'order'],
+  orders:               [2, 60,   'order'],
+  order_items:          [2, 485,  'order'],
+  order_histories:      [2, 695,  'order'],
+  users:                [3, 60,   'account'],
+  face_descriptors:     [3, 460,  'staff'],
+  salary_configs:       [3, 580,  'staff'],
+  branches:             [4, 60,   'menu'],
+  shifts:               [4, 370,  'staff'],
+  kiosk_devices:        [4, 530,  'staff'],
+  attendances:          [5, 60,   'staff'],
+  payrolls:             [5, 350,  'staff'],
+  payroll_adjustments:  [5, 640,  'staff'],
+  categories:           [6, 60,   'menu'],
+  menu_items:           [6, 240,  'menu'],
+  menu_item_images:     [6, 510,  'menu'],
+  branch_menu_items:    [6, 690,  'menu'],
+  daily_sales_summary:  [7, 60,   'stats'],
+  sales_predictions:    [7, 280,  'stats'],
+  settings:             [2, 950,  'system'],
+  banners:              [3, 950,  'system'],
+  chatbot_keywords:     [4, 950,  'system'],
+  sessions:             [5, 950,  'system'],
+  jobs:                 [6, 950,  'system'],
+};
+
+const DESC = {
+  users: "Mọi người dùng trong một bảng, phân biệt bằng <code>role</code> (customer / staff / kitchen / manager / admin). Nhân viên và manager gắn <code>branch_id</code>; khách thì null. Xoá mềm.",
+  addresses: "Sổ địa chỉ giao hàng của khách, một địa chỉ mặc định.",
+  favorites: "Món yêu thích: bảng nối users ↔ menu_items.",
+  ai_chat_sessions: "Lịch sử chatbot của khách; <code>messages</code> là JSON các lượt hỏi đáp.",
+  contact_messages: "Tin nhắn từ form liên hệ; khách vãng lai thì <code>user_id</code> null. Admin đánh dấu đã xử lý.",
+  support_tickets: "Phiếu hỗ trợ, có thể gắn một đơn hàng.",
+  support_messages: "Tin nhắn trong phiếu hỗ trợ.",
+  admin_logs: "Nhật ký thao tác của admin: hành động, đối tượng (đa hình qua subject_type/subject_id), thay đổi.",
+  coupons: "Voucher: loại (phần trăm/số tiền/miễn ship), <code>scope</code> (phạm vi áp dụng), giới hạn lượt dùng tổng và theo người.",
+  coupon_usages: "Mỗi lần một voucher được dùng cho một đơn. Huỷ đơn thì xoá dòng để trả lượt.",
+  coupon_notifications: "Mỗi email voucher gửi tới một khách (trạng thái hàng đợi, thời điểm gửi).",
+  reviews: "Đánh giá sau khi đơn hoàn thành: sao món + sao giao hàng, manager trả lời.",
+  orders: "Đơn hàng: loại (giao/mang đi), tốc độ giao, máy trạng thái <code>status</code>, tiền (tạm tính, ship, giảm, tổng), thanh toán. <code>kitchen_by</code> là nhân viên bếp nhận đơn.",
+  order_items: "Dòng món trong đơn. Lưu <b>tên và giá tại lúc đặt</b> (snapshot) để đổi giá sau này không làm sai đơn cũ.",
+  order_histories: "Mỗi lần đơn đổi trạng thái: từ → tới, ai đổi, ghi chú.",
+  face_descriptors: "Mẫu khuôn mặt của nhân viên: 128 số (JSON). Không lưu ảnh.",
+  salary_configs: "Lương giờ của nhân viên theo thời điểm hiệu lực (có lương thử việc).",
+  branches: "Chi nhánh: địa chỉ, toạ độ, giờ mở/đóng, sức chứa đơn theo khung giờ. Xoá mềm.",
+  shifts: "Ca làm của từng chi nhánh (giờ bắt đầu/kết thúc).",
+  kiosk_devices: "Máy quầy chấm công đã ghép với chi nhánh; chỉ lưu hash của token, có thể thu hồi.",
+  attendances: "Lượt chấm công vào/ra: cách chấm, độ tin cậy khuôn mặt, ảnh bằng chứng, lý do trễ/về sớm.",
+  payrolls: "Bảng lương tháng của nhân viên: giờ/ngày công, lương cơ bản, thưởng, khấu trừ, tổng, trạng thái (nháp/chốt/đã trả).",
+  payroll_adjustments: "Từng khoản điều chỉnh (thưởng/phạt) cộng vào bảng lương, kèm người tạo.",
+  categories: "Danh mục món (pizza, gà, nước…).",
+  menu_items: "Món gốc dùng chung toàn chuỗi: giá gốc, % giảm, thời gian chuẩn bị. Xoá mềm.",
+  menu_item_images: "Bộ ảnh của món, một ảnh chính.",
+  branch_menu_items: "Ghi đè theo chi nhánh: giá riêng, tắt món, bán chạy, món đầu bếp chọn, tồn kho. Không có dòng = bán giá gốc.",
+  daily_sales_summary: "Tổng hợp doanh số theo ngày × chi nhánh × món.",
+  sales_predictions: "Dự báo số lượng bán theo ngày, đối chiếu với thực tế.",
+  settings: "Cấu hình dạng khoá–giá trị theo nhóm (admin sửa được).",
+  banners: "Banner trang chủ, có thời gian hiển thị.",
+  chatbot_keywords: "Câu trả lời soạn sẵn cho chatbot theo từ khoá.",
+  sessions: "Phiên đăng nhập + giỏ hàng (SESSION_DRIVER=database). Không có khoá ngoại.",
+  jobs: "Hàng đợi job (QUEUE_CONNECTION=database), ví dụ gửi email voucher.",
+};
+
+const W = 250, HEAD = 34, ROW = 19;
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent) => {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+
+// ── dựng bảng ─────────────────────────────
+const tblLayer = document.getElementById('tbls');
+const relLayer = document.getElementById('rels');
+const T = {};
+for (const name in LAYOUT) {
+  const [col, y, dom] = LAYOUT[name];
+  const s = SCHEMA[name];
+  const x = X[col], h = HEAD + s.c.length * ROW + 8;
+  T[name] = { name, x, y, h, dom, cols: s.c };
+  const g = el('g', { class: `tbl d-${dom}`, 'data-t': name }, tblLayer);
+  el('rect', { class: 'box', x, y, width: W, height: h, rx: 8 }, g);
+  el('path', { class: 'hd', d: `M${x},${y + 8} a8,8 0 0 1 8,-8 h${W - 16} a8,8 0 0 1 8,8 v${HEAD - 8} h${-W} z` }, g);
+  el('text', { class: 'tn', x: x + 12, y: y + 22 }, g).textContent = name;
+  const tags = [s.ts && 'timestamps', s.sd && 'soft delete'].filter(Boolean).join(' · ');
+  if (tags) el('text', { class: 'tag', x: x + W - 10, y: y + 22, 'text-anchor': 'end' }, g).textContent = tags;
+  s.c.forEach(([cn, type, flags, fk], i) => {
+    const ry = y + HEAD + i * ROW;
+    if (i % 2) el('rect', { class: 'rowbg alt', x: x + 1, y: ry + 2, width: W - 2, height: ROW }, g);
+    const icon = flags.includes('P') ? ['PK', 'p'] : fk ? ['FK', 'f'] : flags.includes('U') ? ['UQ', 'u'] : null;
+    if (icon) el('text', { class: `ic ${icon[1]}`, x: x + 10, y: ry + 15 }, g).textContent = icon[0];
+    const t = el('text', { class: 'cn' + (flags.includes('P') ? ' pk' : fk ? ' fk' : ''), x: x + 32, y: ry + 15 }, g);
+    t.textContent = cn + (flags.includes('?') ? '?' : '');
+    el('text', { class: 'ct', x: x + W - 10, y: ry + 15, 'text-anchor': 'end' }, g).textContent = type.replace(' unsigned', '');
+  });
+}
+
+// nhãn nhóm bảng độc lập
+el('text', { class: 'glabel', x: X[2], y: 935 }, tblLayer).textContent = 'Bảng độc lập — không có khoá ngoại';
+
+// ── dựng quan hệ ──────────────────────────
+const RELS = [];
+for (const name in T) {
+  const a = T[name];
+  a.cols.forEach(([cn, , flags, fk], i) => {
+    if (!fk) return;
+    const b = T[fk];
+    const ay = a.y + HEAD + i * ROW + 11;
+    const by = b.y + HEAD + 11; // dòng id của bảng được tham chiếu
+    let d;
+    if (a.x === b.x) {
+      // cùng cột: vòng ra bên trái
+      const off = 28 + Math.abs(ay - by) * 0.06;
+      d = `M${a.x},${ay} C${a.x - off},${ay} ${b.x - off},${by} ${b.x},${by}`;
+    } else {
+      const right = b.x > a.x;
+      const sx = right ? a.x + W : a.x, ex = right ? b.x : b.x + W;
+      const dx = Math.max(50, Math.abs(ex - sx) * 0.4) * (right ? 1 : -1);
+      d = `M${sx},${ay} C${sx + dx},${ay} ${ex - dx},${by} ${ex},${by}`;
+    }
+    const p = el('path', { class: 'rel', d }, relLayer);
+    RELS.push({ from: name, col: cn, to: fk, el: p, nullable: flags.includes('?') });
+  });
+}
+
+// ── tương tác ─────────────────────────────
+const stage = document.getElementById('stage');
+const detail = document.getElementById('detail');
+const chips = document.querySelectorAll('.chip');
+const DOM_NAME = { account: 'Tài khoản', order: 'Đơn & voucher', menu: 'Chi nhánh & món', staff: 'Nhân sự', stats: 'Thống kê', system: 'Hệ thống' };
+
+function clearFocus() {
+  stage.classList.remove('focus');
+  document.querySelectorAll('.tbl').forEach(g => g.classList.remove('lit', 'sel'));
+  RELS.forEach(r => r.el.classList.remove('lit'));
+}
+function focusTables(names, relFilter) {
+  clearFocus();
+  stage.classList.add('focus');
+  names.forEach(n => document.querySelector(`.tbl[data-t="${n}"]`).classList.add('lit'));
+  RELS.filter(relFilter).forEach(r => {
+    r.el.classList.add('lit');
+    relLayer.appendChild(r.el); // đưa lên trên các đường mờ
+    [r.from, r.to].forEach(n => document.querySelector(`.tbl[data-t="${n}"]`).classList.add('lit'));
+  });
+}
+
+function selectTable(name) {
+  chips.forEach(c => c.classList.toggle('on', false));
+  focusTables([name], r => r.from === name || r.to === name);
+  document.querySelector(`.tbl[data-t="${name}"]`).classList.add('sel');
+  const t = T[name];
+  const out = RELS.filter(r => r.from === name), inc = RELS.filter(r => r.to === name);
+  document.getElementById('d-title').textContent = name;
+  document.getElementById('d-meta').textContent = `${DOM_NAME[t.dom]} · ${t.cols.length} cột`;
+  document.getElementById('d-body').innerHTML = DESC[name] || '';
+  let html = '';
+  if (out.length) html += '<div class="lh">thuộc về (N–1)</div><ul>' + out.map(r => `<li>${r.col}${r.nullable ? '?' : ''} → <b data-go="${r.to}">${r.to}</b></li>`).join('') + '</ul>';
+  if (inc.length) html += '<div class="lh">có nhiều (1–N)</div><ul>' + inc.map(r => `<li><b data-go="${r.from}">${r.from}</b>.${r.col}</li>`).join('') + '</ul>';
+  document.getElementById('d-rels').innerHTML = html;
+  detail.classList.remove('hide');
+}
+document.querySelectorAll('.tbl').forEach(g => g.addEventListener('click', () => selectTable(g.dataset.t)));
+document.getElementById('d-rels').addEventListener('click', e => { const go = e.target.dataset.go; if (go) selectTable(go); });
+document.getElementById('dclose').addEventListener('click', () => { detail.classList.add('hide'); clearFocus(); chips[0].classList.add('on'); });
+
+chips.forEach(c => c.addEventListener('click', () => {
+  chips.forEach(x => x.classList.toggle('on', x === c));
+  if (c.dataset.d === 'all') { clearFocus(); return; }
+  const names = Object.keys(T).filter(n => T[n].dom === c.dataset.d);
+  focusTables(names, r => names.includes(r.from) && names.includes(r.to));
+  document.getElementById('d-title').textContent = DOM_NAME[c.dataset.d];
+  document.getElementById('d-meta').textContent = `${names.length} bảng`;
+  document.getElementById('d-body').textContent = 'Bấm một bảng để xem quan hệ của nó với các nhóm khác.';
+  document.getElementById('d-rels').innerHTML = '<ul>' + names.map(n => `<li><b data-go="${n}">${n}</b></li>`).join('') + '</ul>';
+  detail.classList.remove('hide');
+}));
+
+document.getElementById('q').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  if (!q) { clearFocus(); chips[0].classList.add('on'); return; }
+  chips.forEach(x => x.classList.remove('on'));
+  const names = Object.keys(T).filter(n => n.includes(q) || T[n].cols.some(c => c[0].includes(q)));
+  focusTables(names, () => false);
+});
+
+// ── pan & zoom ────────────────────────────
+const svg = document.getElementById('svg');
+const content = document.getElementById('svg-content');
+const view = { x: 0, y: 0, k: 1 };
+const zlvl = document.getElementById('zlvl');
+function apply() {
+  content.setAttribute('transform', `translate(${view.x},${view.y}) scale(${view.k})`);
+  zlvl.textContent = Math.round(view.k * 100) + '%';
+}
+function toSvg(cx, cy) {
+  const p = svg.createSVGPoint(); p.x = cx; p.y = cy;
+  return p.matrixTransform(svg.getScreenCTM().inverse());
+}
+function zoomAt(px, py, k2) {
+  k2 = Math.min(6, Math.max(0.3, k2));
+  view.x = px - (px - view.x) * (k2 / view.k);
+  view.y = py - (py - view.y) * (k2 / view.k);
+  view.k = k2; apply();
+}
+let drag = null;
+svg.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  const p = toSvg(e.clientX, e.clientY);
+  drag = { id: e.pointerId, cx: e.clientX, cy: e.clientY, sx: p.x, sy: p.y, vx: view.x, vy: view.y, moved: false };
+});
+svg.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!drag.moved) {
+    if (Math.hypot(e.clientX - drag.cx, e.clientY - drag.cy) < 5) return;
+    drag.moved = true;
+    svg.setPointerCapture(e.pointerId);
+    stage.classList.add('grabbing');
+  }
+  const p = toSvg(e.clientX, e.clientY);
+  view.x = drag.vx + (p.x - drag.sx);
+  view.y = drag.vy + (p.y - drag.sy);
+  apply();
+});
+function endDrag(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (drag.moved) {
+    const eat = ev => { ev.stopPropagation(); ev.preventDefault(); };
+    window.addEventListener('click', eat, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener('click', eat, true), 0);
+  }
+  stage.classList.remove('grabbing');
+  drag = null;
+}
+svg.addEventListener('pointerup', endDrag);
+svg.addEventListener('pointercancel', endDrag);
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const p = toSvg(e.clientX, e.clientY);
+  zoomAt(p.x, p.y, view.k * Math.exp(-e.deltaY * 0.0015));
+}, { passive: false });
+const VB = svg.viewBox.baseVal;
+document.getElementById('zin').addEventListener('click', () => zoomAt(VB.width / 2, VB.height / 2, view.k * 1.25));
+document.getElementById('zout').addEventListener('click', () => zoomAt(VB.width / 2, VB.height / 2, view.k / 1.25));
+zlvl.addEventListener('click', () => { view.x = 0; view.y = 0; view.k = 1; apply(); });
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const dark = !document.documentElement.classList.contains('dark');
+  document.documentElement.classList.toggle('dark', dark);
+  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+});
+</script>
+</body>
+</html>

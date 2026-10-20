@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZomZop — kiến trúc</title>
+<script>
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('theme'); } catch (e) {}
+    var dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+  })();
+</script>
+<style>
+  :root {
+    --bg: #FAF9F5; --surface: #FFFFFF; --surface2: #F0EEE6;
+    --ink: #141413; --body: #3D3D3A; --muted: #87867F;
+    --line: #D1CFC5; --line-soft: #E6E3DA;
+    --clay: #D97757; --clay-soft: rgba(217,119,87,0.10);
+    --olive: #788C5D; --olive-soft: rgba(120,140,93,0.12);
+    --blue: #5B7E96; --blue-soft: rgba(91,126,150,0.10);
+    --zone: rgba(20,20,19,0.025); --zone-line: #D1CFC5;
+    --shadow: rgba(0,0,0,0.08);
+    --serif: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html.dark {
+    --bg: #141413; --surface: #1F1F1D; --surface2: #2A2A28;
+    --ink: #FAF9F5; --body: #D1CFC5; --muted: #8F8E87;
+    --line: #3D3D3A; --line-soft: #2A2A28;
+    --clay: #E48A6E; --clay-soft: rgba(228,138,110,0.14);
+    --olive: #9DB07C; --olive-soft: rgba(157,176,124,0.16);
+    --blue: #7FA3BC; --blue-soft: rgba(127,163,188,0.14);
+    --zone: rgba(250,249,245,0.03); --zone-line: #3D3D3A;
+    --shadow: rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--body); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* ── top bar ─────────────────────────────── */
+  .bar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 12px 20px; border-bottom: 1px solid var(--line-soft); flex: none;
+  }
+  .bar h1 { font-family: var(--serif); font-weight: 500; font-size: 19px; color: var(--ink); letter-spacing: -0.01em; }
+  .bar .sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .spacer { flex: 1; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip, .btn {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
+    padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px;
+    background: transparent; color: var(--muted); cursor: pointer; transition: all .15s ease;
+  }
+  .chip:hover, .btn:hover { color: var(--ink); border-color: var(--muted); }
+  .chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .btn { border-radius: 6px; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.08em; padding: 5px 10px; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; border: 1.5px solid var(--line); vertical-align: -2px; margin-right: 5px; }
+  .legend .lg-gate { background: var(--clay-soft); border-color: var(--clay); }
+  .legend .lg-svc { background: var(--olive-soft); border-color: var(--olive); }
+  .legend .lg-store { background: var(--surface2); }
+  .legend .lg-ext { border-style: dashed; }
+
+  /* ── stage ───────────────────────────────── */
+  .stage { flex: 1; position: relative; min-height: 0; }
+  .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; user-select: none; }
+  .stage.grabbing svg { cursor: grabbing; }
+
+  .zone rect { fill: var(--zone); stroke: var(--zone-line); stroke-width: 1; stroke-dasharray: 5 5; }
+  .zone .ztitle { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; fill: var(--muted); }
+  .zone .zsub { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); opacity: 0.75; }
+  .zone.inner rect { fill: none; stroke-dasharray: 2 4; }
+  .zone.inner .zsub { opacity: 1; }
+
+  .node { cursor: pointer; transition: opacity .2s ease; }
+  .node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: stroke .15s ease; }
+  .node:hover rect { stroke: var(--muted); }
+  .node.sel rect { stroke: var(--clay) !important; stroke-width: 2.2; }
+  .node .t { font-family: var(--sans); font-size: 14.5px; font-weight: 600; fill: var(--ink); pointer-events: none; }
+  .node .m { font-family: var(--mono); font-size: 11px; fill: var(--muted); pointer-events: none; }
+  .node .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--clay); pointer-events: none; }
+  .node.gate rect { fill: var(--clay-soft); stroke: var(--clay); }
+  .node.svc rect { fill: var(--olive-soft); stroke: var(--olive); }
+  .node.store rect { fill: var(--surface2); }
+  .node.ext rect { stroke-dasharray: 6 3; stroke: var(--blue); fill: var(--blue-soft); }
+
+  .edge { stroke: var(--muted); stroke-width: 1.6; fill: none; marker-end: url(#a-mut); transition: opacity .2s ease, stroke .2s ease; }
+  .edge.dash { stroke-dasharray: 5 4; }
+  .elbl { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); transition: opacity .2s ease; pointer-events: none; }
+
+  .stage.flowing .edge, .stage.flowing .elbl { opacity: 0.1; }
+  .stage.flowing .node { opacity: 0.28; }
+  .stage.flowing .zone { opacity: 0.5; }
+  .stage.flowing .edge.lit {
+    opacity: 1; stroke: var(--clay); marker-end: url(#a-clay);
+    stroke-dasharray: 7 5; animation: march 0.9s linear infinite;
+  }
+  .stage.flowing .edge.cur { stroke-width: 2.8; }
+  .stage.flowing .elbl.lit { opacity: 1; fill: var(--clay); }
+  .stage.flowing .node.lit { opacity: 1; }
+  .stage.flowing .node.lit rect { stroke: var(--clay); }
+  @keyframes march { to { stroke-dashoffset: -12; } }
+  .pulse { fill: var(--clay); stroke: var(--bg); stroke-width: 2; display: none; pointer-events: none; }
+  .stage.flowing .pulse { display: block; }
+  @media (prefers-reduced-motion: reduce) {
+    .stage.flowing .edge.lit { animation: none; }
+    .stage.flowing .pulse { display: none; }
+  }
+
+  /* ── floating cards & controls ───────────── */
+  .card {
+    position: absolute; background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; box-shadow: 0 6px 24px var(--shadow);
+  }
+  .card.hide { display: none; }
+  .x {
+    position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 6px;
+    border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1;
+  }
+  .x:hover { color: var(--ink); border-color: var(--line); }
+  #detail { right: 16px; bottom: 16px; width: 340px; }
+  #detail h3 { font-family: var(--serif); font-weight: 500; font-size: 17px; color: var(--ink); margin: 0 24px 2px 0; }
+  #detail .meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-bottom: 8px; }
+  #detail p { font-size: 12.5px; line-height: 1.55; }
+  #detail code, #flowcap code { font-family: var(--mono); font-size: 11px; color: var(--clay); }
+  #detail .file { margin-top: 8px; font-family: var(--mono); font-size: 10.5px; color: var(--muted); word-break: break-all; }
+  #flowcap { left: 16px; bottom: 16px; max-width: 440px; }
+  #flowcap .fname { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--clay); margin: 0 24px 6px 0; }
+  #flowcap ol { margin-left: 18px; }
+  #flowcap li { font-size: 12.5px; line-height: 1.55; }
+  .zoom {
+    position: absolute; top: 12px; left: 16px; display: flex; gap: 4px; align-items: center;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px;
+  }
+  .zoom button { width: 26px; height: 26px; border: 0; border-radius: 5px; background: transparent; color: var(--body); cursor: pointer; font-family: var(--mono); font-size: 14px; }
+  .zoom button:hover { background: var(--surface2); color: var(--ink); }
+  .zoom #zlvl { min-width: 52px; font-family: var(--mono); font-size: 11px; width: auto; padding: 0 6px; }
+  .hint { position: absolute; top: 16px; right: 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); opacity: 0.8; }
+  @media (max-width: 880px) {
+    .bar { padding: 10px 16px; }
+    #detail { left: 16px; right: 16px; width: auto; }
+    #flowcap { left: 16px; right: 16px; bottom: auto; top: 56px; max-width: none; }
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <h1>ZomZop — kiến trúc</h1>
+    <div class="sub">Laravel 13 · SQLite · 4 cổng vào · 1 file dữ liệu</div>
+  </div>
+  <div class="legend">
+    <span><i class="lg-gate"></i>cổng phân quyền</span>
+    <span><i class="lg-svc"></i>service</span>
+    <span><i class="lg-store"></i>dữ liệu</span>
+    <span><i class="lg-ext"></i>bên ngoài</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-flow="all">Tất cả</button>
+    <button class="chip" data-flow="browse">Xem thực đơn</button>
+    <button class="chip" data-flow="order">Đặt hàng</button>
+    <button class="chip" data-flow="status">Xử lý đơn</button>
+    <button class="chip" data-flow="chat">Chatbot</button>
+    <button class="chip" data-flow="face">Đăng ký mặt</button>
+    <button class="chip" data-flow="punch">Chấm công</button>
+    <button class="chip" data-flow="payroll">Tính lương</button>
+    <button class="chip" data-flow="coupon">Gửi voucher</button>
+  </div>
+  <button class="btn" id="themeToggle">Giao diện</button>
+</div>
+
+<div class="stage" id="stage">
+<svg id="svg" viewBox="0 0 1830 920" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Sơ đồ kiến trúc ZomZop">
+  <defs>
+    <marker id="a-mut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/>
+    </marker>
+    <marker id="a-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--clay)"/>
+    </marker>
+  </defs>
+<g id="svg-content">
+
+  <!-- ── zones ─────────────────────────────── -->
+  <g class="zone">
+    <rect x="40" y="80" width="240" height="815" rx="16"/>
+    <text class="ztitle" x="60" y="108">Người dùng</text>
+    <text class="zsub" x="60" y="124">trình duyệt · máy quầy</text>
+  </g>
+  <g class="zone">
+    <rect x="320" y="80" width="805" height="815" rx="16"/>
+    <text class="ztitle" x="340" y="108">Laravel 13 · PHP 8.3</text>
+    <text class="zsub" x="340" y="124">routes → controllers → services</text>
+  </g>
+  <g class="zone">
+    <rect x="1170" y="80" width="375" height="815" rx="16"/>
+    <text class="ztitle" x="1190" y="108">Dữ liệu</text>
+    <text class="zsub" x="1190" y="124">SQLite + ổ đĩa</text>
+  </g>
+  <g class="zone inner">
+    <rect x="1200" y="134" width="330" height="614" rx="10"/>
+    <text class="zsub" x="1215" y="741">SQLite · database.sqlite</text>
+  </g>
+  <g class="zone">
+    <rect x="1580" y="80" width="210" height="815" rx="16"/>
+    <text class="ztitle" x="1600" y="108">Bên ngoài</text>
+    <text class="zsub" x="1600" y="124">gọi HTTP / SMTP ra ngoài</text>
+  </g>
+
+  <!-- ── edges: clients → routes ───────────── -->
+  <path class="edge" id="e-cust" d="M260,240 L343,240"/>
+  <path class="edge" id="e-mgr"  d="M260,475 L343,475"/>
+  <path class="edge" id="e-adm"  d="M260,677 L343,677"/>
+  <path class="edge" id="e-kio"  d="M260,815 L343,815"/>
+  <!-- routes → controllers -->
+  <path class="edge" id="e-w-shop"  d="M545,190 C568,190 566,173 588,173"/>
+  <path class="edge" id="e-w-check" d="M545,240 L588,240"/>
+  <path class="edge" id="e-w-chat"  d="M545,290 C568,290 566,307 588,307"/>
+  <path class="edge" id="e-m-ord"   d="M545,440 C568,440 566,403 588,403"/>
+  <path class="edge" id="e-m-pay"   d="M545,471 L588,471"/>
+  <path class="edge" id="e-m-face"  d="M545,505 C568,505 566,539 588,539"/>
+  <path class="edge" id="e-a-adm"   d="M545,665 C568,665 566,646 588,646"/>
+  <path class="edge" id="e-a-send"  d="M545,690 C568,690 566,712 588,712"/>
+  <path class="edge" id="e-k-k"     d="M545,815 L588,815"/>
+  <!-- controllers → services -->
+  <path class="edge" id="e-shop-menu"    d="M810,173 L878,173"/>
+  <path class="edge" id="e-check-menu"   d="M810,230 C846,230 842,190 878,190"/>
+  <path class="edge" id="e-check-coupon" d="M810,250 L878,250"/>
+  <path class="edge" id="e-chat-svc"     d="M810,307 L878,307"/>
+  <path class="edge" id="e-ord-svc"      d="M810,403 L878,403"/>
+  <path class="edge" id="e-pay-svc"      d="M810,471 L878,471"/>
+  <path class="edge" id="e-face-match"   d="M810,539 C846,539 842,566 878,566"/>
+  <path class="edge" id="e-send-job"     d="M810,712 L878,712"/>
+  <path class="edge" id="e-kiosk-match"  d="M810,800 C858,800 846,590 878,588"/>
+  <path class="edge" id="e-kiosk-punch"  d="M810,822 L878,822"/>
+  <!-- → data -->
+  <path class="edge" id="e-sess"       d="M500,140 C510,62 1150,62 1218,170"/>
+  <path class="edge" id="e-menu-db"    d="M1100,173 C1160,173 1170,248 1218,248"/>
+  <path class="edge" id="e-coupon-db"  d="M1100,252 C1170,252 1160,384 1218,384"/>
+  <path class="edge" id="e-bot-db"     d="M1100,300 C1160,300 1170,318 1218,318"/>
+  <path class="edge" id="e-status-db"  d="M1100,403 L1218,403"/>
+  <path class="edge" id="e-payroll-db" d="M1100,471 L1218,471"/>
+  <path class="edge" id="e-match-db"   d="M1100,573 C1160,573 1170,500 1218,500"/>
+  <path class="edge" id="e-admin-db"   d="M810,646 L1198,646"/>
+  <path class="edge" id="e-job-db"     d="M1100,700 C1160,700 1170,594 1218,594"/>
+  <path class="edge" id="e-punch-db"   d="M1100,808 C1160,808 1170,700 1218,700"/>
+  <path class="edge" id="e-photo"      d="M700,843 C700,872 1160,872 1218,820"/>
+  <!-- → external -->
+  <path class="edge dash" id="e-gemini" d="M1100,322 C1150,322 1150,538 1210,538 L1598,538"/>
+  <path class="edge dash" id="e-mail"   d="M1100,726 C1160,740 1170,756 1230,756 L1598,756"/>
+
+  <!-- edge labels -->
+  <text class="elbl" data-e="e-sess" x="850" y="78" text-anchor="middle">session · giỏ hàng, chi nhánh đã chọn</text>
+  <text class="elbl" data-e="e-check-menu" x="845" y="209" text-anchor="middle">giá lại</text>
+  <text class="elbl" data-e="e-coupon-db" x="1160" y="347" text-anchor="middle">transaction</text>
+  <text class="elbl" data-e="e-admin-db" x="990" y="639" text-anchor="middle">CRUD toàn chuỗi</text>
+  <text class="elbl" data-e="e-gemini" x="1555" y="531" text-anchor="middle">HTTPS</text>
+  <text class="elbl" data-e="e-mail" x="1555" y="749" text-anchor="middle">SMTP</text>
+  <text class="elbl" data-e="e-photo" x="940" y="884" text-anchor="middle">ảnh bằng chứng (tự xoá sau N ngày)</text>
+  <text class="elbl" data-e="e-kiosk-match" x="844" y="694" text-anchor="middle" transform="rotate(-90 844 694)">128 số</text>
+
+  <!-- ── nodes: clients ────────────────────── -->
+  <g class="node" data-k="customer">
+    <rect x="60" y="140" width="200" height="200" rx="10"/>
+    <text class="t" x="80" y="166">Khách hàng</text>
+    <text class="m" x="80" y="188">Blade · Tailwind · Vite</text>
+    <text class="m" x="80" y="206">live-search · item-modal</text>
+    <text class="m" x="80" y="224">chatbot.js</text>
+    <text class="k" x="80" y="250">cookie phiên</text>
+  </g>
+  <g class="node" data-k="manager">
+    <rect x="60" y="370" width="200" height="210" rx="10"/>
+    <text class="t" x="80" y="396">Quản lý chi nhánh</text>
+    <text class="m" x="80" y="418">face-api.js (trình duyệt)</text>
+    <text class="m" x="80" y="436">dashboard ApexCharts</text>
+    <text class="m" x="80" y="454">xuất Excel</text>
+    <text class="k" x="80" y="480">role: manager</text>
+  </g>
+  <g class="node" data-k="admin">
+    <rect x="60" y="610" width="200" height="135" rx="10"/>
+    <text class="t" x="80" y="636">Admin chuỗi</text>
+    <text class="m" x="80" y="658">chi nhánh · tài khoản</text>
+    <text class="m" x="80" y="676">voucher · banner · cài đặt</text>
+    <text class="k" x="80" y="702">role: admin</text>
+  </g>
+  <g class="node" data-k="kiosk">
+    <rect x="60" y="775" width="200" height="80" rx="10"/>
+    <text class="t" x="80" y="800">Máy quầy</text>
+    <text class="m" x="80" y="820">kiosk.js + face-api</text>
+    <text class="k" x="80" y="840">X-Kiosk-Token</text>
+  </g>
+
+  <!-- ── nodes: routes ─────────────────────── -->
+  <g class="node" data-k="rweb">
+    <rect x="345" y="140" width="200" height="200" rx="10"/>
+    <text class="t" x="365" y="166">routes/web.php</text>
+    <text class="k" x="365" y="186">nhóm web</text>
+    <text class="m" x="365" y="206">session · CSRF</text>
+    <text class="m" x="365" y="224">auth: checkout, đơn,</text>
+    <text class="m" x="365" y="240">chatbot, yêu thích</text>
+    <text class="m" x="365" y="258">throttle: liên hệ, chat</text>
+  </g>
+  <g class="node gate" data-k="rmanager">
+    <rect x="345" y="370" width="200" height="210" rx="10"/>
+    <text class="t" x="365" y="396">routes/manager.php</text>
+    <text class="k" x="365" y="416">auth · role:manager</text>
+    <text class="m" x="365" y="436">/manager/*</text>
+    <text class="m" x="365" y="454">EnsureRole chặn cửa</text>
+    <text class="m" x="365" y="472">chỉ chi nhánh của mình</text>
+  </g>
+  <g class="node gate" data-k="radmin">
+    <rect x="345" y="610" width="200" height="135" rx="10"/>
+    <text class="t" x="365" y="636">routes/admin.php</text>
+    <text class="k" x="365" y="656">auth · role:admin</text>
+    <text class="m" x="365" y="676">/admin/* · toàn chuỗi</text>
+  </g>
+  <g class="node gate" data-k="rkiosk">
+    <rect x="345" y="775" width="200" height="80" rx="10"/>
+    <text class="t" x="365" y="800">routes/kiosk.php</text>
+    <text class="k" x="365" y="820">throttle · kiosk</text>
+    <text class="m" x="365" y="840">không session / CSRF</text>
+  </g>
+
+  <!-- ── nodes: controllers ────────────────── -->
+  <g class="node" data-k="cshop">
+    <rect x="590" y="145" width="220" height="56" rx="10"/>
+    <text class="t" x="608" y="168">Storefront</text>
+    <text class="m" x="608" y="188">Home·Category·MenuItem·Cart</text>
+  </g>
+  <g class="node" data-k="ccheckout">
+    <rect x="590" y="212" width="220" height="56" rx="10"/>
+    <text class="t" x="608" y="235">CheckoutController</text>
+    <text class="m" x="608" y="255">+ CustomerOrderController</text>
+  </g>
+  <g class="node" data-k="cchat">
+    <rect x="590" y="279" width="220" height="56" rx="10"/>
+    <text class="t" x="608" y="302">ChatbotController</text>
+    <text class="m" x="608" y="322">messages · send</text>
+  </g>
+  <g class="node" data-k="cmorders">
+    <rect x="590" y="375" width="220" height="56" rx="10"/>
+    <text class="t" x="608" y="398">Manager\OrderController</text>
+    <text class="m" x="608" y="418">danh sách · đổi trạng thái</text>
+  </g>
+  <g class="node" data-k="cpayroll">
+    <rect x="590" y="443" width="220" height="56" rx="10"/>
+    <text class="t" x="608" y="466">Manager\PayrollController</text>
+    <text class="m" x="608" y="486">tính · điều chỉnh · chốt · trả</text>
+  </g>
+  <g class="node" data-k="cface">
+    <rect x="590" y="511" width="220" height="56" rx="10"/>
+    <text class="t" x="608" y="534">Manager\FaceController</text>
+    <text class="m" x="608" y="554">nhận 3–15 mẫu khuôn mặt</text>
+  </g>
+  <g class="node" data-k="cadmin">
+    <rect x="590" y="618" width="220" height="56" rx="10"/>
+    <text class="t" x="608" y="641">Admin\* controllers</text>
+    <text class="m" x="608" y="661">chi nhánh·voucher·báo cáo</text>
+  </g>
+  <g class="node" data-k="csend">
+    <rect x="590" y="684" width="220" height="56" rx="10"/>
+    <text class="t" x="608" y="707">CouponSendController</text>
+    <text class="m" x="608" y="727">gửi voucher qua email</text>
+  </g>
+  <g class="node" data-k="ckiosk">
+    <rect x="590" y="787" width="220" height="56" rx="10"/>
+    <text class="t" x="608" y="810">KioskController</text>
+    <text class="m" x="608" y="830">status · punch</text>
+  </g>
+
+  <!-- ── nodes: services ───────────────────── -->
+  <g class="node svc" data-k="smenu">
+    <rect x="880" y="145" width="220" height="56" rx="10"/>
+    <text class="t" x="898" y="168">BranchMenu</text>
+    <text class="m" x="898" y="188">món đang bán · giá chi nhánh</text>
+  </g>
+  <g class="node svc" data-k="scoupon">
+    <rect x="880" y="212" width="220" height="56" rx="10"/>
+    <text class="t" x="898" y="235">CouponService + Shipping</text>
+    <text class="m" x="898" y="255">find(lock)·redeem·release</text>
+  </g>
+  <g class="node svc" data-k="schat">
+    <rect x="880" y="279" width="220" height="56" rx="10"/>
+    <text class="t" x="898" y="302">Chatbot</text>
+    <text class="m" x="898" y="322">từ khoá → Gemini → dự phòng</text>
+  </g>
+  <g class="node svc" data-k="sstatus">
+    <rect x="880" y="375" width="220" height="56" rx="10"/>
+    <text class="t" x="898" y="398">OrderStatusService</text>
+    <text class="m" x="898" y="418">máy trạng thái · khoá dòng</text>
+  </g>
+  <g class="node svc" data-k="spayroll">
+    <rect x="880" y="443" width="220" height="56" rx="10"/>
+    <text class="t" x="898" y="466">BranchPayroll</text>
+    <text class="m" x="898" y="486">giờ công × lương giờ ± đ/c</text>
+  </g>
+  <g class="node svc" data-k="smatch">
+    <rect x="880" y="545" width="220" height="56" rx="10"/>
+    <text class="t" x="898" y="568">FaceMatcher</text>
+    <text class="m" x="898" y="588">khoảng cách Euclid gần nhất</text>
+  </g>
+  <g class="node svc" data-k="sjob">
+    <rect x="880" y="684" width="220" height="56" rx="10"/>
+    <text class="t" x="898" y="707">SendCouponEmail</text>
+    <text class="m" x="898" y="727">Job · CouponMail</text>
+  </g>
+  <g class="node svc" data-k="spunch">
+    <rect x="880" y="787" width="220" height="56" rx="10"/>
+    <text class="t" x="898" y="810">FacePunch</text>
+    <text class="m" x="898" y="830">giờ server · ca · lý do</text>
+  </g>
+
+  <!-- ── nodes: data ───────────────────────── -->
+  <g class="node store" data-k="dsession">
+    <rect x="1220" y="150" width="290" height="56" rx="10"/>
+    <text class="t" x="1238" y="173">sessions</text>
+    <text class="m" x="1238" y="193">giỏ hàng · chi nhánh · checkout</text>
+  </g>
+  <g class="node store" data-k="dmenu">
+    <rect x="1220" y="216" width="290" height="64" rx="10"/>
+    <text class="t" x="1238" y="239">Thực đơn</text>
+    <text class="m" x="1238" y="259">categories · menu_items</text>
+    <text class="m" x="1238" y="274">branch_menu_items</text>
+  </g>
+  <g class="node store" data-k="dchat">
+    <rect x="1220" y="290" width="290" height="56" rx="10"/>
+    <text class="t" x="1238" y="313">Chatbot</text>
+    <text class="m" x="1238" y="333">chatbot_keywords · ai_chat_sessions</text>
+  </g>
+  <g class="node store" data-k="dorders">
+    <rect x="1220" y="356" width="290" height="72" rx="10"/>
+    <text class="t" x="1238" y="379">Đơn hàng & voucher</text>
+    <text class="m" x="1238" y="399">orders · order_items · histories</text>
+    <text class="m" x="1238" y="416">coupons · coupon_usages</text>
+  </g>
+  <g class="node store" data-k="dpeople">
+    <rect x="1220" y="438" width="290" height="72" rx="10"/>
+    <text class="t" x="1238" y="461">Nhân sự & lương</text>
+    <text class="m" x="1238" y="481">users · face_descriptors</text>
+    <text class="m" x="1238" y="498">salary_configs · payrolls (+đ/c)</text>
+  </g>
+  <g class="node store" data-k="djobs">
+    <rect x="1220" y="566" width="290" height="56" rx="10"/>
+    <text class="t" x="1238" y="589">Hàng đợi</text>
+    <text class="m" x="1238" y="609">jobs · coupon_notifications</text>
+  </g>
+  <g class="node store" data-k="dattend">
+    <rect x="1220" y="662" width="290" height="64" rx="10"/>
+    <text class="t" x="1238" y="685">Chấm công</text>
+    <text class="m" x="1238" y="705">shifts · attendances</text>
+    <text class="m" x="1238" y="720">kiosk_devices</text>
+  </g>
+  <g class="node store" data-k="dfiles">
+    <rect x="1220" y="772" width="290" height="72" rx="10"/>
+    <text class="t" x="1238" y="795">Ổ đĩa</text>
+    <text class="m" x="1238" y="815">storage: attendance-photos</text>
+    <text class="m" x="1238" y="832">public/images: ảnh admin tải</text>
+  </g>
+
+  <!-- ── nodes: external ───────────────────── -->
+  <g class="node ext" data-k="gemini">
+    <rect x="1600" y="500" width="170" height="76" rx="10"/>
+    <text class="t" x="1616" y="525">Gemini API</text>
+    <text class="m" x="1616" y="545">3.1-flash-lite</text>
+    <text class="m" x="1616" y="562">timeout 180s</text>
+  </g>
+  <g class="node ext" data-k="mail">
+    <rect x="1600" y="718" width="170" height="76" rx="10"/>
+    <text class="t" x="1616" y="743">Mailer</text>
+    <text class="m" x="1616" y="763">dev: MAIL=log</text>
+    <text class="m" x="1616" y="780">thật: SMTP</text>
+  </g>
+
+  <circle class="pulse" id="pulse" r="5.5" cx="0" cy="0"/>
+</g>
+</svg>
+
+  <div class="zoom">
+    <button id="zout" title="Thu nhỏ">−</button>
+    <button id="zlvl" title="Về 100%">100%</button>
+    <button id="zin" title="Phóng to">+</button>
+  </div>
+  <div class="hint">kéo để di chuyển · lăn chuột để zoom</div>
+
+  <div class="card hide" id="flowcap">
+    <button class="x" data-close="flowcap" aria-label="Đóng">×</button>
+    <div class="fname" id="f-name"></div>
+    <ol id="f-steps"></ol>
+  </div>
+
+  <div class="card" id="detail">
+    <button class="x" data-close="detail" aria-label="Đóng">×</button>
+    <h3 id="d-title">Bấm vào bất kỳ ô nào</h3>
+    <div class="meta" id="d-meta">chi tiết thành phần</div>
+    <p id="d-body">Mỗi ô đều bấm được. Các nút phía trên làm sáng và chạy hoạt ảnh cho từng luồng: đặt hàng, xử lý đơn, chatbot, chấm công khuôn mặt, tính lương, gửi voucher.</p>
+    <div class="file" id="d-file"></div>
+  </div>
+</div>
+
+<script>
+const DETAIL = {
+  customer: { t:"Khách hàng", m:"trình duyệt · cookie phiên", f:"resources/views · resources/js", b:"Trang Blade render phía server, Tailwind + Vite. JS nhỏ: <code>live-search</code>, <code>item-modal</code>, <code>chatbot.js</code>. Chọn chi nhánh trước, giỏ hàng nằm trong session — đăng nhập chỉ cần khi thanh toán." },
+  manager:  { t:"Quản lý chi nhánh", m:"trình duyệt · role manager", f:"resources/js/face-enroll.js · manager-dashboard.js", b:"Quản lý một chi nhánh: đơn, giá món, nhân viên, ca, chấm công, lương, báo cáo. <b>face-api.js chạy ngay trên trình duyệt</b> để tính descriptor — server không nhận ảnh khi đăng ký." },
+  admin:    { t:"Admin chuỗi", m:"trình duyệt · role admin", f:"routes/admin.php", b:"Quản trị toàn chuỗi: chi nhánh, tài khoản manager, banner, voucher, cài đặt, từ khoá chatbot, báo cáo và nhật ký." },
+  kiosk:    { t:"Máy quầy chấm công", m:"thiết bị · X-Kiosk-Token", f:"resources/js/kiosk.js", b:"Mở cả ngày ở quầy, không đăng nhập. Ghép thiết bị bằng token trong link manager cấp. Nhận diện mặt trên máy, chỉ gửi <b>descriptor 128 số</b> (+ ảnh bằng chứng) lên API." },
+  rweb:     { t:"routes/web.php", m:"middleware nhóm web", f:"routes/web.php", b:"Storefront công khai + khu tài khoản. Session lưu trong DB (<code>SESSION_DRIVER=database</code>). <code>auth</code> bảo vệ checkout, đơn của tôi, yêu thích, chatbot; <code>throttle</code> cho form liên hệ và chat." },
+  rmanager: { t:"routes/manager.php", m:"cổng · auth + role:manager", f:"routes/manager.php · app/Http/Middleware/EnsureRole.php", b:"<code>EnsureRole</code> chặn mọi request không phải manager. Mỗi controller lọc theo <code>branch_id</code> của manager — không xem được chi nhánh khác." },
+  radmin:   { t:"routes/admin.php", m:"cổng · auth + role:admin", f:"routes/admin.php", b:"Cùng middleware <code>EnsureRole</code>, nhưng không giới hạn chi nhánh." },
+  rkiosk:   { t:"routes/kiosk.php", m:"cổng · throttle:kiosk + kiosk", f:"routes/kiosk.php · app/Http/Middleware/AuthenticateKiosk.php", b:"Cố ý <b>không</b> dùng nhóm web: máy mở cả ngày nên token CSRF sẽ hết hạn. Xác thực bằng header <code>X-Kiosk-Token</code>, giới hạn tần suất theo thiết bị + IP." },
+  cshop:    { t:"Storefront controllers", m:"Home · Category · MenuItem · Cart · Branch", f:"app/Http/Controllers/*.php", b:"Trang chủ, thực đơn, bán chạy, tìm kiếm, chi tiết món, chọn chi nhánh, giỏ hàng. Mọi danh sách món đi qua <code>BranchMenu</code> để lọc món đang bán và áp giá chi nhánh." },
+  ccheckout:{ t:"CheckoutController", m:"+ CustomerOrderController", f:"app/Http/Controllers/CheckoutController.php", b:"Kiểm lại giỏ (món hết/giá đổi → báo khách), tính phí ship theo loại đơn + tốc độ, áp voucher, rồi tạo đơn trong một <code>DB::transaction</code>. Khách xem đơn, đặt lại, đánh giá qua CustomerOrderController." },
+  cchat:    { t:"ChatbotController", m:"messages · send", f:"app/Http/Controllers/ChatbotController.php", b:"Lưu lịch sử hội thoại theo khách, gọi <code>Chatbot::reply()</code> với 6 tin gần nhất." },
+  cmorders: { t:"Manager\\OrderController", m:"danh sách · chi tiết · đổi trạng thái · xuất", f:"app/Http/Controllers/Manager/OrderController.php", b:"Manager là người đổi trạng thái đơn. Mọi thay đổi đi qua <code>OrderStatusService</code>." },
+  cpayroll: { t:"Manager\\PayrollController", m:"tính lại · điều chỉnh · chốt · trả", f:"app/Http/Controllers/Manager/PayrollController.php", b:"Tính lại lương tháng, thêm/sửa/xoá khoản điều chỉnh (thưởng, phạt), chốt rồi đánh dấu đã trả. Xuất Excel qua <code>ExcelReport</code>." },
+  cface:    { t:"Manager\\FaceController", m:"đăng ký khuôn mặt", f:"app/Http/Controllers/Manager/FaceController.php", b:"Nhận 3–15 descriptor (mỗi cái 128 số trong [-1, 1]). Kiểm tra trùng với người khác qua <code>FaceMatcher::nearestOther</code> trước khi lưu. <b>Không lưu ảnh.</b>" },
+  cadmin:   { t:"Admin controllers", m:"CRUD toàn chuỗi", f:"app/Http/Controllers/Admin/", b:"Chi nhánh, manager, banner, voucher, đơn, lương, chấm công, cài đặt, tin liên hệ, từ khoá chatbot, báo cáo (<code>BranchReport</code>/<code>BranchStats</code>), nhật ký admin." },
+  csend:    { t:"CouponSendController", m:"gửi voucher hàng loạt", f:"app/Http/Controllers/Admin/CouponSendController.php", b:"Tạo một <code>coupon_notifications</code> cho mỗi khách rồi <code>dispatch</code> job — request trả về ngay, email gửi nền." },
+  ckiosk:   { t:"KioskController", m:"status · punch", f:"app/Http/Controllers/KioskController.php", b:"<code>punch</code>: so khớp descriptor → nếu nhận ra thì gọi <code>FacePunch</code> → ghi xong mới lưu ảnh bằng chứng (ảnh lỗi thì bỏ qua, không bắt chấm lại)." },
+  smenu:    { t:"BranchMenu", m:"service · quy tắc món & giá", f:"app/Services/BranchMenu.php", b:"Đang bán = món bật + danh mục hiện + chi nhánh không tắt món. Giá = <code>branch_menu_items.price</code> nếu có, không thì <code>base_price</code>; giảm % vẫn áp lên. Dùng chung cho khách và manager." },
+  scoupon:  { t:"CouponService + Shipping", m:"service · voucher & phí ship", f:"app/Services/CouponService.php · app/Support/Shipping.php", b:"<code>find()</code> kiểm tra phạm vi/điều kiện và khoá dòng voucher; <code>redeem()</code> ghi lượt dùng; <code>release()</code> trả lại khi đơn bị huỷ. Phí ship đọc từ <code>config/zomzop.php</code>." },
+  schat:    { t:"Chatbot", m:"service · 3 tầng", f:"app/Services/Chatbot.php", b:"1) Khớp <code>chatbot_keywords</code> → trả câu soạn sẵn kèm link. 2) Không khớp → hỏi Gemini với thực đơn làm ngữ cảnh. 3) Lỗi / chưa có key → câu dự phòng." },
+  sstatus:  { t:"OrderStatusService", m:"service · máy trạng thái", f:"app/Services/OrderStatusService.php", b:"pending → confirmed → cooking → ready → completed (huỷ được ở 2 bước đầu). <code>lockForUpdate</code> chống bấm 2 lần. Hoàn thành + tiền mặt → đã thanh toán. Huỷ → trả voucher. Mỗi bước ghi <code>order_histories</code>." },
+  spayroll: { t:"BranchPayroll", m:"service · tính lương tháng", f:"app/Services/BranchPayroll.php", b:"Đọc các lượt chấm công đã có giờ ra trong tháng, lấy lương giờ hiệu lực tại thời điểm làm (<code>salary_configs</code>), cộng điều chỉnh → ghi <code>payrolls</code>. Tính cả người đã nghỉ nhưng có giờ công." },
+  smatch:   { t:"FaceMatcher", m:"service · so khớp khuôn mặt", f:"app/Services/FaceMatcher.php", b:"Khoảng cách Euclid giữa descriptor và mọi mẫu đã đăng ký của chi nhánh; mỗi người lấy mẫu gần nhất. Dưới ngưỡng mới coi là khớp." },
+  sjob:     { t:"SendCouponEmail", m:"job · QUEUE_CONNECTION=database", f:"app/Jobs/SendCouponEmail.php · app/Mail/CouponMail.php", b:"Nằm trong bảng <code>jobs</code> cho tới khi <code>queue:work</code> lấy ra, gửi <code>CouponMail</code>, cập nhật trạng thái thông báo. Lỗi → <code>failed()</code> ghi lại." },
+  spunch:   { t:"FacePunch", m:"service · ghi chấm công", f:"app/Services/FacePunch.php", b:"Giờ luôn lấy theo server. Tìm ca làm; đi trễ / về sớm → trả <code>need_*_reason</code> để máy hỏi lý do rồi gửi lại. Chặn chấm trùng, chưa vào mà đòi ra, không có ca." },
+  dsession: { t:"sessions", m:"bảng SQLite · SESSION_DRIVER=database", f:"config/session.php", b:"Giỏ hàng (<code>cart</code>), chi nhánh đang chọn, lựa chọn checkout (loại đơn, tốc độ, voucher, địa chỉ). Giỏ không có bảng riêng." },
+  dmenu:    { t:"Thực đơn", m:"bảng SQLite", f:"app/Models/MenuItem.php · BranchMenuItem.php", b:"Món gốc dùng chung cả chuỗi; <code>branch_menu_items</code> ghi đè giá / tắt món theo chi nhánh (không có dòng = vẫn bán giá gốc)." },
+  dchat:    { t:"Chatbot", m:"bảng SQLite", f:"app/Models/ChatbotKeyword.php · AiChatSession.php", b:"Từ khoá do admin soạn, và lịch sử chat của từng khách." },
+  dorders:  { t:"Đơn hàng & voucher", m:"bảng SQLite", f:"app/Models/Order.php · Coupon.php", b:"Đơn chốt giá tại lúc đặt (order_items lưu giá), lịch sử trạng thái, voucher và lượt dùng." },
+  dpeople:  { t:"Nhân sự & lương", m:"bảng SQLite", f:"app/Models/User.php · FaceDescriptor.php · Payroll.php", b:"<code>users</code> có role (customer/staff/kitchen/manager/admin) và <code>branch_id</code>. <code>face_descriptors</code> chỉ chứa 128 số mỗi mẫu. Lương tháng + khoản điều chỉnh." },
+  djobs:    { t:"Hàng đợi", m:"bảng SQLite · QUEUE=database", f:"database/migrations", b:"Không cần Redis: job nằm trong bảng <code>jobs</code>. Cần chạy <code>php artisan queue:work</code> thì email mới đi." },
+  dattend:  { t:"Chấm công", m:"bảng SQLite", f:"app/Models/Attendance.php · Shift.php · KioskDevice.php", b:"Ca làm của chi nhánh, lượt vào/ra (độ tin cậy, lý do trễ/sớm), thiết bị quầy đã ghép (token băm, có thể thu hồi)." },
+  dfiles:   { t:"Ổ đĩa", m:"storage/app + public/images", f:"routes/console.php · app/Support/PublicUpload.php", b:"Ảnh bằng chứng chấm công trên disk <code>local</code>, xoá theo ngày bằng <code>attendance:prune-photos</code>. Ảnh món/banner admin tải lên nằm ở <code>public/images/&lt;folder&gt;</code>." },
+  gemini:   { t:"Gemini API", m:"bên ngoài · GEMINI_MODEL", f:".env · config/services.php", b:"Chỉ được gọi khi không khớp từ khoá. Gửi 6 tin gần nhất + hướng dẫn hệ thống có thực đơn. Hết giờ / lỗi → câu dự phòng, không vỡ trang." },
+  mail:     { t:"Mailer", m:"bên ngoài · MAIL_MAILER", f:".env", b:"Dev dùng <code>log</code> (email ghi vào laravel.log). Chạy thật đổi sang SMTP. Email voucher có link huỷ đăng ký (<code>/unsubscribe/{user}</code>, có chữ ký)." },
+};
+
+const FLOWS = {
+  browse: {
+    name: "Xem thực đơn",
+    edges: ["e-cust","e-sess","e-w-shop","e-shop-menu","e-menu-db"],
+    nodes: ["customer","rweb","dsession","cshop","smenu","dmenu"],
+    steps: ["Khách chọn chi nhánh → lưu vào session","<code>GET /thuc-don</code>, <code>/category/{slug}</code>, <code>/search</code>","<code>BranchMenu</code> lọc món đang bán ở chi nhánh đó","Áp giá chi nhánh (nếu có) + % giảm rồi render Blade"]
+  },
+  order: {
+    name: "Đặt hàng — một transaction",
+    edges: ["e-cust","e-sess","e-w-check","e-check-menu","e-menu-db","e-check-coupon","e-coupon-db"],
+    nodes: ["customer","rweb","dsession","ccheckout","smenu","dmenu","scoupon","dorders"],
+    steps: ["Đọc giỏ từ session; món hết hoặc giá đổi → quay lại báo khách","Tính phí ship theo loại đơn + tốc độ","<code>CouponService::find(lock: true)</code> kiểm và khoá voucher","<code>DB::transaction</code>: orders + order_items + order_histories + coupon_usages","Xoá giỏ, chuyển tới trang đặt thành công"]
+  },
+  status: {
+    name: "Xử lý đơn — manager",
+    edges: ["e-mgr","e-m-ord","e-ord-svc","e-status-db"],
+    nodes: ["manager","rmanager","cmorders","sstatus","dorders"],
+    steps: ["<code>PATCH /manager/orders/{order}/status</code>, qua <code>role:manager</code>","Khoá dòng đơn, kiểm bước chuyển hợp lệ","Ghi trạng thái + <code>order_histories</code>","Huỷ → trả voucher; hoàn thành + tiền mặt → đã thanh toán"]
+  },
+  chat: {
+    name: "Chatbot — từ khoá trước, AI sau",
+    edges: ["e-cust","e-w-chat","e-chat-svc","e-bot-db","e-gemini"],
+    nodes: ["customer","rweb","cchat","schat","dchat","gemini"],
+    steps: ["<code>POST /chatbot/message</code> (đăng nhập, có throttle)","Khớp <code>chatbot_keywords</code> → trả ngay, không tốn API","Không khớp → gửi Gemini 6 tin gần nhất + thực đơn","Lỗi / hết 180s → câu dự phòng; lưu lịch sử chat"]
+  },
+  face: {
+    name: "Đăng ký khuôn mặt — không lưu ảnh",
+    edges: ["e-mgr","e-m-face","e-face-match","e-match-db"],
+    nodes: ["manager","rmanager","cface","smatch","dpeople"],
+    steps: ["Manager tải 3–15 ảnh nhân viên; face-api.js tính descriptor <b>trên trình duyệt</b>","Chỉ gửi mảng 128 số mỗi mẫu lên server","<code>nearestOther</code>: mặt này có giống nhân viên khác không?","Lưu vào <code>face_descriptors</code>"]
+  },
+  punch: {
+    name: "Chấm công ở máy quầy",
+    edges: ["e-kio","e-k-k","e-kiosk-match","e-match-db","e-kiosk-punch","e-punch-db","e-photo"],
+    nodes: ["kiosk","rkiosk","ckiosk","smatch","dpeople","spunch","dattend","dfiles"],
+    steps: ["Máy quầy nhận diện mặt, gửi descriptor + Chấm vào/ra với <code>X-Kiosk-Token</code>","<code>FaceMatcher::match</code> trong nhân viên của chi nhánh","<code>FacePunch</code>: giờ server, tìm ca, trễ/sớm → hỏi lý do","Ghi <code>attendances</code>, rồi lưu ảnh bằng chứng"]
+  },
+  payroll: {
+    name: "Tính lương tháng",
+    edges: ["e-mgr","e-m-pay","e-pay-svc","e-payroll-db"],
+    nodes: ["manager","rmanager","cpayroll","spayroll","dpeople","dattend"],
+    steps: ["<code>POST /manager/payrolls/recalculate</code>","Đọc lượt chấm công đã có giờ ra trong tháng","Nhân với lương giờ hiệu lực, cộng khoản điều chỉnh","Ghi <code>payrolls</code> → chốt → đã trả; xuất Excel"]
+  },
+  coupon: {
+    name: "Gửi voucher — chạy nền",
+    edges: ["e-adm","e-a-send","e-send-job","e-job-db","e-mail"],
+    nodes: ["admin","radmin","csend","sjob","djobs","mail"],
+    steps: ["Admin chọn voucher + nhóm khách","Mỗi khách: một <code>coupon_notifications</code> + một job","Request trả về ngay; job nằm trong bảng <code>jobs</code>","<code>queue:work</code> gửi <code>CouponMail</code> qua mailer"]
+  },
+};
+
+const stage = document.getElementById('stage');
+const svg = document.getElementById('svg');
+const content = document.getElementById('svg-content');
+const nodes = document.querySelectorAll('.node');
+const edges = document.querySelectorAll('.edge');
+const elbls = document.querySelectorAll('.elbl');
+const chips = document.querySelectorAll('.chip');
+const fcap = document.getElementById('flowcap');
+const detail = document.getElementById('detail');
+const pulse = document.getElementById('pulse');
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ── flows ─────────────────────────────────
+let raf = null;
+function runPulse(ids) {
+  cancelAnimationFrame(raf);
+  if (reduced) return;
+  const paths = ids.map(id => document.getElementById(id));
+  const SPEED = 0.32; // đơn vị SVG / ms
+  let i = 0, t0 = null;
+  function step(ts) {
+    if (t0 === null) t0 = ts;
+    const p = paths[i], len = p.getTotalLength(), d = (ts - t0) * SPEED;
+    paths.forEach(x => x.classList.toggle('cur', x === p));
+    if (d >= len) {
+      i = (i + 1) % paths.length;
+      t0 = ts + (i === 0 ? 700 : 120); // nghỉ một chút giữa các đoạn
+    } else if (d >= 0) {
+      const pt = p.getPointAtLength(d);
+      pulse.setAttribute('cx', pt.x);
+      pulse.setAttribute('cy', pt.y);
+    }
+    raf = requestAnimationFrame(step);
+  }
+  raf = requestAnimationFrame(step);
+}
+
+function setFlow(key) {
+  chips.forEach(c => c.classList.toggle('on', c.dataset.flow === key));
+  [...edges, ...elbls, ...nodes].forEach(el => el.classList.remove('lit', 'cur'));
+  cancelAnimationFrame(raf);
+  if (key === 'all') { stage.classList.remove('flowing'); fcap.classList.add('hide'); return; }
+  const f = FLOWS[key];
+  stage.classList.add('flowing');
+  f.edges.forEach(id => document.getElementById(id).classList.add('lit'));
+  elbls.forEach(l => l.classList.toggle('lit', f.edges.includes(l.dataset.e)));
+  f.nodes.forEach(k => document.querySelector(`.node[data-k="${k}"]`).classList.add('lit'));
+  document.getElementById('f-name').textContent = f.name;
+  document.getElementById('f-steps').innerHTML = f.steps.map(s => `<li>${s}</li>`).join('');
+  fcap.classList.remove('hide');
+  runPulse(f.edges);
+}
+chips.forEach(c => c.addEventListener('click', () => setFlow(c.dataset.flow)));
+
+// ── node detail ───────────────────────────
+nodes.forEach(n => n.addEventListener('click', () => {
+  nodes.forEach(x => x.classList.remove('sel'));
+  n.classList.add('sel');
+  const d = DETAIL[n.dataset.k];
+  document.getElementById('d-title').textContent = d.t;
+  document.getElementById('d-meta').textContent = d.m;
+  document.getElementById('d-body').innerHTML = d.b;
+  document.getElementById('d-file').textContent = d.f;
+  detail.classList.remove('hide');
+}));
+
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => {
+  document.getElementById(b.dataset.close).classList.add('hide');
+  if (b.dataset.close === 'detail') nodes.forEach(x => x.classList.remove('sel'));
+}));
+
+// ── pan & zoom ────────────────────────────
+const view = { x: 0, y: 0, k: 1 };
+const zlvl = document.getElementById('zlvl');
+function apply() {
+  content.setAttribute('transform', `translate(${view.x},${view.y}) scale(${view.k})`);
+  zlvl.textContent = Math.round(view.k * 100) + '%';
+}
+function toSvg(clientX, clientY) {
+  const p = svg.createSVGPoint();
+  p.x = clientX; p.y = clientY;
+  return p.matrixTransform(svg.getScreenCTM().inverse());
+}
+function zoomAt(px, py, k2) {
+  k2 = Math.min(4, Math.max(0.3, k2));
+  view.x = px - (px - view.x) * (k2 / view.k);
+  view.y = py - (py - view.y) * (k2 / view.k);
+  view.k = k2;
+  apply();
+}
+
+let drag = null;
+svg.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  const p = toSvg(e.clientX, e.clientY);
+  drag = { id: e.pointerId, cx: e.clientX, cy: e.clientY, sx: p.x, sy: p.y, vx: view.x, vy: view.y, moved: false };
+});
+svg.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!drag.moved) {
+    if (Math.hypot(e.clientX - drag.cx, e.clientY - drag.cy) < 5) return;
+    drag.moved = true;
+    svg.setPointerCapture(e.pointerId); // chỉ bắt sau khi thật sự kéo, để click vào ô vẫn hoạt động
+    stage.classList.add('grabbing');
+  }
+  const p = toSvg(e.clientX, e.clientY);
+  view.x = drag.vx + (p.x - drag.sx);
+  view.y = drag.vy + (p.y - drag.sy);
+  apply();
+});
+function endDrag(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (drag.moved) {
+    const eat = ev => { ev.stopPropagation(); ev.preventDefault(); };
+    window.addEventListener('click', eat, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener('click', eat, true), 0);
+  }
+  stage.classList.remove('grabbing');
+  drag = null;
+}
+svg.addEventListener('pointerup', endDrag);
+svg.addEventListener('pointercancel', endDrag);
+
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const p = toSvg(e.clientX, e.clientY);
+  zoomAt(p.x, p.y, view.k * Math.exp(-e.deltaY * 0.0015));
+}, { passive: false });
+
+const VB = svg.viewBox.baseVal;
+document.getElementById('zin').addEventListener('click', () => zoomAt(VB.width / 2, VB.height / 2, view.k * 1.25));
+document.getElementById('zout').addEventListener('click', () => zoomAt(VB.width / 2, VB.height / 2, view.k / 1.25));
+zlvl.addEventListener('click', () => { view.x = 0; view.y = 0; view.k = 1; apply(); });
+
+// ── theme ─────────────────────────────────
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const dark = !document.documentElement.classList.contains('dark');
+  document.documentElement.classList.toggle('dark', dark);
+  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+});
+</script>
+</body>
+</html>
