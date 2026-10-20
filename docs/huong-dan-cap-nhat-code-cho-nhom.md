@@ -1,10 +1,24 @@
-# Hướng dẫn pull code mới về (cập nhật 17/10/2026)
+# Hướng dẫn pull code mới về (cập nhật 20/10/2026)
 
 Dành cho các thành viên nhóm. Làm đúng thứ tự dưới đây thì **không bị xung đột code** và **không mất dữ liệu** trong database máy mình.
 
 ---
 
 ## 1. Đợt này có gì mới
+
+### Đợt 20/10/2026
+
+| Phần | Nội dung |
+|---|---|
+| Topping | Món có topping riêng (vd. Classic Burger, BBQ Bacon): bấm **+ Thêm** mở hộp chọn topping, giá cộng thêm. Admin thêm / sửa topping và icon trong form món; quản lý tắt topping hết hàng ở trang **Menu & giá** |
+| Chuyển khoản | Thanh toán **chuyển khoản VietQR**: khách quét mã, quản lý bấm **Đã nhận** khi tiền về |
+
+Cần làm thêm khi cài đặt đợt này:
+
+- `php artisan migrate` (bảng topping, icon topping, cột `payment_method`).
+- **Topping mẫu:** `php artisan db:seed --class=MenuItemToppingSeeder` — không chạy thì **không món nào có topping**, giao diện sẽ không hiện phần chọn topping. Chạy lại nhiều lần không bị trùng.
+- `npm run build` (hộp chọn topping nằm trong JS).
+- Muốn bật chuyển khoản: chép 4 dòng `BANK_ID`, `BANK_NAME`, `BANK_ACCOUNT_NUMBER`, `BANK_ACCOUNT_HOLDER` từ `.env.example` sang `.env` rồi điền số tài khoản (để trống số tài khoản = tắt chuyển khoản), sau đó `php artisan config:clear`.
 
 ### Đợt 17/10/2026
 

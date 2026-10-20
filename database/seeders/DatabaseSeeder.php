@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             MenuItemSeeder::class,              // 6. menu_items (cần category_id)
             BranchMenuItemSeeder::class,        // 7. cần branch_id + menu_item_id
             MenuItemImageSeeder::class,         // 8. cần menu_item_id
+            MenuItemToppingSeeder::class,       // 8b. topping theo món (cần menu_item_id)
             CouponSeeder::class,                // 9. coupons (không phụ thuộc gì)
             BannerSeeder::class,                // 10. banners (không phụ thuộc gì)
             SettingSeeder::class,               // 11. độc lập
