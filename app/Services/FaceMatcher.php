@@ -7,8 +7,10 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 
 /**
- * So khớp descriptor khuôn mặt (128 số từ face-api.js) với nhân viên đã đăng ký của một chi nhánh.
+ * So khớp descriptor khuôn mặt (128 số từ face-api.js) với nhân viên đã đăng ký.
  * Khoảng cách Euclid càng nhỏ càng giống; mỗi người lấy mẫu gần nhất trong các mẫu đã đăng ký.
+ * So với nhân viên MỌI chi nhánh: nếu chỉ so trong chi nhánh, người chi nhánh khác đứng trước máy
+ * sẽ bị gán nhầm cho người giống nhất ở đây.
  */
 class FaceMatcher
 {
@@ -19,11 +21,12 @@ class FaceMatcher
      */
     public function match(int $branchId, array $descriptor): ?array
     {
-        $ranked    = $this->ranked($branchId, $descriptor);
+        $ranked    = $this->ranked($descriptor);
         $threshold = config('attendance.face.threshold');
         $best      = $ranked->first();
 
-        if (!$best || $best['distance'] > $threshold) {
+        // Giống nhất là người chi nhánh khác → không phải nhân viên ở đây
+        if (!$best || $best['distance'] > $threshold || (int) $best['user']->branch_id !== $branchId) {
             return null;
         }
 
@@ -37,22 +40,21 @@ class FaceMatcher
         return $best + ['confidence' => round(max(0, 1 - $best['distance']) * 100, 2)];
     }
 
-    /** Nhân viên khác (trừ $exceptUserId) có khuôn mặt trùng — dùng để chặn đăng ký nhầm người */
-    public function nearestOther(int $branchId, array $descriptor, int $exceptUserId): ?array
+    /** Nhân viên khác (trừ $exceptUserId, mọi chi nhánh) có khuôn mặt trùng — dùng để chặn đăng ký nhầm người */
+    public function nearestOther(array $descriptor, int $exceptUserId): ?array
     {
-        $hit = $this->ranked($branchId, $descriptor)->first(fn ($r) => $r['user']->id !== $exceptUserId);
+        $hit = $this->ranked($descriptor)->first(fn ($r) => $r['user']->id !== $exceptUserId);
 
         return $hit && $hit['distance'] <= config('attendance.face.threshold') ? $hit : null;
     }
 
     /**
-     * Mỗi nhân viên đang làm của chi nhánh kèm khoảng cách nhỏ nhất, sắp tăng dần.
+     * Mỗi nhân viên đang làm (mọi chi nhánh) kèm khoảng cách nhỏ nhất, sắp tăng dần.
      * ponytail: so tuần tự O(số mẫu) mỗi lần chấm (~150 mẫu/chi nhánh), cần index vector khi lên hàng nghìn
      */
-    private function ranked(int $branchId, array $descriptor): Collection
+    private function ranked(array $descriptor): Collection
     {
-        $users = User::where('branch_id', $branchId)
-            ->whereIn('role', ['staff', 'kitchen'])
+        $users = User::whereIn('role', ['staff', 'kitchen'])
             ->where('is_active', true)
             ->get()
             ->keyBy('id');

@@ -50,7 +50,7 @@ class FaceController extends ManagerController
             }
         }
 
-        if ($dup = $matcher->nearestOther($this->branchId(), $center, $user->id)) {
+        if ($dup = $matcher->nearestOther($center, $user->id)) {
             throw ValidationException::withMessages(['descriptors' => "Khuôn mặt này giống nhân viên {$dup['user']->name} đã đăng ký."]);
         }
 

@@ -83,6 +83,16 @@ class FaceMatcherTest extends TestCase
         $this->assertNull(app(FaceMatcher::class)->match($branch->id, $this->vec(0.0)));
     }
 
+    /** Người chi nhánh B đứng trước máy chi nhánh A không được gán cho người giống nhất ở A */
+    public function test_face_of_other_branch_staff_is_rejected(): void
+    {
+        $branch = $this->makeBranch();
+        $this->enroll($this->makeUser('staff', $branch), 0.4);
+        $this->enroll($this->makeUser('staff', $this->makeBranch('B')), 0.0);
+
+        $this->assertNull(app(FaceMatcher::class)->match($branch->id, $this->vec(0.0)));
+    }
+
     public function test_nearest_other_finds_duplicate_face(): void
     {
         $branch = $this->makeBranch();
@@ -91,8 +101,8 @@ class FaceMatcherTest extends TestCase
         $this->enroll($ngan, 0.0);
         $this->enroll($bep, 0.6);
 
-        $hit = app(FaceMatcher::class)->nearestOther($branch->id, $this->vec(0.05), $bep->id);
+        $hit = app(FaceMatcher::class)->nearestOther($this->vec(0.05), $bep->id);
         $this->assertTrue($hit['user']->is($ngan));
-        $this->assertNull(app(FaceMatcher::class)->nearestOther($branch->id, $this->vec(0.05), $ngan->id));
+        $this->assertNull(app(FaceMatcher::class)->nearestOther($this->vec(0.05), $ngan->id));
     }
 }
