@@ -34,7 +34,7 @@ class KioskDeviceTest extends TestCase
 
     public function test_config_defaults(): void
     {
-        $this->assertSame(0.45, config('attendance.face.threshold'));
+        $this->assertSame(0.35, config('attendance.face.threshold'));
         $this->assertSame(30, config('attendance.face.photo_days'));
     }
 }

@@ -87,7 +87,7 @@ class FaceMatcherTest extends TestCase
     public function test_face_of_other_branch_staff_is_rejected(): void
     {
         $branch = $this->makeBranch();
-        $this->enroll($this->makeUser('staff', $branch), 0.4);
+        $this->enroll($this->makeUser('staff', $branch), 0.3);
         $this->enroll($this->makeUser('staff', $this->makeBranch('B')), 0.0);
 
         $this->assertNull(app(FaceMatcher::class)->match($branch->id, $this->vec(0.0)));
