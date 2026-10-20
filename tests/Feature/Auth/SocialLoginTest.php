@@ -17,7 +17,7 @@ class SocialLoginTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['services.google.client_id' => 'test-id', 'services.google.client_secret' => 'x']);
+        config(['services.google.client_id' => 'test-id', 'services.google.client_secret' => 'x', 'services.facebook.client_id' => null]);
     }
 
     /** Giả lập Google trả về người dùng này ở bước callback */
@@ -54,6 +54,22 @@ class SocialLoginTest extends TestCase
 
         $this->assertSame(1, User::where('google_id', 'g-1')->count());
         $this->assertDatabaseMissing('users', ['email' => 'doi@gmail.com']);
+    }
+
+    /** Khách xoá tài khoản rồi đăng nhập Google lại → tài khoản mới, không lỗi trùng email */
+    public function test_deleted_account_can_sign_up_again(): void
+    {
+        $this->googleReturns('moi@gmail.com');
+        $this->get('/auth/google/callback');
+        $old = auth()->user();
+        $this->delete(route('account.destroy'));
+
+        $this->get('/auth/google/callback')->assertRedirect(route('home'));
+
+        $new = User::where('email', 'moi@gmail.com')->first();
+        $this->assertFalse($new->is($old));
+        $this->assertSame('g-1', $new->google_id);
+        $this->assertSoftDeleted('users', ['id' => $old->id, 'google_id' => null]);
     }
 
     public function test_existing_customer_with_same_email_is_linked(): void

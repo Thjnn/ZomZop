@@ -94,6 +94,12 @@ class AccountController extends Controller
             @unlink(public_path($user->avatar));
         }
         Address::where('user_id', $user->id)->delete();
+        // Xoá mềm vẫn giữ dòng → giải phóng email/id mạng xã hội để người này đăng ký lại được
+        $user->forceFill([
+            'email'       => "deleted-{$user->id}-{$user->email}",
+            'google_id'   => null,
+            'facebook_id' => null,
+        ])->save();
         $user->delete();
 
         return redirect('/');
