@@ -15,10 +15,10 @@
         <label class="grid gap-1">Tiêu đề (hiện làm chữ thay thế ảnh)
             <input name="title" value="{{ old('title', $banner?->title) }}" required maxlength="150" class="{{ $input }}">
         </label>
-        <label class="grid gap-1">Ảnh (jpg/png/webp, ≤ 2MB, nên 1600×900, tỉ lệ 16:9) {{ $banner ? '— bỏ trống nếu giữ ảnh cũ' : '' }}
+        <label class="grid gap-1">Ảnh (jpg/png/webp, ≤ 2MB, nên 2000×1000, tỉ lệ 2:1) {{ $banner ? '— bỏ trống nếu giữ ảnh cũ' : '' }}
             <input type="file" name="image" accept="image/jpeg,image/png,image/webp" {{ $banner ? '' : 'required' }} class="{{ $input }}">
         </label>
-        @if ($banner) <img src="{{ $banner->image_url }}" alt="" class="h-28 aspect-video rounded-lg object-cover"> @endif
+        @if ($banner) <img src="{{ $banner->image_url }}" alt="" class="h-28 aspect-[2/1] rounded-lg object-cover"> @endif
         <label class="grid gap-1">Link khi bấm (tuỳ chọn, VD: /coupons hoặc https://…)
             <input name="link" value="{{ old('link', $banner?->link) }}" maxlength="255" class="{{ $input }}">
         </label>

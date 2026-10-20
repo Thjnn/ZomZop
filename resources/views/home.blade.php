@@ -12,7 +12,7 @@
 <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-stretch">
 
     {{-- Banner Swiper --}}
-    <div class="lg:col-span-2 relative w-full overflow-hidden rounded-2xl shadow-xl aspect-video lg:self-start">
+    <div class="lg:col-span-2 relative w-full overflow-hidden rounded-2xl shadow-xl aspect-[2/1] lg:self-start">
         <div class="swiper mySwiper h-full w-full">
             <div class="swiper-wrapper">
                 @forelse ($banners as $banner)
