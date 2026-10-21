@@ -8,10 +8,16 @@
     {{-- ==================== THÔNG TIN NGƯỜI DÙNG ==================== --}}
     <div class="bg-red-50 rounded-2xl p-6 flex items-center gap-6 mb-10">
         <div class="w-20 h-20 bg-red-200 rounded-full flex items-center justify-center overflow-hidden">
+            @if(auth()->check() && auth()->user()->avatar)
+                <img src="{{ asset(auth()->user()->avatar) }}"
+                     alt="Ảnh đại diện của {{ auth()->user()->name }}"
+                     class="w-full h-full object-cover">
+            @else
             {{-- Icon Avatar --}}
             <svg class="w-12 h-12 text-red-100" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
             </svg>
+            @endif
         </div>
         <div>
             @auth

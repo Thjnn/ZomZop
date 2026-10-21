@@ -21,13 +21,24 @@ class CustomerOrderController extends Controller
     public function index(Request $request)
     {
         $labels = OrderStatusService::LABELS;
-        $request->validate(['status' => ['nullable', Rule::in(array_keys($labels))]]);
-        $orders = Order::where('user_id', $request->user()->id)
-            ->with(['items.menuItem.images', 'branch', 'review'])
+        $request->validate([
+            'status' => ['nullable', Rule::in(array_keys($labels))],
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
+        $search = trim((string) $request->input('q', ''));
+        $base = Order::where('user_id', $request->user()->id);
+        $statusCounts = (clone $base)->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')->pluck('total', 'status');
+        $totalOrders = $statusCounts->sum();
+        $orders = (clone $base)->with(['items.menuItem.images', 'branch', 'review'])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
-            ->latest()->paginate(10)->withQueryString();
-
-        return view('account.orders', compact('orders', 'labels'));
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($match) use ($search) {
+                    $match->where('order_code', 'like', '%' . $search . '%')
+                        ->orWhereHas('items', fn ($items) => $items->where('name_snapshot', 'like', '%' . $search . '%'));
+                });
+            })->latest()->orderByDesc('id')->paginate(6)->withQueryString();
+        return view('account.orders', compact('orders', 'labels', 'statusCounts', 'totalOrders', 'search'));
     }
 
     public function show(Request $request, Order $order)

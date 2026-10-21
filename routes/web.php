@@ -106,3 +106,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/addresses/{address}',       [AddressController::class, 'destroy'])->name('addresses.destroy');
     Route::post('/addresses/{address}/default', [AddressController::class, 'setDefault'])->name('addresses.default');
 });
+
+require __DIR__ . '/customer-order-cancel.php';
+require __DIR__ . '/customer-notification-actions.php';

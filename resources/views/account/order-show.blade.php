@@ -5,6 +5,15 @@
 <a href="{{ route('orders') }}" class="text-red-600">← Danh sách đơn hàng</a>
 <h1 class="text-2xl font-bold">Đơn {{ $order->order_code }}</h1>
 @include('account.order-messages')
+@if(\App\Support\CustomerOrderCancellation::allowed($order))
+<div class="bg-white border border-red-100 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
+<p class="text-sm text-slate-500">Bạn có thể tự hủy khi đơn còn chờ xác nhận và chưa thanh toán.</p>
+<a href="{{ route('orders.cancel.create', $order) }}" class="px-4 py-2 rounded-xl border border-red-200 text-red-600 font-semibold text-sm">Hủy đơn hàng</a>
+</div>
+@elseif(!$order->isCancelled() && !$order->isCompleted())
+<p class="text-sm text-slate-500">Đơn không còn đủ điều kiện tự hủy. Nếu cần thay đổi, <a href="{{ route('support') }}" class="text-red-600">liên hệ hỗ trợ</a>.</p>
+@endif
+
 <section class="bg-white rounded-2xl border p-5 space-y-3">
 <h2 class="font-bold text-red-600 text-xl">{{ $labels[$order->status] ?? $order->status }}</h2>
 <p>{{ $order->branch?->name }} · {{ $order->isDelivery() ? 'Giao hàng' : 'Mang đi' }}</p>
@@ -14,7 +23,7 @@
 <a class="inline-block text-red-600 font-semibold" href="{{ route('orders.show', $order) }}">Làm mới trạng thái</a>
 <ol class="border-l-2 border-red-200 pl-4 space-y-4">
 @forelse($order->histories as $history)
-<li><strong>{{ $labels[$history->to_status] ?? $history->to_status }}</strong><p class="text-sm text-slate-500">{{ $history->created_at->format('d/m/Y H:i') }}</p></li>
+<li><strong>{{ $labels[$history->to_status] ?? $history->to_status }}</strong><p class="text-sm text-slate-500">{{ $history->created_at->format('d/m/Y H:i') }}</p>@if($history->to_status === 'cancelled' && str_starts_with((string) $history->note, 'Khách hàng tự hủy:'))<p class="text-sm text-slate-600 mt-1">{{ $history->note }}</p>@endif</li>
 @empty<li>Đơn được tạo lúc {{ $order->created_at->format('d/m/Y H:i') }}. Chưa có lịch sử cập nhật.</li>@endforelse
 </ol>
 </section>

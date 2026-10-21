@@ -1,104 +1,27 @@
 @extends('layouts.app')
- 
-@section('title', 'Mã giảm giá - ZomZop')
- 
+@section('title', 'Ưu đãi dành cho bạn - ZomZop')
 @section('content')
 @php
-    // Chuyển model sang dạng view đang dùng. type: percent | fixed
-    $coupons = $coupons->map(fn ($c) => [
-        'code'  => $c->code,
-        'type'  => $c->type,
-        'label' => $c->badge,
-        'desc' => $c->summary,
-        'scope' => $c->scope_label,
-        'limit' => $c->max_uses_per_user,
-        'exp'   => $c->expired_at ? $c->expired_at->format('d/m/Y') : 'Không thời hạn',
-        'min'   => number_format($c->min_order_value, 0, ',', '.') . 'đ',
-    ])->all();
-    $meta = [
-        'percent' => ['Giảm theo %', 'bg-red-50 text-red-500'],
-        'fixed'   => ['Giảm tiền',   'bg-green-50 text-green-600'],
-    ];
-    $foodIcon = 'M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z';
-    $icons = ['percent' => $foodIcon, 'fixed' => $foodIcon];
+    $usageCounts = auth()->check() ? \App\Models\CouponUsage::where('user_id',auth()->id())->whereIn('coupon_id',$coupons->pluck('id'))->selectRaw('coupon_id, COUNT(*) as total')->groupBy('coupon_id')->pluck('total','coupon_id') : collect();
 @endphp
- 
-<div class="max-w-6xl mx-auto py-8 px-4">
-    <x-back-to-account />
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <h1 class="text-2xl md:text-3xl font-bold text-slate-800">Danh sách mã giảm giá</h1>
-        <div class="relative w-full md:w-80">
-            <svg class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input id="couponSearch" type="text" placeholder="Nhập tên hoặc mã giảm giá..."
-                   class="w-full pl-10 pr-4 py-2.5 rounded-full border border-slate-200 bg-white text-sm focus:border-red-400 focus:outline-none">
-        </div>
-    </div>
- 
-    {{-- Tab lọc --}}
-    <div class="flex gap-2 overflow-x-auto pb-2 mb-6">
-        @foreach (['all' => 'Tất cả', 'percent' => 'Giảm theo %', 'fixed' => 'Giảm tiền'] as $k => $t)
-            <button type="button" data-tab="{{ $k }}" onclick="setTab('{{ $k }}')"
-                    class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm border border-slate-200 bg-white text-slate-600 {{ $k === 'all' ? '!bg-red-500 !text-white !border-red-500' : '' }}">
-                {{ $t }}
-            </button>
-        @endforeach
-    </div>
- 
-    <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
-        @foreach ($coupons as $c)
-        <div class="coupon flex bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] overflow-hidden"
-             data-type="{{ $c['type'] }}" data-text="{{ strtolower($c['code'] . ' ' . $c['desc'] . ' ' . $meta[$c['type']][0]) }}">
-            <div class="w-32 shrink-0 bg-red-50 border-r border-dashed border-red-200 flex flex-col items-center justify-center gap-2 p-3 text-center">
-                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $icons[$c['type']] }}"/></svg>
-                <span class="font-bold text-red-500 text-sm leading-tight">{{ $c['label'] }}</span>
-            </div>
-            <div class="flex-1 p-4 min-w-0">
-                <div class="flex items-start justify-between gap-2">
-                    <h3 class="font-bold text-slate-800 truncate">{{ $c['code'] }}</h3>
-                    <button type="button" data-code="{{ $c['code'] }}" onclick="copyCode(this.dataset.code, this)" title="Sao chép mã"
-                            class="text-red-500 hover:text-red-600 shrink-0 text-xs font-semibold">Sao chép</button>
-                </div>
-                <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $meta[$c['type']][1] }}">{{ $meta[$c['type']][0] }}</span>
-                <p class="text-sm text-slate-600 mt-2">{{ $c['desc'] }}</p>
-                <p class="text-xs text-slate-500 mt-1">{{ $c['scope'] }} · {{ $c['limit'] }} lượt/khách</p>
-                <p class="text-xs text-slate-500 mt-1">HSD: {{ $c['exp'] }}</p>
-                <p class="text-xs text-red-500 mt-1">*Đơn tối thiểu {{ $c['min'] }}</p>
-            </div>
-        </div>
-        @endforeach
-    </div>
- 
-    <p id="couponEmpty" class="{{ count($coupons) ? 'hidden' : '' }} text-center text-slate-400 py-16">Không tìm thấy mã giảm giá phù hợp.</p>
+<div class="ac-page" data-coupon-browser>
+<a class="ac-back" href="{{ url('/menu') }}">← Tài khoản</a>
+<header class="ac-hero"><div><p class="ac-eyebrow">THÊM ƯU ĐÃI, THÊM NIỀM VUI</p><h1>Bữa ngon, giá dễ thương.</h1><p>Chọn mã phù hợp cho món yêu thích và cách nhận hàng của bạn.</p></div><span class="ac-hero-ticket" aria-hidden="true">ZOMZOP<br><b>ưu đãi mỗi bữa</b></span></header>
+<div class="ac-panel ac-coupon-controls"><div class="ac-search-block"><label for="ac-coupon-search">Tìm ưu đãi</label><input id="ac-coupon-search" type="search" placeholder="Nhập mã hoặc nội dung ưu đãi…" data-coupon-search></div><div class="ac-search-block"><label for="ac-coupon-scope">Áp dụng cho</label><select id="ac-coupon-scope" data-coupon-scope><option value="all">Tất cả ưu đãi</option value="food">Tiền món</option><option value="ship">Phí giao tiêu chuẩn</option><option value="express">Phí giao hỏa tốc</option></select></div><div class="ac-search-block"><label for="ac-coupon-type">Hình thức giảm</label><select id="ac-coupon-type" data-coupon-type><option value="all">Tất cả hình thức</option><option value="percent">Giảm theo %</option><option value="fixed">Giảm số tiền</option></select></div></div>
+<div class="ac-results"><p><strong data-coupon-count>{{ $coupons->count() }}</strong> ưu đãi đang được hiển thị</p><p>Mã được kiểm tra lại tại bước thanh toán.</p></div>
+<div class="ac-voucher-grid">
+@foreach($coupons as $c)
+@php $used = (int)($usageCounts[$c->id] ?? 0); $remaining = max(0,(int)$c->max_uses_per_user-$used); $scope = $c->scope ?? 'food'; @endphp
+<article class="ac-voucher {{ auth()->check() && !$remaining ? 'ac-voucher-used' : '' }}" data-coupon-card data-scope="{{ $scope }}" data-type="{{ $c->type }}" data-search="{{ $c->code . ' ' . $c->summary . ' ' . $c->scope_label }}">
+<div class="ac-voucher-stamp"><span>{{ $scope === 'food' ? 'BỮA NGON' : 'GIAO HÀNG' }}</span><strong>{{ $c->badge }}</strong><small>{{ $c->scope_label }}</small></div>
+<div class="ac-voucher-main"><div class="ac-voucher-top"><code>{{ $c->code }}</code><span class="ac-badge">{{ $c->type === 'percent' ? 'Giảm %' : 'Giảm tiền' }}</span></div><h2>{{ $c->summary }}</h2><p>Đơn từ <strong>{{ number_format($c->min_order_value,0,',','.') }}đ</strong>@if($c->type === 'percent' && $c->max_discount) · Tối đa {{ number_format($c->max_discount,0,',','.') }}đ@endif</p><p class="ac-voucher-expiry">{{ $c->expired_at ? 'Đến ' . $c->expired_at->format('d/m/Y H:i') : 'Chưa giới hạn ngày kết thúc' }}</p>
+<details class="ac-coupon-details"><summary>Điều kiện sử dụng</summary><ul><li>Phạm vi: {{ $c->scope_label }}.</li><li>Tạm tính món tối thiểu {{ number_format($c->min_order_value,0,',','.') }}đ.</li><li>Tối đa {{ $c->max_uses_per_user }} lượt mỗi khách.@auth Còn {{ $remaining }} lượt theo dữ liệu hiện tại.@endauth</li>@if($scope === 'ship')<li>Chỉ dùng khi giao hàng tiêu chuẩn.</li>@elseif($scope === 'express')<li>Chỉ dùng khi giao hàng hỏa tốc.</li>@endif<li>Mỗi đơn áp dụng một mã; ưu đãi được kiểm tra lại khi xác nhận đặt hàng.</li>@if($c->started_at)<li>Bắt đầu từ {{ $c->started_at->format('d/m/Y H:i') }}.</li>@endif</ul></details>
+<div class="ac-voucher-bottom"><span>{{ auth()->check() ? ($remaining ? 'Còn ' . $remaining . ' lượt của bạn' : 'Bạn đã dùng hết lượt') : 'Đăng nhập để kiểm tra lượt của bạn' }}</span><button class="ac-button ac-outline" type="button" data-copy-code="{{ $c->code }}" @disabled(auth()->check() && !$remaining)>Sao chép mã</button></div></div>
+</article>
+@endforeach
 </div>
- 
-<script>
-    let curTab = 'all';
-    function applyFilter() {
-        const q = document.getElementById('couponSearch').value.toLowerCase().trim();
-        let shown = 0;
-        document.querySelectorAll('.coupon').forEach(el => {
-            const ok = (curTab === 'all' || el.dataset.type === curTab) && el.dataset.text.includes(q);
-            el.classList.toggle('hidden', !ok);
-            if (ok) shown++;
-        });
-        document.getElementById('couponEmpty').classList.toggle('hidden', shown > 0);
-    }
-    function setTab(t) {
-        curTab = t;
-        document.querySelectorAll('.tab-btn').forEach(b => {
-            const on = b.dataset.tab === t;
-            b.classList.toggle('!bg-red-500', on);
-            b.classList.toggle('!text-white', on);
-            b.classList.toggle('!border-red-500', on);
-        });
-        applyFilter();
-    }
-    document.getElementById('couponSearch').addEventListener('input', applyFilter);
- 
-    function copyCode(code, btn) {
-        const done = () => { const old = btn.textContent; btn.textContent = 'Đã chép!'; setTimeout(() => btn.textContent = old, 1500); };
-        if (navigator.clipboard) { navigator.clipboard.writeText(code).then(done); }
-        else { const t = document.createElement('textarea'); t.value = code; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); done(); }
-    }
-</script>
+<div class="ac-empty" data-coupon-empty @if($coupons->isNotEmpty()) hidden @endif><span aria-hidden="true">◇</span><h2>Chưa tìm thấy ưu đãi phù hợp</h2><p>Thử mã khác hoặc bỏ bớt điều kiện lọc.</p><button class="ac-button ac-outline" type="button" data-coupon-reset>Xóa bộ lọc</button></div>
+<div class="ac-banner"><div><strong>Đã chọn được mã yêu thích?</strong><p>Sao chép mã rồi nhập hoặc chọn trong kho mã ở bước thanh toán.</p></div><a class="ac-button ac-primary" href="{{ route('home') }}">Chọn món ngay →</a></div>
+<p class="ac-footnote" data-copy-feedback role="status" aria-live="polite"></p>
+</div>
 @endsection
