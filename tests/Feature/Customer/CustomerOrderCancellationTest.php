@@ -46,7 +46,7 @@ class CustomerOrderCancellationTest extends TestCase
     public function test_customer_cannot_cancel_another_customers_order(): void
     {
         $order = $this->order();
-        $other = User::factory()->create(['role' => 'customer']);
+        $other = User::factory()->create(['role' => 'customer', 'is_active' => true]);
         $this->actingAs($other)->get(route('orders.cancel.create', $order))->assertNotFound();
         $this->post(route('orders.cancel.store', $order), ['cancel_reason' => 'duplicate'])->assertNotFound();
         $this->assertSame('pending', $order->fresh()->status);
