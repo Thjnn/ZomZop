@@ -58,6 +58,7 @@ class MenuItemManageTest extends TestCase
         $this->assertSame(10, $item->discount_percent);
         $this->assertSame(['bò', 'phô mai', 'bestseller'], $item->tagList());
         $this->assertTrue($item->is_available);
+        $this->assertFalse($item->is_featured);
         $this->assertSame('menu_item.create', AdminLog::sole()->action);
     }
 
@@ -97,12 +98,13 @@ class MenuItemManageTest extends TestCase
         $slug = $item->slug;
 
         $this->actingAs($this->makeUser('admin'))
-            ->put("/admin/menu-items/{$item->id}", $this->validData(['name' => 'Burger Bò Mới', 'base_price' => 65000, 'category_id' => $item->category_id]))
+            ->put("/admin/menu-items/{$item->id}", $this->validData(['name' => 'Burger Bò Mới', 'base_price' => 65000, 'category_id' => $item->category_id, 'is_featured' => '1']))
             ->assertRedirect(route('admin.menu-items.index'));
 
         $item->refresh();
         $this->assertSame($slug, $item->slug);
         $this->assertSame('Burger Bò Mới', $item->name);
+        $this->assertTrue($item->is_featured);
         $log = AdminLog::sole();
         $this->assertSame('menu_item.update', $log->action);
         $this->assertEquals(50000, $log->changes['before']['base_price']);

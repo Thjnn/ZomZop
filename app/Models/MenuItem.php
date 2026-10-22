@@ -22,6 +22,7 @@ class MenuItem extends Model
         'discount_percent',
         'image',
         'is_available',
+        'is_featured',
         'tags',
         'prep_time_minutes',
     ];
@@ -31,6 +32,7 @@ class MenuItem extends Model
         'base_price'   => 'integer',
         'discount_percent' => 'integer',
         'is_available' => 'boolean',
+        'is_featured'  => 'boolean',
     ];
 
     // ── Relationships ────────────────────────────────────────

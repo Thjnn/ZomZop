@@ -51,6 +51,7 @@ class MenuItemController extends AdminController
 
         $data['tags']         = $this->parseTags($data['tags'] ?? '');
         $data['is_available'] = $request->boolean('is_available');
+        $data['is_featured']  = $request->boolean('is_featured');
 
         return $data;
     }

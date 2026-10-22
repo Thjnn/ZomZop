@@ -22,9 +22,11 @@ class HomeController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        // Món ngon được yêu thích — điểm sao cao nhất (món chưa có đánh giá xếp sau), hoà điểm thì món mới trước
+        // Món ngon được yêu thích — món admin ghim đứng trước, còn chỗ thì lấy điểm sao cao nhất
+        // (món chưa có đánh giá xếp sau), hoà điểm thì món mới trước
         $popularItems = MenuItem::with(['images', 'category'])
             ->tap($sell)
+            ->orderByDesc('is_featured')
             ->orderByRaw('reviews_avg_rating is null')
             ->orderByDesc('reviews_avg_rating')
             ->latest()

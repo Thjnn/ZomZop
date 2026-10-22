@@ -244,5 +244,9 @@ class CustomerBranchMenuTest extends TestCase
             ->assertSee(route('menu.all', ['sort' => 'rating']), false)
             ->assertSee(route('branches.select'), false)
             ->assertSeeInOrder(['Món Ngon Được Yêu Thích', 'Món Nhiều Sao', 'Món Ít Sao']);
+
+        // Admin ghim món chưa có sao → đứng đầu mục trên trang chủ
+        $none->update(['is_featured' => true]);
+        $this->get('/')->assertSeeInOrder(['Món Ngon Được Yêu Thích', 'Món Chưa Chấm', 'Món Nhiều Sao', 'Món Ít Sao']);
     }
 }

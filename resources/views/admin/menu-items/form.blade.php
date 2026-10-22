@@ -84,6 +84,10 @@
         <label class="flex items-center gap-2">
             <input type="checkbox" name="is_available" value="1" @checked(old('is_available', $item?->is_available ?? true)) class="accent-red-500"> Đang bán toàn chuỗi
         </label>
+        <label class="flex items-center gap-2">
+            <input type="checkbox" name="is_featured" value="1" @checked(old('is_featured', $item?->is_featured ?? false)) class="accent-red-500"> Ghim vào "Món Ngon Được Yêu Thích" trên trang chủ
+        </label>
+        <p class="text-xs text-slate-400 -mt-2">Trang chủ hiện 5 món: món ghim đứng trước, còn chỗ thì lấy món điểm sao cao nhất.</p>
         @if ($item)
             <p class="text-xs text-slate-400">Giá riêng từng chi nhánh do quản lý chi nhánh đặt; đổi giá gốc không ghi đè giá riêng đó.</p>
         @endif

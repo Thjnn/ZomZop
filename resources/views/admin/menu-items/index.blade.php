@@ -38,7 +38,7 @@
                     <tr class="border-b border-slate-50 {{ $m->is_available ? '' : 'text-slate-400' }}">
                         <td class="px-4 py-3"><img src="{{ $m->image_url }}" alt="" class="w-12 h-12 rounded-lg object-cover bg-slate-100"></td>
                         <td class="px-4 py-3">
-                            <p class="font-semibold">{{ $m->name }}</p>
+                            <p class="font-semibold">{{ $m->name }}@if ($m->is_featured) <span class="ml-1 text-xs font-medium text-red-500">📌 Trang chủ</span>@endif</p>
                             @if ($m->tagList())
                                 <p class="text-xs text-slate-400">{{ implode(' · ', $m->tagList()) }}</p>
                             @endif
