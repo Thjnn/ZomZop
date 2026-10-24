@@ -37,7 +37,7 @@ class AttendancePhotoTest extends TestCase
 
     private function punch(?UploadedFile $photo, string $action = 'in')
     {
-        return $this->post('/kiosk/api/punch', array_filter(['descriptors' => [$this->vec()], 'photo' => $photo, 'action' => $action, 'reason' => 'Test']),
+        return $this->post('/kiosk/api/punch', array_filter(['descriptor' => $this->vec(), 'photo' => $photo, 'action' => $action, 'reason' => 'Test']),
             ['X-Kiosk-Token' => $this->token, 'Accept' => 'application/json']);
     }
 
@@ -66,7 +66,7 @@ class AttendancePhotoTest extends TestCase
     {
         $v = $this->vec();
         $v[0] = 0.9;
-        $this->post('/kiosk/api/punch', ['descriptors' => [$v], 'photo' => UploadedFile::fake()->image('a.jpg'), 'action' => 'in'],
+        $this->post('/kiosk/api/punch', ['descriptor' => $v, 'photo' => UploadedFile::fake()->image('a.jpg'), 'action' => 'in'],
             ['X-Kiosk-Token' => $this->token, 'Accept' => 'application/json'])->assertJson(['status' => 'not_recognized']);
 
         $this->assertSame([], Storage::disk('local')->allFiles());
