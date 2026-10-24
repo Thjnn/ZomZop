@@ -103,12 +103,12 @@ export function averageDescriptor(descriptors) {
     return out;
 }
 
-/** Ảnh nhỏ 320×240 JPEG làm bằng chứng */
+/** Ảnh nhỏ rộng 320 JPEG làm bằng chứng, giữ đúng tỉ lệ camera thật (webcam hay trả 16:9 dù xin 4:3) */
 export function snapshot(video) {
     const canvas = document.createElement("canvas");
     canvas.width = 320;
-    canvas.height = 240;
-    canvas.getContext("2d").drawImage(video, 0, 0, 320, 240);
+    canvas.height = Math.round((320 * (video.videoHeight || 480)) / (video.videoWidth || 640));
+    canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
     return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.6));
 }
 
