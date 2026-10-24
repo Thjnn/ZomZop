@@ -1,10 +1,30 @@
-# Hướng dẫn pull code mới về (cập nhật 20/10/2026)
+# Hướng dẫn pull code mới về (cập nhật 24/10/2026)
 
 Dành cho các thành viên nhóm. Làm đúng thứ tự dưới đây thì **không bị xung đột code** và **không mất dữ liệu** trong database máy mình.
 
 ---
 
 ## 1. Đợt này có gì mới
+
+### Đợt 24/10/2026
+
+| Phần | Nội dung |
+|---|---|
+| Xếp lịch làm | Quản lý → **Ca làm**: bảng xếp lịch theo tuần (◀ ▶ đổi tuần), mỗi ô tick một hoặc nhiều ca cho nhân viên / bếp, **Lưu lịch tuần** ghi đè cả tuần, **Xuất Excel** |
+| Lịch của tôi | Nhân viên / bếp → `/staff` có mục **Lịch làm tháng**, xem được cả tháng sau, có **Xuất Excel** |
+| Đăng nhập mạng xã hội | Khách đăng nhập / đăng ký bằng **Google, Facebook** (chưa điền khoá thì bấm nút sẽ báo lỗi) |
+| Khách hàng (nhánh của Tính) | Khách tự **huỷ đơn** kèm lý do, giao diện hồ sơ / đơn hàng / địa chỉ mới, trang **Về chúng tôi** làm lại |
+| Trang chủ | Admin **ghim món** vào mục "Món Ngon Được Yêu Thích"; banner tỉ lệ 2:1 |
+| Chấm công khuôn mặt | So khớp với nhân viên **mọi chi nhánh** (tránh gán nhầm người chi nhánh khác), ngưỡng chặt hơn (0.35); ảnh bằng chứng không còn bị bóp méo |
+| `CLAUDE.md` | Ghi chú dự án cho ai dùng Claude Code |
+
+Cần làm thêm khi cài đặt đợt này:
+
+- **Thư viện mới:** `laravel/socialite` (composer) → chạy `composer install`.
+- **Migration mới:** `2026_10_20_000001_add_social_ids_to_users_table`, `2026_10_21_000001_create_customer_notification_states_table`, `2026_10_22_000001_add_is_featured_to_menu_items_table`, `2026_10_24_000001_create_shift_assignments_table` (lịch làm) → `php artisan migrate`. **Không migrate thì trang Ca làm báo lỗi.**
+- `npm run build` (CSS trang Về chúng tôi, JS máy chấm công). Máy quầy đang mở `/kiosk` thì tải lại trang (Ctrl+F5).
+- Muốn bật Google / Facebook: chép 4 dòng `GOOGLE_*`, `FACEBOOK_*` từ `.env.example` sang `.env`, điền khoá, rồi `php artisan config:clear`. URL trả về đăng ký với Google/Facebook: `APP_URL/auth/google/callback`, `APP_URL/auth/facebook/callback`.
+- Lệnh mới (tuỳ chọn): `php artisan zomzop:demo-orders email@khach --delete` dọn đơn `DEMO-` của một khách trên máy mình.
 
 ### Đợt 20/10/2026
 
@@ -116,7 +136,7 @@ git stash
 git checkout main
 git pull origin main
 
-composer install          # thêm openspout (xuất Excel)
+composer install          # thêm openspout (xuất Excel), socialite (Google/Facebook)
 npm install               # thêm face-api (nhận diện khuôn mặt)
 npm run build             # build lại giao diện
 
@@ -248,19 +268,15 @@ Thử trên máy tính bảng thì cần HTTPS: chạy `share.bat` (xem `docs/hu
 ## 8. Tin nhắn ngắn gửi nhóm
 
 ```
-Đã cập nhật main: trang nhân viên (/staff) + màn hình bếp (/kitchen), thưởng/phạt theo từng khoản, tồn kho thật (trừ khi đặt, trả khi huỷ), trang thông báo thật, voucher + phí ship của Tính.
+Đã cập nhật main (24/10): xếp lịch làm theo tuần (quản lý → Ca làm) + nhân viên/bếp xem lịch của mình ở /staff, đều xuất Excel; đăng nhập Google/Facebook; khách tự huỷ đơn + giao diện khách mới của Tính; admin ghim món trang chủ; sửa nhận diện khuôn mặt.
 Trước khi pull: git status — có file đang sửa thì commit vào nhánh riêng hoặc git stash.
 Rồi chạy:
 git checkout main && git pull origin main
 composer install
 npm install && npm run build
 php artisan migrate
-php artisan db:seed --class=ChatbotKeywordSeeder
-(Chưa có Gemini thì) thêm vào .env (khoá Gemini lấy ở aistudio.google.com, mỗi người dùng khoá riêng, không gửi lên nhóm):
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-3.1-flash-lite
-GEMINI_TIMEOUT=180
-rồi php artisan config:clear
+(Muốn đăng nhập Google/Facebook thì) chép GOOGLE_*, FACEBOOK_* từ .env.example sang .env, điền khoá, rồi php artisan config:clear
+Máy quầy đang mở /kiosk thì Ctrl+F5.
 Không chạy migrate:fresh nếu muốn giữ dữ liệu.
 Chi tiết + lỗi hay gặp: docs/huong-dan-cap-nhat-code-cho-nhom.md
 ```
