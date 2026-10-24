@@ -14,6 +14,8 @@ use Illuminate\Support\Collection;
  */
 class FaceMatcher
 {
+    private ?Collection $candidates = null;
+
     /**
      * Người khớp nhất, hoặc null nếu không đủ chắc chắn.
      *
@@ -40,6 +42,26 @@ class FaceMatcher
         return $best + ['confidence' => round(max(0, 1 - $best['distance']) * 100, 2)];
     }
 
+    /**
+     * Máy quầy quét ~5 giây, chia các khung thành vài nhóm → mỗi nhóm một descriptor.
+     * Chỉ nhận khi ≥ 80% số nhóm khớp CÙNG một người (5 nhóm → cần 4): chống chấm nhầm người.
+     * Kết quả lấy nhóm khớp gần nhất của người đó.
+     *
+     * @param  array<int, array<int, float>>  $descriptors
+     * @return array{user: User, distance: float, confidence: float}|null
+     */
+    public function matchVotes(int $branchId, array $descriptors): ?array
+    {
+        $hits = collect($descriptors)->map(fn ($d) => $this->match($branchId, $d))->filter();
+        $top  = $hits->groupBy(fn ($m) => $m['user']->id)->sortByDesc(fn ($g) => $g->count())->first();
+
+        if (!$top || $top->count() < ceil(count($descriptors) * 0.8)) {
+            return null;
+        }
+
+        return $top->sortBy('distance')->first();
+    }
+
     /** Nhân viên khác (trừ $exceptUserId, mọi chi nhánh) có khuôn mặt trùng — dùng để chặn đăng ký nhầm người */
     public function nearestOther(array $descriptor, int $exceptUserId): ?array
     {
@@ -54,16 +76,18 @@ class FaceMatcher
      */
     private function ranked(array $descriptor): Collection
     {
-        $users = User::whereIn('role', ['staff', 'kitchen'])
-            ->where('is_active', true)
-            ->get()
-            ->keyBy('id');
+        // Nạp một lần cho cả lượt so nhiều nhóm (matchVotes)
+        $this->candidates ??= (function () {
+            $users = User::whereIn('role', ['staff', 'kitchen'])->where('is_active', true)->get()->keyBy('id');
 
-        return FaceDescriptor::whereIn('user_id', $users->keys())->get()
-            ->groupBy('user_id')
-            ->map(fn ($samples, $userId) => [
-                'user'     => $users[$userId],
-                'distance' => $samples->min(fn ($s) => self::distance($descriptor, $s->descriptor)),
+            return FaceDescriptor::whereIn('user_id', $users->keys())->get()->groupBy('user_id')
+                ->map(fn ($samples, $userId) => ['user' => $users[$userId], 'samples' => $samples->pluck('descriptor')]);
+        })();
+
+        return $this->candidates
+            ->map(fn ($c) => [
+                'user'     => $c['user'],
+                'distance' => $c['samples']->min(fn ($s) => self::distance($descriptor, $s)),
             ])
             ->sortBy('distance')
             ->values();

@@ -13,10 +13,11 @@ use Illuminate\Support\Facades\Validator;
 /** Trang chấm công khuôn mặt chạy trên máy quầy + API của nó */
 class KioskController extends Controller
 {
-    /** Luật chung cho descriptor 128 số của face-api.js */
+    /** 1–5 nhóm khung hình, mỗi nhóm một descriptor 128 số của face-api.js */
     public const DESCRIPTOR_RULES = [
-        'descriptor'   => ['required', 'array', 'size:128'],
-        'descriptor.*' => ['required', 'numeric', 'between:-1,1'],
+        'descriptors'     => ['required', 'array', 'between:1,5'],
+        'descriptors.*'   => ['required', 'array', 'size:128'],
+        'descriptors.*.*' => ['required', 'numeric', 'between:-1,1'],
     ];
 
     private function device(Request $request): KioskDevice
@@ -39,7 +40,7 @@ class KioskController extends Controller
         ]);
         $device = $this->device($request);
 
-        $match = $matcher->match($device->branch_id, array_map('floatval', $data['descriptor']));
+        $match = $matcher->matchVotes($device->branch_id, array_map(fn ($d) => array_map('floatval', $d), $data['descriptors']));
         if (!$match) {
             return response()->json(['status' => 'not_recognized']);
         }

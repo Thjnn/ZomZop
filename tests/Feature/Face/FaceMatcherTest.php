@@ -105,4 +105,22 @@ class FaceMatcherTest extends TestCase
         $this->assertTrue($hit['user']->is($ngan));
         $this->assertNull(app(FaceMatcher::class)->nearestOther($this->vec(0.05), $ngan->id));
     }
+
+    public function test_votes_need_four_of_five_groups_on_same_person(): void
+    {
+        $branch = $this->makeBranch();
+        $ngan   = $this->makeUser('staff', $branch);
+        $bep    = $this->makeUser('kitchen', $branch);
+        $this->enroll($ngan, 0.0);
+        $this->enroll($bep, 0.8);
+        $m = app(FaceMatcher::class);
+
+        // 4/5 nhóm ra Ngân, 1 nhóm ra bếp → nhận Ngân, lấy nhóm gần nhất
+        $hit = $m->matchVotes($branch->id, [$this->vec(0.1), $this->vec(0.05), $this->vec(0.1), $this->vec(0.2), $this->vec(0.8)]);
+        $this->assertTrue($hit['user']->is($ngan));
+        $this->assertEqualsWithDelta(0.05, $hit['distance'], 1e-9);
+
+        // Chỉ 3/5 nhóm khớp (2 nhóm không nhận ra ai) → từ chối
+        $this->assertNull($m->matchVotes($branch->id, [$this->vec(0.1), $this->vec(0.1), $this->vec(0.1), $this->vec(0.5), $this->vec(0.5)]));
+    }
 }

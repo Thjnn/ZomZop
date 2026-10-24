@@ -7,7 +7,10 @@ const REASONS = {
     late: ["Kẹt xe", "Ốm", "Việc gia đình", "Quản lý cho phép"],
     early: ["Ốm", "Việc gia đình", "Hết việc", "Quản lý cho phép"],
 };
-const SCAN_TIMEOUT = 20000; // không thấy ai trong 20 giây → về màn chờ
+const SCAN_TIMEOUT = 20000; // không quét xong trong 20 giây → về màn chờ
+const SCAN_SECONDS = 5; // quét liên tục chừng này giây để nhận diện chắc hơn
+const MIN_FRAMES = 10; // ít nhất chừng này khung nhìn thẳng
+const VOTE_GROUPS = 5; // số nhóm gửi server bỏ phiếu
 
 const root = document.getElementById("kiosk");
 
@@ -133,29 +136,35 @@ if (root) {
     // ── Quét mặt ──
 
     /**
-     * Đợi 3 khung nhìn thẳng LIÊN TIẾP (người đi ngang / quay mặt đi giữa chừng thì đếm lại),
-     * trả về trung bình 3 descriptor; null nếu hết giờ/huỷ. Không còn yêu cầu chớp mắt/quay đầu.
+     * Quét SCAN_SECONDS giây kể từ khung nhìn thẳng đầu tiên (khung lệch/không thấy mặt thì bỏ qua),
+     * cần ít nhất MIN_FRAMES khung; chia đều thành VOTE_GROUPS nhóm, mỗi nhóm lấy trung bình →
+     * server nhận khi ≥ 4/5 nhóm khớp cùng một người. null nếu hết giờ/huỷ.
      */
     async function captureFrontal(mine) {
         const until = Date.now() + SCAN_TIMEOUT;
-        let picks = [];
-        while (picks.length < 3) {
+        const frames = [];
+        let started = 0;
+        while (!started || Date.now() - started < SCAN_SECONDS * 1000 || frames.length < MIN_FRAMES) {
             if (!alive(mine) || Date.now() > until) return null;
             const faces = await detectFaces(video);
             const problem = frontalProblem(faces, video);
             if (problem) {
-                picks = [];
                 setHint(problem);
             } else {
-                picks.push(Array.from(faces[0].descriptor));
-                setHint("Giữ yên, nhìn thẳng…", true);
+                started ||= Date.now();
+                frames.push(Array.from(faces[0].descriptor));
+                const left = Math.max(0, Math.ceil(SCAN_SECONDS - (Date.now() - started) / 1000));
+                setHint(left ? `Giữ yên, nhìn thẳng… ${left}s` : "Giữ yên thêm chút…", true);
             }
             await sleep(120);
         }
-        return averageDescriptor(picks);
+        const n = frames.length;
+        return Array.from({ length: VOTE_GROUPS }, (_, i) =>
+            averageDescriptor(frames.slice(Math.floor((i * n) / VOTE_GROUPS), Math.floor(((i + 1) * n) / VOTE_GROUPS))),
+        );
     }
 
-    /** Quét đến khi có descriptor nhìn thẳng. null nếu hết giờ/huỷ */
+    /** Quét đến khi có đủ các nhóm descriptor nhìn thẳng. null nếu hết giờ/huỷ */
     async function scan(mine, title) {
         $("scan-title").textContent = title;
         setHint("Đang bật camera…");
@@ -169,8 +178,8 @@ if (root) {
         }
         try {
             setHint("Nhìn thẳng vào camera");
-            const descriptor = await captureFrontal(mine);
-            if (descriptor) return { descriptor, photo: await snapshot(video) };
+            const descriptors = await captureFrontal(mine);
+            if (descriptors) return { descriptors, photo: await snapshot(video) };
             return null;
         } finally {
             stopCamera(video);
@@ -181,7 +190,7 @@ if (root) {
 
     async function send(action, scanResult, reason) {
         const form = new FormData();
-        scanResult.descriptor.forEach((v) => form.append("descriptor[]", v));
+        scanResult.descriptors.forEach((d, i) => d.forEach((v) => form.append(`descriptors[${i}][]`, v)));
         if (scanResult.photo) form.append("photo", scanResult.photo, "photo.jpg");
         form.append("action", action);
         if (reason) form.append("reason", reason);
