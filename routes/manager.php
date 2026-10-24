@@ -9,6 +9,7 @@ use App\Http\Controllers\Manager\OrderController;
 use App\Http\Controllers\Manager\PayrollController;
 use App\Http\Controllers\Manager\ReportController;
 use App\Http\Controllers\Manager\ReviewController;
+use App\Http\Controllers\Manager\ScheduleController;
 use App\Http\Controllers\Manager\ShiftController;
 use App\Http\Controllers\Manager\StaffController;
 use Illuminate\Support\Facades\Route;
@@ -43,6 +44,8 @@ Route::middleware(['auth', 'role:manager'])
         Route::post('/shifts', [ShiftController::class, 'store'])->name('shifts.store');
         Route::put('/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
         Route::delete('/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
+        Route::put('/schedule', [ScheduleController::class, 'update'])->name('schedule.update');
+        Route::get('/schedule/export', [ScheduleController::class, 'export'])->name('schedule.export');
 
         Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
         Route::get('/attendances/export', [AttendanceController::class, 'export'])->name('attendances.export');

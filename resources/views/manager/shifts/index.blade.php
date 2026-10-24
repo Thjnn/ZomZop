@@ -55,4 +55,69 @@
         <input type="time" name="end_time" value="{{ old('end_time') }}" class="{{ $input }}" required>
         <button class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold cursor-pointer">Thêm</button>
     </form>
+
+    {{-- Xếp lịch tuần --}}
+    @php
+        $prev = $week->copy()->subWeek()->toDateString();
+        $next = $week->copy()->addWeek()->toDateString();
+        $roles = \App\Http\Controllers\Manager\StaffController::ROLES;
+    @endphp
+    <section id="lich" class="bg-white rounded-2xl border border-slate-100 mt-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
+            <div class="flex items-center gap-2">
+                <h2 class="font-semibold">Xếp lịch tuần</h2>
+                <a href="{{ route('manager.shifts.index', ['week' => $prev]) }}#lich" class="px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-50" aria-label="Tuần trước">◀</a>
+                <span class="text-sm">{{ $week->format('d/m') }} – {{ $week->copy()->addDays(6)->format('d/m/Y') }}</span>
+                <a href="{{ route('manager.shifts.index', ['week' => $next]) }}#lich" class="px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-50" aria-label="Tuần sau">▶</a>
+            </div>
+            <a href="{{ route('manager.schedule.export', ['week' => $week->toDateString()]) }}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">Xuất Excel</a>
+        </div>
+
+        @if ($shifts->isEmpty() || $staff->isEmpty())
+            <p class="px-5 pb-5 text-sm text-slate-400">Cần có ít nhất một ca và một nhân viên đang hoạt động để xếp lịch.</p>
+        @else
+            <form method="POST" action="{{ route('manager.schedule.update') }}">
+                @csrf @method('PUT')
+                <input type="hidden" name="week" value="{{ $week->toDateString() }}">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 text-slate-500 text-left">
+                            <tr>
+                                <th class="px-4 py-2 font-medium">Nhân viên</th>
+                                @foreach ($days as $d)
+                                    <th class="px-3 py-2 font-medium whitespace-nowrap {{ $d->isToday() ? 'text-red-600' : '' }}">
+                                        {{ \App\Http\Controllers\Manager\ScheduleController::DOW[$d->dayOfWeekIso - 1] }} {{ $d->format('d/m') }}
+                                    </th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach ($staff as $u)
+                                <tr>
+                                    <td class="px-4 py-2 whitespace-nowrap">
+                                        <span class="font-medium">{{ $u->name }}</span>
+                                        <span class="text-xs text-slate-400">{{ $roles[$u->role] ?? '' }}</span>
+                                    </td>
+                                    @foreach ($days as $date => $d)
+                                        <td class="px-3 py-2 align-top">
+                                            @foreach ($shifts as $s)
+                                                <label class="flex items-center gap-1 whitespace-nowrap cursor-pointer">
+                                                    <input type="checkbox" name="slots[{{ $u->id }}][{{ $date }}][]" value="{{ $s->id }}"
+                                                           @checked(isset($assigned["{$u->id}|{$date}|{$s->id}"])) class="accent-red-500">
+                                                    <span class="text-xs">{{ $s->name }}</span>
+                                                </label>
+                                            @endforeach
+                                        </td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-5 pt-3 text-right">
+                    <button class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold cursor-pointer">Lưu lịch tuần</button>
+                </div>
+            </form>
+        @endif
+    </section>
 @endsection

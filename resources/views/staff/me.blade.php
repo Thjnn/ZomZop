@@ -16,7 +16,7 @@
         </div>
         <form method="GET" class="flex items-center gap-2 text-sm">
             <label for="month" class="text-slate-500">Tháng</label>
-            <input type="month" id="month" name="month" value="{{ $month->format('Y-m') }}" max="{{ today()->format('Y-m') }}"
+            <input type="month" id="month" name="month" value="{{ $month->format('Y-m') }}" max="{{ today()->addMonthNoOverflow()->format('Y-m') }}"
                    onchange="this.form.submit()" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white">
         </form>
     </div>
@@ -45,6 +45,25 @@
                 <p class="text-sm text-slate-400">Chi nhánh chưa khai báo ca làm.</p>
             @endforelse
         </div>
+    </section>
+
+    {{-- Lịch làm được xếp --}}
+    <section class="bg-white rounded-2xl border border-slate-100 p-5 mb-5">
+        <div class="flex items-center justify-between gap-3 mb-3">
+            <h2 class="font-semibold">Lịch làm tháng {{ $month->format('m/Y') }}</h2>
+            <a href="{{ route('staff.schedule.export', ['month' => $month->format('Y-m')]) }}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">Xuất Excel</a>
+        </div>
+        @forelse ($schedule as $date => $items)
+            @php $d = \Illuminate\Support\Carbon::parse($date); @endphp
+            <div class="flex gap-3 py-1.5 text-sm border-b border-slate-50 last:border-0 {{ $d->isPast() && !$d->isToday() ? 'text-slate-400' : '' }}">
+                <span class="w-24 shrink-0 {{ $d->isToday() ? 'font-semibold text-red-600' : '' }}">
+                    {{ \App\Http\Controllers\Manager\ScheduleController::DOW[$d->dayOfWeekIso - 1] }} {{ $d->format('d/m') }}
+                </span>
+                <span>{{ $items->map(fn ($a) => $a->shift->name . ' (' . substr($a->shift->start_time, 0, 5) . '–' . substr($a->shift->end_time, 0, 5) . ')')->implode(' · ') }}</span>
+            </div>
+        @empty
+            <p class="text-sm text-slate-400">Chưa được xếp lịch trong tháng này.</p>
+        @endforelse
     </section>
 
     {{-- Lương tháng --}}

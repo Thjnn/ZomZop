@@ -21,11 +21,11 @@ class ShiftController extends ManagerController
         ]);
     }
 
-    public function index()
+    public function index(Request $request, ScheduleController $schedule)
     {
         $shifts = Shift::ofBranch($this->branchId())->withCount('attendances')->orderBy('start_time')->get();
 
-        return view('manager.shifts.index', compact('shifts'));
+        return view('manager.shifts.index', compact('shifts') + $schedule->weekData(ScheduleController::weekStart($request)));
     }
 
     public function store(Request $request)
