@@ -11,10 +11,14 @@ class Order extends Model
 {
     protected $fillable = [
         'order_code',
+        'channel',
         'user_id',
         'branch_id',
         'kitchen_by',
         'type',
+        'table_number',
+        'customer_name',
+        'customer_phone',
         'delivery_speed',
         'status',
         'subtotal',
@@ -23,6 +27,8 @@ class Order extends Model
         'total',
         'payment_method',
         'payment_status',
+        'cash_received',
+        'change_amount',
         'delivery_address',
         'estimated_time',
         'pickup_code',
@@ -35,14 +41,26 @@ class Order extends Model
         'shipping_fee'   => 'integer',
         'discount'       => 'integer',
         'total'          => 'integer',
+        'cash_received'  => 'integer',
+        'change_amount'  => 'integer',
         'estimated_time' => 'datetime',
     ];
 
+    /** Hình thức đơn: online có takeaway/delivery, POS có thêm dine_in */
+    public const TYPE_LABELS = ['dine_in' => 'Tại quán', 'takeaway' => 'Mang đi', 'delivery' => 'Giao hàng'];
+
     // ── Relationships ────────────────────────────────────────
 
+    /** Đơn online: khách đặt. Đơn POS: nhân viên bán tại quầy (khách ghi ở customer_name/phone) */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Nhân viên bán — chỉ có ý nghĩa với đơn POS */
+    public function staff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function branch(): BelongsTo
@@ -98,6 +116,14 @@ class Order extends Model
     {
         return $this->type === 'takeaway';
     }
+    public function isDineIn(): bool
+    {
+        return $this->type === 'dine_in';
+    }
+    public function isPos(): bool
+    {
+        return $this->channel === 'pos';
+    }
     public function isPaid(): bool
     {
         return $this->payment_status === 'paid';
@@ -113,6 +139,11 @@ class Order extends Model
     public function scopeOfStatus($query, string $status)
     {
         return $query->where('status', $status);
+    }
+
+    public function scopePos($query)
+    {
+        return $query->where('channel', 'pos');
     }
 
     public function scopePending($query)

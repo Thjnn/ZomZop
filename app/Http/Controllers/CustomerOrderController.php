@@ -15,7 +15,8 @@ class CustomerOrderController extends Controller
 {
     private function owned(Request $request, Order $order): void
     {
-        abort_unless((int) $order->user_id === (int) $request->user()->id, 404);
+        // Đơn POS ghi user_id = nhân viên bán, không phải đơn "của tôi"
+        abort_unless((int) $order->user_id === (int) $request->user()->id && !$order->isPos(), 404);
     }
 
     public function index(Request $request)
@@ -26,7 +27,7 @@ class CustomerOrderController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
         ]);
         $search = trim((string) $request->input('q', ''));
-        $base = Order::where('user_id', $request->user()->id);
+        $base = Order::where('user_id', $request->user()->id)->where('channel', 'online');
         $statusCounts = (clone $base)->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')->pluck('total', 'status');
         $totalOrders = $statusCounts->sum();

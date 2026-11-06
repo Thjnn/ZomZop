@@ -34,11 +34,11 @@ class LoginRedirectTest extends TestCase
     }
 
     /** Review Focus #3 (giai đoạn 3) */
-    public function test_staff_goes_to_own_page_and_kitchen_to_kitchen_display(): void
+    public function test_staff_goes_to_pos_and_kitchen_to_kitchen_display(): void
     {
         $branch = $this->makeBranch();
 
-        foreach (['staff' => 'staff.dashboard', 'kitchen' => 'kitchen.dashboard'] as $role => $route) {
+        foreach (['staff' => 'staff.pos', 'kitchen' => 'kitchen.dashboard'] as $role => $route) {
             $user = $this->makeUser($role, $branch);
             $this->post('/login', ['email' => $user->email, 'password' => 'password'])
                 ->assertRedirect(route($route));

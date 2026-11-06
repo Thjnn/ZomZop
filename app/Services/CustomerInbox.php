@@ -13,7 +13,7 @@ class CustomerInbox
             ->leftJoin('customer_notification_states as s', function ($join) use ($userId) {
                 $join->on('s.source_id', '=', 'h.id')->where('s.source', 'order')->where('s.user_id', $userId);
             })
-            ->where('o.user_id', $userId)->whereNotNull('h.from_status')->whereNull('s.hidden_at')
+            ->where('o.user_id', $userId)->where('o.channel', 'online')->whereNotNull('h.from_status')->whereNull('s.hidden_at')
             ->selectRaw("'order' as source, h.id as source_id, h.created_at as happened_at, o.id as order_id, o.order_code as code, h.to_status as order_status, h.note as body, s.read_at as read_at");
         $coupons = DB::table('coupon_notifications as n')->join('coupons as c', 'c.id', '=', 'n.coupon_id')
             ->leftJoin('customer_notification_states as s', function ($join) use ($userId) {

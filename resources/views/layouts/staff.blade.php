@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Nhân viên') · ZomZop</title>
     @stack('head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -10,9 +11,18 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen">
     @php
         $_user = auth()->user();
-        $_nav  = [['staff.dashboard', 'Của tôi']];
+        // [route, nhãn, các route được tô sáng]
+        $_nav  = [['staff.dashboard', 'Của tôi', ['staff.dashboard']]];
+        if ($_user->isStaff()) {
+            // "Của tôi" của nhân viên bán hàng mở đơn hôm nay; chấm công & lương là tab con bên trong
+            $_nav = [
+                ['staff.pos', 'Máy POS', ['staff.pos']],
+                ['staff.pos.orders.index', 'Đơn đã bán', ['staff.pos.orders.index']],
+                ['staff.me.orders', 'Của tôi', ['staff.me.orders', 'staff.dashboard']],
+            ];
+        }
         if ($_user->isKitchen()) {
-            array_unshift($_nav, ['kitchen.dashboard', 'Màn hình bếp']);
+            array_unshift($_nav, ['kitchen.dashboard', 'Màn hình bếp', ['kitchen.dashboard']]);
         }
     @endphp
 
@@ -21,9 +31,9 @@
             <div class="flex items-center gap-4 min-w-0">
                 <img src="{{ asset('images/avatar-logo.png') }}" alt="ZomZop" class="h-9 w-auto object-contain">
                 <nav class="flex gap-1 text-sm">
-                    @foreach ($_nav as [$route, $label])
+                    @foreach ($_nav as [$route, $label, $match])
                         <a href="{{ route($route) }}"
-                           class="px-3 py-1.5 rounded-full font-medium {{ request()->routeIs($route) ? 'bg-red-500 text-white' : 'text-slate-600 hover:bg-slate-100' }}">{{ $label }}</a>
+                           class="px-3 py-1.5 rounded-full font-medium {{ request()->routeIs(...$match) ? 'bg-red-500 text-white' : 'text-slate-600 hover:bg-slate-100' }}">{{ $label }}</a>
                     @endforeach
                 </nav>
             </div>
@@ -40,7 +50,7 @@
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto p-4 md:p-6">
+    <main class="@yield('main_class', 'max-w-6xl mx-auto p-4 md:p-6')">
         @yield('content')
     </main>
 </body>

@@ -8,6 +8,10 @@
     <div class="flex items-center gap-3 my-3">
         <h1 class="text-xl font-bold">Đơn {{ $order->order_code }}</h1>
         @include('manager.partials.status-badge', ['status' => $order->status])
+        @if ($order->isPos())
+            <a href="{{ route('staff.pos.orders.receipt', $order) }}" target="_blank" rel="noopener"
+               class="ml-auto px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold hover:border-red-400 hover:text-red-500">🖨 In lại hóa đơn</a>
+        @endif
     </div>
 
     <div class="grid lg:grid-cols-3 gap-6 text-sm">
@@ -32,9 +36,9 @@
             <div class="bg-white rounded-2xl border border-slate-100 p-5 space-y-1">
                 <p><span class="text-slate-400">Chi nhánh:</span> {{ $order->branch?->name }}</p>
                 <p><span class="text-slate-400">Khách:</span> {{ $order->user?->name }} · {{ $order->user?->phone ?? $order->user?->email }}</p>
-                <p><span class="text-slate-400">Hình thức:</span> {{ $order->type === 'delivery' ? 'Giao hàng' : 'Mang đi' }}</p>
+                <p><span class="text-slate-400">Hình thức:</span> {{ \App\Models\Order::TYPE_LABELS[$order->type] ?? $order->type }}@if ($order->table_number) · Bàn {{ $order->table_number }}@endif</p>
                 @if ($order->delivery_address) <p><span class="text-slate-400">Địa chỉ:</span> {{ $order->delivery_address }}</p> @endif
-                <p><span class="text-slate-400">Thanh toán:</span> {{ \App\Support\PaymentMethods::LABELS[$order->payment_method] ?? $order->payment_method }} · {{ $order->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</p>
+                <p><span class="text-slate-400">Thanh toán:</span> {{ \App\Support\PaymentMethods::label($order->payment_method) }} · {{ $order->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</p>
                 @if ($order->note) <p><span class="text-slate-400">Ghi chú:</span> {{ $order->note }}</p> @endif
             </div>
             <div class="bg-white rounded-2xl border border-slate-100 p-5">

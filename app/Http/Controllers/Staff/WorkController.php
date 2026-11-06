@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Manager\PayrollController;
 use App\Http\Controllers\Manager\ScheduleController;
 use App\Models\Attendance;
+use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\Payroll;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
+use App\Services\BranchMenu;
 use App\Support\ExcelReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -17,6 +19,23 @@ use Illuminate\Support\Facades\Validator;
 
 class WorkController extends Controller
 {
+    /** Máy POS: món đang bán tại chi nhánh của nhân viên (đã áp giá chi nhánh), nhóm theo danh mục */
+    public function pos(Request $request, BranchMenu $menu)
+    {
+        $branchId = $request->user()->branch_id;
+        abort_unless($branchId, 403, 'Tài khoản chưa được gán chi nhánh.');
+
+        $items = $menu->filterAvailable(MenuItem::query(), $branchId)
+            ->with(['category', 'images'])
+            ->orderBy('name')
+            ->get();
+        $menu->applyPrices($items, $branchId);
+
+        $categories = $items->pluck('category')->unique('id')->sortBy([['sort_order', 'asc'], ['name', 'asc']])->values();
+
+        return view('staff.pos', compact('items', 'categories'));
+    }
+
     /** Trang "Của tôi": ca hôm nay, chấm công và lương trong tháng */
     public function me(Request $request)
     {
