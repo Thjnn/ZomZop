@@ -26,6 +26,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // nên chỉ tin header X-Forwarded-* đến từ loopback.
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);
 
+        // Giỏ hàng lưu theo tài khoản, đăng xuất rồi vào lại vẫn còn
+        $middleware->web(append: [\App\Http\Middleware\SyncSavedCart::class]);
+
         $middleware->alias([
             'role'  => \App\Http\Middleware\EnsureRole::class,
             'kiosk' => \App\Http\Middleware\AuthenticateKiosk::class,

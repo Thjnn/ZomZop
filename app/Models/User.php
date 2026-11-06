@@ -39,6 +39,7 @@ class User extends Authenticatable
         'is_active'         => 'boolean',
         'email_opted_in'    => 'boolean',
         'started_at'        => 'date',
+        'cart'              => 'array',
     ];
 
     // ── Relationships ────────────────────────────────────────

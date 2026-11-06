@@ -9,6 +9,8 @@
         $done  = $attendances->whereNotNull('check_out');
     @endphp
 
+    @include('staff.partials.me-tabs')
+
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
         <div>
             <h1 class="text-xl font-bold">Xin chào, {{ $user->name }}</h1>

@@ -81,12 +81,12 @@ class BranchReport
 
     public function byType(?int $branchId, Carbon $from, Carbon $to): array
     {
-        return $this->completedGroupedBy('type', ['takeaway', 'delivery'], $branchId, $from, $to);
+        return $this->completedGroupedBy('type', array_keys(ReportController::TYPE_LABELS), $branchId, $from, $to);
     }
 
     public function byPayment(?int $branchId, Carbon $from, Carbon $to): array
     {
-        return $this->completedGroupedBy('payment_method', array_keys(\App\Support\PaymentMethods::LABELS), $branchId, $from, $to);
+        return $this->completedGroupedBy('payment_method', array_keys(ReportController::PAY_LABELS), $branchId, $from, $to);
     }
 
     public function topItems(?int $branchId, Carbon $from, Carbon $to, int $limit = 10): Collection

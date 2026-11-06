@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use App\Support\SavedCart;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
@@ -35,6 +39,13 @@ class AppServiceProvider extends ServiceProvider
             URL::forceRootUrl(config('app.url'));
             URL::forceScheme('https');
         }
+
+        // Đăng nhập (mật khẩu, Google/Facebook, cookie "ghi nhớ") → lấy lại giỏ đã lưu
+        Event::listen(Login::class, function (Login $event) {
+            if ($event->user instanceof User) {
+                SavedCart::restore($event->user);
+            }
+        });
 
         // Chatbot: mỗi khách tối đa 10 tin/phút (tiết kiệm quota Gemini)
         RateLimiter::for('chatbot', fn (Request $request) => Limit::perMinute(10)->by('chatbot:' . ($request->user()?->id ?? $request->ip())));

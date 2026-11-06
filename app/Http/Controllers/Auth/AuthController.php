@@ -139,7 +139,12 @@ class AuthController extends Controller
             return redirect()->to($customerTarget);
         }
 
-        // Mỗi role nội bộ đều có trang riêng: admin.dashboard, manager.dashboard, staff.dashboard, kitchen.dashboard
+        // Nhân viên vào thẳng máy POS; trang "Của tôi" mở bằng nút trên thanh đầu trang
+        if ($user->role === 'staff') {
+            return redirect()->route('staff.pos');
+        }
+
+        // Các role nội bộ còn lại có trang riêng: admin.dashboard, manager.dashboard, kitchen.dashboard
         return redirect()->route("{$user->role}.dashboard");
     }
 }

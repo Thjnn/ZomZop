@@ -97,7 +97,7 @@
                 <p class="text-slate-500">{{ $order->user?->phone ?? 'Chưa có SĐT' }}</p>
                 <p class="text-slate-500">{{ $order->type === 'delivery' ? 'Giao hàng' : 'Mang đi' }}</p>
                 @if ($order->delivery_address) <p class="text-slate-500">📍 {{ $order->delivery_address }}</p> @endif
-                <p class="text-slate-500">Thanh toán: {{ \App\Support\PaymentMethods::LABELS[$order->payment_method] ?? $order->payment_method }} · {{ $order->payment_status === 'paid' ? 'Đã trả' : 'Chưa trả' }}</p>
+                <p class="text-slate-500">Thanh toán: {{ \App\Support\PaymentMethods::label($order->payment_method) }} · {{ $order->payment_status === 'paid' ? 'Đã trả' : 'Chưa trả' }}</p>
                 @if ($order->payment_method === 'bank')
                     <p class="text-slate-500">Nội dung CK cần có: <strong>{{ \App\Support\PaymentMethods::transferNote($order) }}</strong></p>
                     @if (!$order->isPaid() && $order->status !== 'cancelled')

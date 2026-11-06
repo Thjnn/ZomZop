@@ -7,7 +7,17 @@ use App\Models\Setting;
 
 class PaymentMethods
 {
+    /** Phương thức của đơn online (admin bật/tắt được) */
     public const LABELS = ['cash' => 'Tiền mặt', 'bank' => 'Chuyển khoản', 'momo' => 'MoMo', 'vnpay' => 'VNPay'];
+
+    /** Phương thức tại quầy POS; 'card' chỉ có ở quầy nên không nằm trong LABELS (không hiện ở checkout online) */
+    public const POS_LABELS = ['cash' => 'Tiền mặt', 'bank' => 'Chuyển khoản', 'card' => 'Thẻ ngân hàng'];
+
+    /** Tên hiển thị cho mọi phương thức (online + POS) */
+    public static function label(?string $key): string
+    {
+        return (self::LABELS + self::POS_LABELS)[$key] ?? (string) $key;
+    }
 
     /** Các phương thức admin đang bật (chưa cài đặt gì = bật hết). Chuyển khoản cần có số tài khoản trong .env */
     public static function enabled(): array
