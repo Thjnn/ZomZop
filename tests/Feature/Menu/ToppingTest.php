@@ -19,6 +19,8 @@ class ToppingTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        // makeMenuItem() tạo món ở danh mục slug "test": coi như danh mục được bán topping
+        config(['zomzop.topping_categories' => ['test']]);
     }
 
     private function burgerWithToppings(): array
@@ -33,7 +35,9 @@ class ToppingTest extends TestCase
 
     private function add(MenuItem $item, array $toppings, int $qty = 1)
     {
-        return $this->postJson('/cart/add', ['menu_item_id' => $item->id, 'quantity' => $qty, 'toppings' => $toppings]);
+        // Mỗi id = 1 phần topping
+        return $this->postJson('/cart/add', ['menu_item_id' => $item->id, 'quantity' => $qty,
+            'toppings' => array_map(fn ($id) => ['id' => $id, 'quantity' => 1], $toppings)]);
     }
 
     public function test_toppings_add_to_price_without_item_discount_and_split_cart_lines(): void
@@ -109,10 +113,11 @@ class ToppingTest extends TestCase
             ->assertSessionHasNoErrors()->assertRedirect();
 
         $line = OrderItem::sole();
-        $this->assertSame([45000, 90000, 'Cà chua'], [$line->price_snapshot, $line->subtotal, $line->topping_names]);
+        // Bản chụp không có quantity (giỏ cũ) → coi là 1 phần
+        $this->assertSame([45000, 90000, '+ 1× Cà chua'], [$line->price_snapshot, $line->subtotal, $line->topping_names]);
 
         $tomato->delete();   // admin xoá topping sau đó: đơn cũ vẫn giữ bản chụp
-        $this->get(route('orders.show', $line->order_id))->assertSee('+ Cà chua');
+        $this->get(route('orders.show', $line->order_id))->assertSee('+ 1× Cà chua');
     }
 
     public function test_admin_syncs_toppings_and_manager_turns_one_off(): void

@@ -52,7 +52,7 @@
                 <div class="flex-1 min-w-0">
                     <h4 class="font-semibold text-slate-800 text-sm">{{ $item['name'] }}</h4>
                     @if (!empty($item['toppings']))
-                    <p class="text-xs text-slate-500 mt-0.5">+ {{ implode(', ', array_column($item['toppings'], 'name')) }}</p>
+                    <p class="text-xs text-slate-500 mt-0.5">{{ \App\Services\BranchMenu::toppingLabel($item['toppings']) }}</p>
                     @endif
                     @if ($item['note'])
                     <p class="text-xs text-slate-400 mt-0.5">📝 {{ $item['note'] }}</p>

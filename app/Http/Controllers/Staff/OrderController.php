@@ -127,9 +127,19 @@ class OrderController extends Controller
             throw ValidationException::withMessages(['items' => 'Có món vừa ngừng bán tại chi nhánh, vui lòng tải lại trang và kiểm tra giỏ hàng.']);
         }
 
-        $rows = $lines->map(function ($line) use ($products) {
+        // Topping còn bán tại chi nhánh của các món này (BranchMenu đã lọc chỉ món Burger)
+        $toppings = $menu->availableToppings($products->keys()->all(), $branchId)->keyBy('id');
+
+        $rows = $lines->map(function ($line) use ($products, $toppings) {
             $product = $products[$line['menu_item_id']];
-            $price   = (int) round($product->discounted_price);
+
+            $chosen = BranchMenu::pickToppings($line['toppings'] ?? [], $product->id, $toppings);
+            if ($chosen === null) {
+                throw ValidationException::withMessages(['items' => "Topping của món {$product->name} không hợp lệ hoặc vừa hết, vui lòng chọn lại."]);
+            }
+
+            // Đơn giá = giá món (đã áp giá chi nhánh + giảm %) + Σ(topping × số phần) (không giảm %), như đơn online
+            $price = (int) round($product->discounted_price) + BranchMenu::toppingsTotal($chosen);
 
             return [
                 'menu_item_id'   => $product->id,
@@ -138,7 +148,7 @@ class OrderController extends Controller
                 'quantity'       => (int) $line['quantity'],
                 'subtotal'       => $price * (int) $line['quantity'],
                 'note'           => trim((string) ($line['note'] ?? '')),
-                'toppings'       => [],
+                'toppings'       => $chosen,
             ];
         });
 
@@ -226,6 +236,7 @@ class OrderController extends Controller
                 'quantity'     => $i->quantity,
                 'line_total'   => $i->subtotal,
                 'note'         => $i->note,
+                'toppings'     => $i->toppings ?? [],
             ])->all(),
         ];
     }

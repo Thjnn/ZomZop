@@ -74,6 +74,7 @@
                             <tr>
                                 <td class="py-2">
                                     {{ $item->name_snapshot }}
+                                    @if ($item->topping_names)<span class="block text-xs text-red-600">{{ $item->topping_names }}</span>@endif
                                     @if ($item->note)<span class="block text-xs text-slate-500">Ghi chú: {{ $item->note }}</span>@endif
                                 </td>
                                 <td class="py-2 text-right">{{ $item->quantity }}</td>
