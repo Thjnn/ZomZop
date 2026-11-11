@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  * - Tồn kho: branch_menu_items.stock_qty null = không giới hạn, 0 = hết hàng (coi như không bán).
  * - Giá: branch_menu_items.price (nếu có) thay base_price; discount_percent vẫn áp lên.
  * - Topping: giá chung, không giảm theo %; chi nhánh tắt topping qua branch_unavailable_toppings.
- *   Dòng giỏ: price = giá món + tổng topping, toppings = [{id, name, price}].
+ *   Dòng giỏ: price = giá món + Σ(giá topping × số phần), toppings = [{id, name, price, quantity}].
  */
 class BranchMenu
 {
@@ -75,20 +75,67 @@ class BranchMenu
         return (int) round($copy->discounted_price);
     }
 
-    /** Topping còn bán (chưa bị chi nhánh tắt) của các món */
+    /** Topping còn bán (chưa bị chi nhánh tắt) của các món; chỉ món thuộc danh mục được phép (config zomzop.topping_categories) */
     public function availableToppings(array $itemIds, ?int $branchId): Collection
     {
         return MenuItemTopping::whereIn('menu_item_id', $itemIds)
+            ->whereHas('menuItem.category', fn ($q) => $q->whereIn('slug', config('zomzop.topping_categories', [])))
             ->when($branchId, fn ($q) => $q->whereNotIn('id', DB::table('branch_unavailable_toppings')
                 ->where('branch_id', $branchId)->select('menu_item_topping_id')))
             ->orderBy('sort_order')->orderBy('id')
             ->get();
     }
 
-    /** Cùng món + cùng topping + cùng ghi chú = cùng một dòng trong giỏ */
+    /** Số phần của 1 topping trong bản chụp; bản chụp cũ (trước khi có số lượng) coi là 1 */
+    public static function toppingQty(array $topping): int
+    {
+        return max(1, (int) ($topping['quantity'] ?? 1));
+    }
+
+    /** Tiền topping của 1 món: Σ giá × số phần */
+    public static function toppingsTotal(array $toppings): int
+    {
+        return array_sum(array_map(fn ($t) => (int) $t['price'] * self::toppingQty($t), $toppings));
+    }
+
+    /** "+ 2× Thêm thịt bò, + 1× Thêm Phô mai" — rỗng nếu không có topping */
+    public static function toppingLabel(array $toppings): string
+    {
+        return implode(', ', array_map(fn ($t) => '+ ' . self::toppingQty($t) . '× ' . $t['name'], $toppings));
+    }
+
+    /**
+     * Topping khách chọn [{id, quantity}] → bản chụp [{id, name, price, quantity}] theo giá DB, sắp theo id.
+     * Bỏ dòng quantity = 0. Trả null nếu có topping không còn bán / không thuộc món / trùng / vượt số phần tối đa.
+     * $available: kết quả availableToppings() (đã lọc chi nhánh + chỉ món Burger).
+     */
+    public static function pickToppings(array $requested, int $itemId, Collection $available): ?array
+    {
+        $max    = (int) config('zomzop.topping_max_qty', 5);
+        $byId   = $available->keyBy('id');
+        $picked = [];
+        foreach ($requested as $row) {
+            $id  = (int) ($row['id'] ?? 0);
+            $qty = (int) ($row['quantity'] ?? 0);
+            if ($qty === 0) {
+                continue;
+            }
+            $topping = $byId[$id] ?? null;
+            if (!$topping || $topping->menu_item_id !== $itemId || $qty < 1 || $qty > $max || isset($picked[$id])) {
+                return null;
+            }
+            $picked[$id] = ['id' => $topping->id, 'name' => $topping->name, 'price' => $topping->price, 'quantity' => $qty];
+        }
+        ksort($picked);
+
+        return array_values($picked);
+    }
+
+    /** Cùng món + cùng bộ topping (cùng loại VÀ cùng số phần) + cùng ghi chú = cùng một dòng trong giỏ. Key topping vd "12:2|15:1" */
     public static function lineKey(array $line): string
     {
-        $toppings = collect($line['toppings'] ?? [])->pluck('id')->sort()->implode(',');
+        $toppings = collect($line['toppings'] ?? [])->sortBy('id')
+            ->map(fn ($t) => $t['id'] . ':' . self::toppingQty($t))->implode('|');
 
         return md5($line['id'] . '|' . $toppings . '|' . ($line['note'] ?? ''));
     }
@@ -121,11 +168,13 @@ class BranchMenu
                     $changed[] = "{$line['name']}: topping {$chosen['name']} tạm hết, đã bỏ.";
                     continue;
                 }
-                $kept[] = ['id' => $topping->id, 'name' => $topping->name, 'price' => $topping->price];
+                // Giữ số phần khách chọn, giá lấy lại từ DB
+                $kept[] = ['id' => $topping->id, 'name' => $topping->name, 'price' => $topping->price,
+                    'quantity' => min(self::toppingQty($chosen), (int) config('zomzop.topping_max_qty', 5))];
             }
             $line['toppings'] = $kept;
 
-            $price = (int) round($item->discounted_price) + array_sum(array_column($kept, 'price'));
+            $price = (int) round($item->discounted_price) + self::toppingsTotal($kept);
             if ($price !== (int) $line['price']) {
                 $changed[] = sprintf('%s: giá đổi từ %sđ thành %sđ.', $line['name'],
                     number_format($line['price'], 0, ',', '.'), number_format($price, 0, ',', '.'));

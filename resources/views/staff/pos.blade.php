@@ -53,6 +53,9 @@
                                     <span class="text-xs text-slate-400 line-through">{{ $item->display_base_price }}</span>
                                 @endif
                             </div>
+                            @if (isset($toppings[$item->id]))
+                                <span class="inline-block mt-1.5 text-[11px] font-semibold text-red-600 bg-red-50 rounded-full px-2 py-0.5">+ Có topping</span>
+                            @endif
                         </div>
                     </button>
                 @endforeach
@@ -110,6 +113,7 @@
         <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
                 <p class="pos-line-name font-semibold leading-snug"></p>
+                <p class="pos-line-toppings hidden text-xs font-medium text-red-600 leading-snug"></p>
                 <p class="pos-line-price text-xs text-slate-500"></p>
             </div>
             <button type="button" class="pos-line-remove w-10 h-10 shrink-0 flex items-center justify-center rounded-full text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer" aria-label="Xóa món">
@@ -128,6 +132,29 @@
                class="pos-line-note w-full h-10 rounded-lg border border-slate-200 px-3 text-sm focus:outline-none focus:border-red-400">
     </li>
 </template>
+
+{{-- Popup chọn topping (chỉ món Burger có topping) — cùng bố cục popup trang khách --}}
+<div id="pos-top-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="pos-top-name">
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
+        <button type="button" id="pos-top-close" class="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-white/90 shadow text-xl text-slate-500 hover:bg-white cursor-pointer" aria-label="Đóng">×</button>
+        <img id="pos-top-img" src="" alt="" class="w-full h-44 object-cover bg-slate-100">
+        <div class="p-5 pb-3 min-h-0 flex flex-col">
+            <h2 id="pos-top-name" class="text-lg font-bold"></h2>
+            <p id="pos-top-base" class="text-sm text-slate-500"></p>
+            <p class="mt-3 mb-2 text-sm font-semibold">Thêm topping</p>
+            <ul id="pos-top-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"></ul>
+        </div>
+        <div class="flex items-center gap-3 px-5 py-4 border-t border-slate-100">
+            <span id="pos-top-total" class="text-xl font-bold min-w-[7rem]"></span>
+            <div class="flex items-center gap-1 rounded-full bg-slate-100 p-1">
+                <button type="button" id="pos-top-minus" class="w-10 h-10 rounded-full bg-white text-lg font-bold shadow-sm cursor-pointer" aria-label="Giảm">−</button>
+                <span id="pos-top-qty" class="w-8 text-center font-bold">1</span>
+                <button type="button" id="pos-top-plus" class="w-10 h-10 rounded-full bg-white text-lg font-bold shadow-sm cursor-pointer" aria-label="Tăng">+</button>
+            </div>
+            <button type="button" id="pos-top-add" class="flex-1 h-12 rounded-full bg-red-500 text-white font-bold shadow-sm cursor-pointer hover:bg-red-600">Thêm vào giỏ</button>
+        </div>
+    </div>
+</div>
 
 {{-- Modal thanh toán: bước 1 chọn phương thức + xác nhận, bước 2 hóa đơn --}}
 <div id="pos-pay-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="pos-pay-title">
@@ -280,18 +307,51 @@
         // Giá/tên lấy từ thẻ món đang hiển thị (giá chi nhánh hiện tại)
         const menu = {};
         document.querySelectorAll('.pos-item').forEach(el => {
-            menu[el.dataset.id] = { name: el.dataset.name, price: parseInt(el.dataset.price, 10) };
+            menu[el.dataset.id] = { name: el.dataset.name, price: parseInt(el.dataset.price, 10), image: el.querySelector('img')?.src || '' };
         });
+        // Topping còn bán theo món (chỉ Burger): { menu_item_id: [{id, name, price, icon_url}] }
+        const TOPPINGS = @json($toppings, JSON_FORCE_OBJECT | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+        const toppingsOf = id => TOPPINGS[id] ? Object.values(TOPPINGS[id]) : [];
+
+        const TOPPING_MAX = @json((int) config('zomzop.topping_max_qty', 5));
+
+        // Dòng giỏ: picks = { toppingId: số phần }; giá = giá món + Σ(giá topping × số phần)
+        // (chỉ để hiển thị; server tự tính lại khi tạo đơn). Topping không còn bán / số phần 0 bị bỏ.
+        function makeLine(id, picks, qty, note = '') {
+            const chosen = toppingsOf(id)
+                .filter(t => (picks[t.id] || 0) > 0)
+                .map(t => ({ id: t.id, name: t.name, price: t.price, quantity: Math.min(TOPPING_MAX, picks[t.id]) }))
+                .sort((a, b) => a.id - b.id);
+            return {
+                id, qty, note,
+                name: menu[id].name,
+                toppings: chosen,
+                price: menu[id].price + chosen.reduce((s, t) => s + t.price * t.quantity, 0),
+            };
+        }
+        // Cùng món + cùng loại topping VÀ cùng số phần = cùng dòng. Key vd "12|3:2|5:1"
+        const lineKey = l => l.id + '|' + l.toppings.map(t => t.id + ':' + t.quantity).join('|');
+        const toppingLabel = toppings => toppings.map(t => '+ ' + t.quantity + '× ' + t.name).join(', ');
+
+        function pushLine(lines, line) {
+            const same = lines.find(l => lineKey(l) === lineKey(line));
+            if (same) same.qty = Math.min(99, same.qty + line.qty);
+            else lines.push(line);
+        }
 
         let state = load();
 
         function load() {
             let saved = {};
             try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch (e) { saved = {}; }
-            // Món đã tắt/hết từ lần trước thì bỏ; giá luôn theo menu hiện tại
-            const lines = (Array.isArray(saved.lines) ? saved.lines : [])
+            // Món/topping đã tắt từ lần trước thì bỏ; giá luôn theo menu hiện tại; bỏ topping có thể làm 2 dòng trùng → gộp
+            const lines = [];
+            (Array.isArray(saved.lines) ? saved.lines : [])
                 .filter(l => menu[l.id] && Number.isInteger(l.qty) && l.qty > 0)
-                .map(l => ({ id: String(l.id), name: menu[l.id].name, price: menu[l.id].price, qty: Math.min(99, l.qty), note: String(l.note || '').slice(0, 255) }));
+                .forEach(l => pushLine(lines, makeLine(String(l.id),
+                    // Bản lưu cũ (chưa có số phần) coi là 1 phần
+                    Object.fromEntries((Array.isArray(l.toppings) ? l.toppings : []).map(t => [Number(t.id), Math.max(0, parseInt(t.quantity ?? 1, 10) || 0)])),
+                    Math.min(99, l.qty), String(l.note || '').slice(0, 255))));
 
             return {
                 type: TYPES.includes(saved.type) ? saved.type : 'dine_in',
@@ -342,6 +402,9 @@
             state.lines.forEach(line => {
                 const li = tpl.content.firstElementChild.cloneNode(true);
                 li.querySelector('.pos-line-name').textContent = line.name;
+                const tops = li.querySelector('.pos-line-toppings');
+                tops.textContent = toppingLabel(line.toppings);
+                tops.classList.toggle('hidden', !line.toppings.length);
                 li.querySelector('.pos-line-price').textContent = money(line.price);
                 li.querySelector('.pos-line-qty').textContent = line.qty;
                 li.querySelector('.pos-line-total').textContent = money(line.price * line.qty);
@@ -359,16 +422,100 @@
 
         function update() { save(); renderLines(); }
 
-        function addItem(id) {
-            const line = state.lines.find(l => l.id === id);
-            if (line) {
-                line.qty = Math.min(99, line.qty + 1);
-            } else {
-                state.lines.push({ id, name: menu[id].name, price: menu[id].price, qty: 1, note: '' });
-            }
+        function addItem(id, picks = {}, qty = 1) {
+            pushLine(state.lines, makeLine(id, picks, qty));
             hideError();
             update();
         }
+
+        // ── Popup topping: món có topping mở popup, món khác thêm thẳng ──
+        const topModal = $('pos-top-modal');
+        const top = { id: null, qty: 1, picks: {} };
+
+        const counterBtn = (text, label) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = text;
+            b.setAttribute('aria-label', label);
+            b.className = 'w-10 h-10 rounded-full bg-white text-lg font-bold shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
+            return b;
+        };
+
+        function openToppings(id) {
+            Object.assign(top, { id, qty: 1, picks: {} });
+            $('pos-top-img').src = menu[id].image;
+            $('pos-top-img').alt = menu[id].name;
+            $('pos-top-name').textContent = menu[id].name;
+            $('pos-top-base').textContent = 'Giá món: ' + money(menu[id].price);
+            // Mỗi dòng: icon · tên · +giá đơn vị (· thành tiền khi > 0) · [−] [số] [+]
+            $('pos-top-list').replaceChildren(...toppingsOf(id).map(t => {
+                top.picks[t.id] = 0;
+                const li = document.createElement('li');
+                li.className = 'pos-top-row flex items-center gap-3 rounded-xl border px-3 py-2';
+                li.dataset.toppingId = t.id;
+                if (t.icon_url) {
+                    const img = document.createElement('img');
+                    img.src = t.icon_url; img.alt = ''; img.className = 'w-7 h-7 object-contain';
+                    li.append(img);
+                }
+                const info = document.createElement('div');
+                info.className = 'flex-1 min-w-0';
+                const name = document.createElement('p');
+                name.className = 'text-sm font-medium'; name.textContent = t.name;
+                const price = document.createElement('p');
+                price.className = 'pos-top-price text-xs font-semibold text-slate-500';
+                info.append(name, price);
+                const counter = document.createElement('div');
+                counter.className = 'flex items-center gap-1 rounded-full bg-slate-100 p-1';
+                const minus = counterBtn('−', 'Bớt ' + t.name);
+                minus.classList.add('pos-top-minus');
+                const qty = document.createElement('span');
+                qty.className = 'pos-top-count w-6 text-center font-bold';
+                const plus = counterBtn('+', 'Thêm ' + t.name);
+                plus.classList.add('pos-top-plus');
+                counter.append(minus, qty, plus);
+                li.append(info, counter);
+
+                const render = () => {
+                    const q = top.picks[t.id];
+                    qty.textContent = q;
+                    minus.disabled = q <= 0;
+                    plus.disabled = q >= TOPPING_MAX;
+                    price.textContent = q > 0 ? `+${money(t.price)} · ${q} × ${money(t.price)} = ${money(q * t.price)}` : '+' + money(t.price);
+                    li.classList.toggle('border-red-400', q > 0);
+                    li.classList.toggle('bg-red-50', q > 0);
+                    li.classList.toggle('border-slate-200', q === 0);
+                };
+                const change = delta => {
+                    top.picks[t.id] = Math.min(TOPPING_MAX, Math.max(0, top.picks[t.id] + delta));
+                    render();
+                    renderTopTotal();
+                };
+                minus.addEventListener('click', () => change(-1));
+                plus.addEventListener('click', () => change(1));
+                render();
+                return li;
+            }));
+            renderTopTotal();
+            topModal.classList.remove('hidden');
+            $('pos-top-add').focus();
+        }
+
+        // (giá món + Σ giá topping × số phần) × số lượng món
+        function renderTopTotal() {
+            const unit = makeLine(top.id, top.picks, 1).price;
+            $('pos-top-qty').textContent = top.qty;
+            $('pos-top-total').textContent = money(unit * top.qty);
+        }
+
+        function closeToppings() { topModal.classList.add('hidden'); }
+
+        $('pos-top-minus').addEventListener('click', () => { top.qty = Math.max(1, top.qty - 1); renderTopTotal(); });
+        $('pos-top-plus').addEventListener('click', () => { top.qty = Math.min(99, top.qty + 1); renderTopTotal(); });
+        $('pos-top-add').addEventListener('click', () => { addItem(top.id, top.picks, top.qty); closeToppings(); });
+        $('pos-top-close').addEventListener('click', closeToppings);
+        topModal.addEventListener('click', e => { if (e.target === topModal) closeToppings(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !topModal.classList.contains('hidden')) closeToppings(); });
 
         function changeQty(line, delta) {
             line.qty = Math.min(99, line.qty + delta);
@@ -386,7 +533,8 @@
         function showError(msg) { $('pos-error').textContent = msg; $('pos-error').classList.remove('hidden'); }
         function hideError() { $('pos-error').classList.add('hidden'); }
 
-        document.querySelectorAll('.pos-item').forEach(el => el.addEventListener('click', () => addItem(el.dataset.id)));
+        document.querySelectorAll('.pos-item').forEach(el => el.addEventListener('click', () =>
+            toppingsOf(el.dataset.id).length ? openToppings(el.dataset.id) : addItem(el.dataset.id)));
 
         document.querySelectorAll('.pos-type').forEach(b => b.addEventListener('click', () => {
             state.type = b.dataset.posType;
@@ -433,6 +581,7 @@
             $('pos-pay-lines').replaceChildren(...state.lines.map(l => {
                 const li = el('li', 'px-3 py-2');
                 li.append(row(l.qty + ' × ' + l.name, money(l.price * l.qty), 'font-medium'));
+                if (l.toppings.length) li.append(el('p', 'text-xs text-red-600', toppingLabel(l.toppings)));
                 if (l.note.trim()) li.append(el('p', 'text-xs text-slate-500', 'Ghi chú: ' + l.note.trim()));
                 return li;
             }));
@@ -533,7 +682,9 @@
             const payload = {
                 type: state.type,
                 payment_method: pay.method,
-                items: state.lines.map(l => ({ menu_item_id: Number(l.id), quantity: l.qty, note: l.note.trim() || null })),
+                // Chỉ gửi id topping; giá do server tự tính
+                items: state.lines.map(l => ({ menu_item_id: Number(l.id), quantity: l.qty, note: l.note.trim() || null,
+                    toppings: l.toppings.map(t => ({ id: t.id, quantity: t.quantity })) })),
             };
             if (state.type === 'dine_in') payload.table_number = state.table.trim();
             if (state.type === 'delivery') {

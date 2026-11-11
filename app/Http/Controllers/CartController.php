@@ -14,8 +14,10 @@ class CartController extends Controller
             'menu_item_id' => 'required|exists:menu_items,id',
             'quantity'     => 'required|integer|min:1|max:99',
             'note'         => 'nullable|string|max:255',
-            'toppings'     => 'nullable|array|max:20',
-            'toppings.*'   => 'integer|distinct',
+            // [{id, quantity}]; quantity = 0 bị bỏ qua, còn bán / đúng món / tối đa kiểm tra ở pickToppings
+            'toppings'            => 'nullable|array|max:20',
+            'toppings.*.id'       => 'required|integer|distinct',
+            'toppings.*.quantity' => 'required|integer|min:0|max:' . config('zomzop.topping_max_qty', 5),
         ]);
 
         $branchId = session('selected_branch_id');
@@ -37,15 +39,14 @@ class CartController extends Controller
         $menu->applyPrices([$item], (int) $branchId);
 
         // Giá topping lấy từ DB, không tin số tiền trình duyệt gửi lên
-        $chosenIds = $request->input('toppings', []);
-        $toppings  = $menu->availableToppings([$item->id], (int) $branchId)->whereIn('id', $chosenIds);
-        if ($toppings->count() !== count($chosenIds)) {
+        $toppings = BranchMenu::pickToppings($request->input('toppings', []), $item->id,
+            $menu->availableToppings([$item->id], (int) $branchId));
+        if ($toppings === null) {
             return response()->json([
                 'success' => false,
                 'message' => 'Có topping vừa hết tại chi nhánh, vui lòng chọn lại.',
             ], 422);
         }
-        $toppings = $toppings->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'price' => $t->price])->values()->all();
 
         $cart = session('cart', ['branch_id' => $branchId, 'items' => []]);
 
@@ -59,7 +60,7 @@ class CartController extends Controller
             'id'       => $item->id,
             'name'     => $item->name,
             'image'    => $item->image_url,
-            'price'    => (int) round($item->discounted_price) + array_sum(array_column($toppings, 'price')),
+            'price'    => (int) round($item->discounted_price) + BranchMenu::toppingsTotal($toppings),
             'quantity' => $qty,
             'note'     => $request->note ?? '',
             'toppings' => $toppings,

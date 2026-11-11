@@ -49,6 +49,12 @@ class MenuItemController extends AdminController
             'toppings.*.icon'   => ['nullable', Rule::in(array_keys(MenuItemTopping::iconOptions()))],
         ], self::MESSAGES);
 
+        // Topping chỉ bán kèm món thuộc danh mục cho phép (mặc định Burger)
+        $hasToppings = collect($data['toppings'] ?? [])->contains(fn ($t) => trim((string) ($t['name'] ?? '')) !== '');
+        if ($hasToppings && !Category::whereKey($data['category_id'])->whereIn('slug', config('zomzop.topping_categories', []))->exists()) {
+            throw ValidationException::withMessages(['toppings' => 'Chỉ món thuộc danh mục Burger mới được thêm topping. Hãy xoá tên các topping hoặc đổi danh mục.']);
+        }
+
         $data['tags']         = $this->parseTags($data['tags'] ?? '');
         $data['is_available'] = $request->boolean('is_available');
         $data['is_featured']  = $request->boolean('is_featured');

@@ -87,7 +87,8 @@ class MenuItem extends Model
 
     private static function idsWithToppings(): \Illuminate\Support\Collection
     {
-        return once(fn () => MenuItemTopping::distinct()->pluck('menu_item_id')->flip());
+        return once(fn () => MenuItemTopping::whereHas('menuItem.category', fn ($q) => $q->whereIn('slug', config('zomzop.topping_categories', [])))
+            ->distinct()->pluck('menu_item_id')->flip());
     }
 
     /**
