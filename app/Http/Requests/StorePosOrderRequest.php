@@ -34,6 +34,10 @@ class StorePosOrderRequest extends FormRequest
             'items.*.menu_item_id' => ['required', 'integer'],
             'items.*.quantity'     => ['required', 'integer', 'min:1', 'max:99'],
             'items.*.note'         => ['nullable', 'string', 'max:255'],
+            // [{id, quantity}]; quantity = 0 bị bỏ qua. Còn bán / đúng món / món Burger kiểm tra lại trong controller
+            'items.*.toppings'            => ['nullable', 'array', 'max:20'],
+            'items.*.toppings.*.id'       => ['required', 'integer', 'distinct'],
+            'items.*.toppings.*.quantity' => ['required', 'integer', 'min:0', 'max:' . config('zomzop.topping_max_qty', 5)],
         ];
     }
 
@@ -57,6 +61,8 @@ class StorePosOrderRequest extends FormRequest
             'items.*.menu_item_id.*'     => 'Món trong giỏ không hợp lệ.',
             'items.*.quantity.*'         => 'Số lượng mỗi món từ 1 đến 99.',
             'items.*.note.max'           => 'Ghi chú món tối đa 255 ký tự.',
+            'items.*.toppings.*.id.*'    => 'Topping trong giỏ không hợp lệ.',
+            'items.*.toppings.*.quantity.*' => 'Số phần mỗi topping từ 0 đến ' . config('zomzop.topping_max_qty', 5) . '.',
             'note.max'                   => 'Ghi chú đơn tối đa 500 ký tự.',
             '*.max'                      => ':attribute quá dài.',
         ];

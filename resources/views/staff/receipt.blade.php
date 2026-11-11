@@ -87,6 +87,10 @@
                         @if ($paper === 80)<td class="num">{{ $money($item->price_snapshot) }}</td>@endif
                         <td class="num">{{ $money($item->subtotal) }}</td>
                     </tr>
+                    @foreach ($item->toppings ?? [] as $t)
+                        @php $tq = \App\Services\BranchMenu::toppingQty($t); @endphp
+                        <tr><td colspan="4">&nbsp;+ {{ $tq }}× {{ $t['name'] }} ({{ $tq }} × {{ $money($t['price']) }} = {{ $money($tq * $t['price']) }})</td></tr>
+                    @endforeach
                     @if ($item->note)
                         <tr><td class="note" colspan="4">↳ {{ $item->note }}</td></tr>
                     @endif

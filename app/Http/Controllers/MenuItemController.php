@@ -48,6 +48,7 @@ class MenuItemController extends Controller
             'tags'             => $item->tags,
             'toppings'         => $menu->availableToppings([$item->id], $menu->currentBranchId())
                 ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'price' => $t->price, 'icon_url' => $t->icon_url])->values(),
+            'topping_max_qty'  => (int) config('zomzop.topping_max_qty', 5),
         ]);
     }
 }

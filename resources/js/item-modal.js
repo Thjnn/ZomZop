@@ -125,20 +125,32 @@ function closeItemModalDirect() {
     document.body.style.overflow = "";
 }
 
+// Số phần từng topping đang chọn: { toppingId: quantity }
+let modalToppingQty = {};
+const vnd = (n) => n.toLocaleString("vi-VN") + " đ";
+
+function counterButton(text, label) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = text;
+    b.setAttribute("aria-label", label);
+    b.className =
+        "w-7 h-7 flex items-center justify-center rounded-full bg-white text-slate-600 shadow-xs font-bold cursor-pointer hover:text-red-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-600";
+    return b;
+}
+
+// Mỗi dòng: icon · tên · +giá đơn vị (· thành tiền khi > 0) · [−] [số] [+]
 function renderToppings(toppings) {
     const box = document.getElementById("modal-toppings-box");
     const list = document.getElementById("modal-toppings");
+    const max = modalItem?.topping_max_qty ?? 5;
+    modalToppingQty = {};
     list.replaceChildren(
         ...toppings.map((t) => {
-            const label = document.createElement("label");
-            label.className =
-                "flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm cursor-pointer hover:border-red-300 has-[:checked]:border-red-400 has-[:checked]:bg-red-50";
-            const input = document.createElement("input");
-            input.type = "checkbox";
-            input.value = t.id;
-            input.dataset.price = t.price;
-            input.className = "accent-red-500 w-4 h-4";
-            input.addEventListener("change", updateModalTotal);
+            modalToppingQty[t.id] = 0;
+            const row = document.createElement("div");
+            row.dataset.toppingId = t.id;
+            row.dataset.price = t.price;
             let icon;
             if (t.icon_url) {
                 icon = document.createElement("img");
@@ -149,27 +161,60 @@ function renderToppings(toppings) {
                 icon = document.createElement("span");
                 icon.className = "mx-2.5 h-2 w-2 rounded-full bg-amber-400";
             }
-            const name = document.createElement("span");
-            name.className = "flex-1 text-slate-700";
+            const info = document.createElement("div");
+            info.className = "flex-1 min-w-0";
+            const name = document.createElement("p");
+            name.className = "text-slate-700";
             name.textContent = t.name;
-            const price = document.createElement("span");
-            price.className = "font-semibold text-slate-500";
-            price.textContent = "+" + t.price.toLocaleString("vi-VN") + " đ";
-            label.append(input, icon, name, price);
-            return label;
+            const price = document.createElement("p");
+            price.className = "topping-price text-xs font-semibold text-slate-500";
+            info.append(name, price);
+
+            const counter = document.createElement("div");
+            counter.className = "flex items-center gap-1.5 bg-slate-100 rounded-full px-1 py-0.5";
+            const minus = counterButton("−", "Bớt " + t.name);
+            const qty = document.createElement("span");
+            qty.className = "w-4 text-center text-sm font-bold text-slate-800";
+            const plus = counterButton("+", "Thêm " + t.name);
+            counter.append(minus, qty, plus);
+            row.append(icon, info, counter);
+
+            const render = () => {
+                const q = modalToppingQty[t.id];
+                qty.textContent = q;
+                minus.disabled = q <= 0;
+                plus.disabled = q >= max;
+                price.textContent = q > 0 ? `+${vnd(t.price)} · ${q} × ${vnd(t.price)} = ${vnd(q * t.price)}` : `+${vnd(t.price)}`;
+                row.className =
+                    "flex items-center gap-3 rounded-xl border px-3 py-2 text-sm " +
+                    (q > 0 ? "border-red-400 bg-red-50" : "border-slate-200");
+            };
+            const change = (delta) => {
+                modalToppingQty[t.id] = Math.min(max, Math.max(0, modalToppingQty[t.id] + delta));
+                render();
+                updateModalTotal();
+            };
+            minus.addEventListener("click", () => change(-1));
+            plus.addEventListener("click", () => change(1));
+            render();
+            return row;
         }),
     );
     box.classList.toggle("hidden", toppings.length === 0);
 }
 
-function checkedToppings() {
-    return [...document.querySelectorAll("#modal-toppings input:checked")];
+/** [{id, quantity}] — chỉ topping có số phần > 0 */
+function chosenToppings() {
+    return Object.entries(modalToppingQty)
+        .filter(([, q]) => q > 0)
+        .map(([id, quantity]) => ({ id: Number(id), quantity }));
 }
 
 function updateModalTotal() {
     if (!modalItem) return;
-    // Topping không giảm theo % của món
-    const extra = checkedToppings().reduce((sum, el) => sum + Number(el.dataset.price), 0);
+    // (giá món + Σ giá topping × số phần) × số lượng món; topping không giảm theo % của món
+    const prices = Object.fromEntries((modalItem.toppings ?? []).map((t) => [t.id, t.price]));
+    const extra = chosenToppings().reduce((sum, t) => sum + prices[t.id] * t.quantity, 0);
     const total = (Math.round(modalItem.discounted_price) + extra) * modalQty;
     const formatted = total.toLocaleString("vi-VN") + " đ";
     if (modalItem.is_on_sale) {
@@ -216,7 +261,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 modalItem.id,
                 modalQty,
                 "",
-                checkedToppings().map((el) => Number(el.value)),
+                chosenToppings(),
             );
             closeItemModalDirect();
         });

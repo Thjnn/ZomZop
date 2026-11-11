@@ -32,10 +32,10 @@ class OrderItem extends Model
         return $this->belongsTo(Order::class);
     }
 
-    /** "Cà chua, Thêm thịt" — rỗng nếu không chọn topping */
+    /** "+ 2× Thêm thịt bò, + 1× Cà chua" — rỗng nếu không chọn topping */
     public function getToppingNamesAttribute(): string
     {
-        return implode(', ', array_column($this->toppings ?? [], 'name'));
+        return \App\Services\BranchMenu::toppingLabel($this->toppings ?? []);
     }
 
     /** MenuItem gốc — dùng để lấy ảnh, slug, v.v. */

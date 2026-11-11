@@ -33,7 +33,12 @@ class WorkController extends Controller
 
         $categories = $items->pluck('category')->unique('id')->sortBy([['sort_order', 'asc'], ['name', 'asc']])->values();
 
-        return view('staff.pos', compact('items', 'categories'));
+        // Topping còn bán tại chi nhánh, chỉ món Burger: [menu_item_id => [{id, name, price, icon_url}]]
+        $toppings = $menu->availableToppings($items->pluck('id')->all(), $branchId)
+            ->groupBy('menu_item_id')
+            ->map(fn ($list) => $list->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'price' => $t->price, 'icon_url' => $t->icon_url])->values());
+
+        return view('staff.pos', compact('items', 'categories', 'toppings'));
     }
 
     /** Trang "Của tôi": ca hôm nay, chấm công và lương trong tháng */
