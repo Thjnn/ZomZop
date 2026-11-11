@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # ZomZop
 
 Web đặt món cho chuỗi nhà hàng nhiều chi nhánh + quản lý nội bộ (đơn, menu theo chi nhánh, ca làm, chấm công khuôn mặt, lương, báo cáo).
@@ -9,11 +13,21 @@ Laravel 13 · Blade + Tailwind 4 · JS thuần qua Vite · MySQL (dev) / SQLite 
 - Build JS/CSS: `npm run build` — bắt buộc sau khi sửa `resources/js` hoặc `resources/css` (trang chạy bản trong `public/build`).
 - Đổi schema: thêm migration mới, chạy `php artisan migrate`; không sửa migration cũ.
 - Trên máy Laragon, `php` có thể không nằm trong PATH → dùng đường dẫn đầy đủ tới `php.exe` của Laragon.
+- `composer dev`: chạy cùng lúc server + queue worker + log (pail) + Vite. Gửi mail mã giảm giá (`SendCouponEmail`) đi qua queue `database` → cần worker chạy thì mail mới đi (test dùng queue `sync`).
+- Lệnh riêng (`routes/console.php`): `php artisan zomzop:manager "<chi nhánh>" <email>` tạo tài khoản quản lý; `attendance:prune-photos` (chạy hằng ngày qua scheduler) xoá ảnh chấm công quá hạn.
 
 ## Vai trò & route
 
 `customer` · `staff` · `kitchen` · `manager` · `admin`, chặn bằng middleware `role:...` (`EnsureRole`).
-Route tách theo khu vực: `routes/web.php` (khách), `manager.php`, `admin.php`, `staff.php` (`/staff`, `/kitchen`), `kiosk.php` (máy chấm công, xác thực bằng header `X-Kiosk-Token`).
+Route tách theo khu vực, nạp trong `bootstrap/app.php` (`then:`): `routes/web.php` (khách, tự `require` thêm `customer-order-cancel.php`, `customer-notification-actions.php`), `manager.php`, `admin.php`, `staff.php` (`/staff`, `/kitchen`), `kiosk.php` (máy chấm công, **không** qua nhóm `web`, xác thực bằng header `X-Kiosk-Token` qua middleware `kiosk`).
+
+## Luồng nghiệp vụ chính
+
+- **Chi nhánh đang chọn** của khách nằm ở `session('selected_branch_id')`. Mọi quy tắc món đang bán / giá chi nhánh / tồn kho / topping gom trong `App\Services\BranchMenu` (đọc docblock đầu file) — dùng chung cho khách, manager, POS; đừng tự query `branch_menu_items`.
+- **Giỏ hàng** nằm trong `session('cart')`, middleware `SyncSavedCart` (gắn vào nhóm `web`) chép sang cột `users.cart` qua `App\Support\SavedCart` để đăng nhập lại không mất giỏ.
+- **Trạng thái đơn**: chỉ đổi qua `OrderStatusService::transition()` (máy trạng thái `TRANSITIONS`, ghi `order_histories`). `orders.channel` = `online` (khách đặt) hoặc `pos` (staff bán tại quầy); hộp thư khách (`CustomerInbox`) dựng từ `order_histories` của đơn online + `coupon_notifications`.
+- **Chatbot** (`App\Services\Chatbot`): khớp `ChatbotKeyword` soạn sẵn trước, không khớp mới gọi Gemini (`GEMINI_*` trong `.env`), lỗi thì trả câu dự phòng.
+- Đăng nhập Google/Facebook qua Socialite (`GOOGLE_*`, `FACEBOOK_*`).
 
 ## Quy ước
 
