@@ -35,9 +35,16 @@
         ];
     @endphp
 
-    <div class="mb-6">
-        <h1 class="text-xl font-bold text-red-500">Chào mừng đến chi nhánh {{ $branch->name }}</h1>
-        <p class="text-sm text-slate-600">Theo dõi tình hình kinh doanh và số liệu của chi nhánh</p>
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h1 class="text-xl font-bold text-red-500">Chào mừng đến chi nhánh {{ $branch->name }}</h1>
+            <p class="text-sm text-slate-600">Theo dõi tình hình kinh doanh và số liệu của chi nhánh</p>
+        </div>
+        <a href="{{ route('staff.pos') }}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+            Mở máy POS
+        </a>
     </div>
 
     {{-- Phân tích kinh doanh --}}

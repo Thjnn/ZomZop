@@ -11,7 +11,7 @@ class ReportController extends ManagerController
     use ParsesDateRange;
 
     public const TYPE_LABELS = \App\Models\Order::TYPE_LABELS;
-    public const PAY_LABELS  = \App\Support\PaymentMethods::LABELS + \App\Support\PaymentMethods::POS_LABELS;
+    public const PAY_LABELS  = \App\Support\PaymentMethods::LABELS + \App\Support\PaymentMethods::POS_LABELS + \App\Support\PaymentMethods::LEGACY_LABELS;
 
     public function index(Request $request, BranchReport $report)
     {

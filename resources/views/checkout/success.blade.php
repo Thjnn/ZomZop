@@ -34,7 +34,7 @@
         @endif
         <div class="flex items-center justify-between">
             <span class="text-sm text-slate-500">Phương thức thanh toán</span>
-            <span class="font-semibold text-slate-700">{{ \App\Support\PaymentMethods::LABELS[$order->payment_method] ?? $order->payment_method }}</span>
+            <span class="font-semibold text-slate-700">{{ \App\Support\PaymentMethods::label($order->payment_method) }}</span>
         </div>
         <div class="flex items-center justify-between">
             <span class="text-sm text-slate-500">Trạng thái</span>

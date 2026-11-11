@@ -15,7 +15,7 @@ class StorePosOrderRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Quyền đã chặn ở route (role:staff); thiếu chi nhánh thì không bán được
+        // Quyền đã chặn ở route (role:staff,manager); thiếu chi nhánh thì không bán được
         return (bool) $this->user()?->branch_id;
     }
 

@@ -17,6 +17,7 @@ class SettingTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        config(['services.bank.account' => '0123456789']); // chuyển khoản chỉ bật khi có số tài khoản
     }
 
     private function validData(array $over = []): array
@@ -25,7 +26,7 @@ class SettingTest extends TestCase
             'brand_name' => 'ZomZop', 'brand_slogan' => 'Ăn ngon mỗi ngày', 'hotline' => '1900 8888',
             'email' => 'hotro@zomzop.vn', 'address' => '12 Ấp Bắc, Mỹ Tho', 'open_hours' => '08:00 - 22:00',
             'footer_about' => 'Chuỗi đồ ăn nhanh', 'footer_facebook' => 'https://facebook.com/zomzop', 'footer_zalo' => '',
-            'payment_cash' => '1', 'payment_momo' => '1',
+            'payment_cash' => '1', 'payment_bank' => '1',
         ], $over);
     }
 
@@ -49,15 +50,15 @@ class SettingTest extends TestCase
         $this->actingAs($admin)->put('/admin/settings', $this->validData(['email' => 'khong-phai-email', 'footer_facebook' => 'abc']))
             ->assertSessionHasErrors(['email', 'footer_facebook']);
 
-        $this->actingAs($admin)->put('/admin/settings', $this->validData(['payment_cash' => null, 'payment_momo' => null]))
+        $this->actingAs($admin)->put('/admin/settings', $this->validData(['payment_cash' => null, 'payment_bank' => null]))
             ->assertSessionHasErrors('payment');
     }
 
     public function test_disabled_payment_method_is_hidden_and_rejected(): void
     {
-        $this->actingAs($this->makeUser('admin'))->put('/admin/settings', $this->validData()); // vnpay không gửi = tắt
+        $this->actingAs($this->makeUser('admin'))->put('/admin/settings', $this->validData()); // vnpay không còn cho chọn (chưa nối cổng)
 
-        $this->assertSame(['cash', 'momo'], PaymentMethods::enabled());
+        $this->assertSame(['cash', 'bank'], PaymentMethods::enabled());
 
         $branch = $this->makeBranch();
         $item   = $this->makeMenuItem();

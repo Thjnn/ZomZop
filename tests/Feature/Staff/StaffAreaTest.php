@@ -32,6 +32,32 @@ class StaffAreaTest extends TestCase
         $this->actingAs($this->makeUser('kitchen', $branch))->get('/kitchen')->assertOk();
     }
 
+    public function test_manager_opens_pos_from_dashboard_but_kitchen_cannot(): void
+    {
+        $branch  = $this->makeBranch();
+        $manager = $this->makeUser('manager', $branch);
+
+        $this->actingAs($manager)->get('/manager')->assertSee(route('staff.pos'), false);
+        $this->actingAs($manager)->get('/staff/pos')->assertOk()->assertSee(route('manager.dashboard'), false);
+        $this->actingAs($manager)->get('/staff/pos/orders')->assertOk();
+        $this->actingAs($this->makeUser('kitchen', $branch))->get('/staff/pos')->assertForbidden();
+    }
+
+    public function test_pos_shows_vietqr_only_when_bank_account_configured(): void
+    {
+        $staff = $this->makeUser('staff', $this->makeBranch());
+
+        config(['services.bank' => ['id' => 'vcb', 'name' => 'Vietcombank', 'account' => '0123456789', 'holder' => 'ZOMZOP']]);
+        $this->actingAs($staff)->get('/staff/pos')->assertOk()
+            ->assertSee('vcb-0123456789-compact2.png?accountName=ZOMZOP', false)
+            ->assertSee('id="pos-bank-qr"', false);
+
+        config(['services.bank.account' => null]);
+        $this->actingAs($staff)->get('/staff/pos')->assertOk()
+            ->assertDontSee('id="pos-bank-qr"', false)
+            ->assertSee('Chưa cấu hình tài khoản nhận tiền');
+    }
+
     public function test_own_page_shows_only_my_attendance_and_payroll(): void
     {
         $branch = $this->makeBranch();

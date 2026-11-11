@@ -23,6 +23,26 @@
         <a href="{{ route('addresses.index') }}"><span>Sổ địa chỉ</span><small>{{ $addressCount ? 'Quản lý địa chỉ nhận hàng' : 'Thêm địa chỉ nhận hàng đầu tiên' }}</small><b aria-hidden="true">→</b></a>
         <a href="{{ route('coupons') }}"><span>Mã giảm giá</span><small>Ưu đãi cho bữa ngon tiếp theo</small><b aria-hidden="true">→</b></a>
     </nav>
+    @php
+        // Lối tắt về khu vực làm việc theo vai trò (khách không có): [route, tên, mô tả]
+        $workLinks = match ($user->role) {
+            'admin'   => [['admin.dashboard', 'Trang quản trị', 'Chi nhánh · Menu · Báo cáo toàn chuỗi']],
+            'manager' => [['manager.dashboard', 'Dashboard quản lý', 'Đơn · Nhân viên · Báo cáo chi nhánh'],
+                          ['staff.pos', 'Máy POS', 'Bán hàng tại quầy']],
+            'staff'   => [['staff.pos', 'Máy POS', 'Bán hàng tại quầy'],
+                          ['staff.me.orders', 'Của tôi', 'Đơn đã bán · Ca làm · Lương']],
+            'kitchen' => [['kitchen.dashboard', 'Màn hình bếp', 'Đơn chờ nấu · Đang nấu'],
+                          ['staff.dashboard', 'Của tôi', 'Ca làm · Chấm công · Lương']],
+            default   => [],
+        };
+    @endphp
+    @if ($workLinks)
+        <nav class="zz-shortcuts" aria-label="Khu vực làm việc">
+            @foreach ($workLinks as [$route, $label, $hint])
+                <a href="{{ route($route) }}"><span>{{ $label }}</span><small>{{ $hint }}</small><b aria-hidden="true">→</b></a>
+            @endforeach
+        </nav>
+    @endif
             @if(session('success'))<div class="zz-alert zz-success" role="status">{{ session('success') }}</div>@endif
             @if(session('success_password'))<div data-password-saved class="zz-alert zz-success" role="status">{{ session('success_password') }}</div>@endif
 

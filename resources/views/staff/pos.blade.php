@@ -217,11 +217,18 @@
                     </div>
 
                     <div id="pos-pay-bank" class="hidden space-y-3 text-center">
-                        {{-- ponytail: ảnh QR tạm; nối VietQR (PaymentMethods::vietQrUrl) khi có tài khoản ngân hàng của chi nhánh --}}
-                        <div class="mx-auto w-52 h-52 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center text-slate-400">
-                            <svg class="w-20 h-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>
-                            <span class="text-xs mt-2">Mã QR (tạm thời)</span>
-                        </div>
+                        {{-- ponytail: một tài khoản chung trong .env (BANK_*), tách theo chi nhánh khi mỗi chi nhánh có tài khoản riêng --}}
+                        @if (\App\Support\PaymentMethods::vietQrBase())
+                            <img id="pos-bank-qr" alt="Mã VietQR chuyển khoản" class="mx-auto w-60 h-auto rounded-2xl border border-slate-200 bg-white">
+                            <dl class="text-xs text-slate-500 space-y-0.5">
+                                <div>{{ config('services.bank.name') }} · <span class="font-semibold text-slate-700">{{ config('services.bank.account') }}</span></div>
+                                <div>{{ config('services.bank.holder') }} · Nội dung: <span id="pos-bank-note" class="font-semibold text-slate-700"></span></div>
+                            </dl>
+                        @else
+                            <div class="mx-auto w-52 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                                Chưa cấu hình tài khoản nhận tiền (BANK_* trong .env) nên chưa tạo được mã VietQR.
+                            </div>
+                        @endif
                         <p class="text-sm text-slate-600">Khách quét mã và chuyển <strong id="pos-bank-amount" class="text-red-500"></strong>.<br>Kiểm tra đã nhận tiền rồi bấm xác nhận.</p>
                     </div>
 
@@ -567,6 +574,7 @@
 
         // ── Thanh toán ──────────────────────────────────────
         const ORDER_URL   = @json(route('staff.pos.orders.store'));
+        const VIETQR_BASE = @json(\App\Support\PaymentMethods::vietQrBase());
         const TYPE_LABELS = { dine_in: 'Tại quán', takeaway: 'Mang đi', delivery: 'Giao hàng' };
         const modal = $('pos-pay-modal');
         const pay = { method: 'cash', cash: 0, submitting: false, done: false };
@@ -589,6 +597,12 @@
             $('pos-pay-discount').textContent = t.discount ? '−' + money(t.discount) : money(0);
             $('pos-pay-total').textContent = money(t.total);
             $('pos-bank-amount').textContent = money(t.total);
+            if (VIETQR_BASE) {
+                // Đơn chưa tạo nên chưa có mã đơn: nội dung = POS + giờ phút giây để nhân viên dò trên app ngân hàng
+                const note = 'ZZPOS' + new Date().toTimeString().slice(0, 8).replaceAll(':', '');
+                $('pos-bank-note').textContent = note;
+                $('pos-bank-qr').src = VIETQR_BASE + '&' + new URLSearchParams({ amount: t.total, addInfo: note });
+            }
             $('pos-card-amount').textContent = money(t.total);
             $('pos-pay-delivery').classList.toggle('hidden', state.type !== 'delivery');
             $('pos-cash-input').value = '';

@@ -21,6 +21,13 @@
                 ['staff.me.orders', 'Của tôi', ['staff.me.orders', 'staff.dashboard']],
             ];
         }
+        if ($_user->isManager()) {
+            $_nav = [
+                ['manager.dashboard', '← Quản lý', []],
+                ['staff.pos', 'Máy POS', ['staff.pos']],
+                ['staff.pos.orders.index', 'Đơn đã bán', ['staff.pos.orders.index']],
+            ];
+        }
         if ($_user->isKitchen()) {
             array_unshift($_nav, ['kitchen.dashboard', 'Màn hình bếp', ['kitchen.dashboard']]);
         }
