@@ -22,8 +22,8 @@
 
 <body class="bg-slate-50 text-slate-800 ">
     @php
-        $_cart = session('cart', ['items' => []]);
-        $_cartCount = collect($_cart['items'])->sum('quantity');
+    $_cart = session('cart', ['items' => []]);
+    $_cartCount = collect($_cart['items'])->sum('quantity');
     @endphp
 
     <header class="sticky top-0 z-50 bg-white shadow-xs border-b border-slate-100 relative">
@@ -47,16 +47,32 @@
                         </svg>
                     </a>
 
-                    <div class="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-100 shadow-xl rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
-                        <ul class="py-2">
-                            @foreach(\App\Models\Category::all() as $category)
-                            <li>
-                                <a href="{{ url('/category/' . $category->slug) }}" class="block px-4 py-2 hover:bg-slate-50 hover:text-red-500">
-                                    {{ $category->name }}
-                                </a>
-                            </li>
-                            @endforeach
-                        </ul>
+                    @php $_navBanner = \App\Models\Banner::active()->first(); @endphp
+                    {{-- pt-2 thay cho mt-2: giữ vùng hover liền mạch, chuột đi xuống không bị tắt menu --}}
+                    <div class="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                        <div class="flex w-[820px] bg-white border border-slate-100 shadow-xl rounded-xl overflow-hidden">
+                            {{-- Phần 1: danh mục chia 2 cột --}}
+                            <ul class="grid grid-cols-2 gap-1 p-3 flex-1 content-start">
+                                @foreach(\App\Models\Category::orderBy('sort_order')->get() as $category)
+                                <li>
+                                    <a href="{{ url('/category/' . $category->slug) }}" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 hover:text-red-500 transition">
+                                        @if ($category->icon)
+                                        <img src="{{ asset('images/categories/' . $category->icon) }}" alt="" class="w-7 h-7 object-contain">
+                                        @endif
+                                        {{ $category->name }}
+                                    </a>
+                                </li>
+                                @endforeach
+                            </ul>
+
+                            {{-- Phần 2: banner quảng cáo (banner đang chạy đầu tiên) --}}
+                            @if ($_navBanner)
+                            <a href="{{ $_navBanner->link ?: '#' }}" class="w-[440px] flex-shrink-0 self-center p-3">
+                                {{-- Banner là ảnh ngang: để h-auto cho hiện đủ ảnh, không cắt --}}
+                                <img src="{{ $_navBanner->image_url }}" alt="{{ $_navBanner->title }}" class="w-full h-auto rounded-lg">
+                            </a>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </nav>
@@ -110,9 +126,9 @@
                     <button class="p-2 hover:bg-slate-100 rounded-full transition cursor-pointer hidden sm:flex items-center gap-2">
                         <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
                             @if (auth()->user()->avatar)
-                                <img src="{{ asset(auth()->user()->avatar) }}" class="w-full h-full object-cover" alt="">
+                            <img src="{{ asset(auth()->user()->avatar) }}" class="w-full h-full object-cover" alt="">
                             @else
-                                {{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}
+                            {{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}
                             @endif
                         </div>
                     </button>
@@ -168,9 +184,10 @@
     </div>
     <script>
         // Ẩn khung xương khi trang (kể cả ảnh) tải xong; tối đa 4s để không che trang nếu một ảnh treo
-        (function () {
+        (function() {
             const sk = document.getElementById('page-skeleton');
             let done = false;
+
             function hide() {
                 if (done) return;
                 done = true;
@@ -284,21 +301,21 @@
         <span id="toast-icon" class="text-xl">⚠️</span>
         <span id="toast-message" class="text-base"></span>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
         new Swiper(".mySwiper", {
             spaceBetween: 30,
             centeredSlides: true,
             autoplay: {
-                delay: 3000, 
+                delay: 3000,
                 disableOnInteraction: false,
             },
             pagination: {
                 el: ".swiper-pagination",
                 clickable: true,
             },
-            loop: true, 
+            loop: true,
         });
         // Swiper chỉ lặp vòng khi đủ 2 × số món mỗi khung (tối đa 3); ít hơn thì tự tắt loop và autoplay dừng ở cuối → quay về đầu
         const specialOfferCount = document.querySelectorAll(".specialOffersSwiper .swiper-slide").length;
@@ -340,7 +357,7 @@
 
         // Custom smooth scroll
         document.getElementById('back-to-top').addEventListener('click', () => {
-            const duration = 600; 
+            const duration = 600;
             const start = window.scrollY;
             const startTime = performance.now();
 
