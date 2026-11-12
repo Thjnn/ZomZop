@@ -92,6 +92,8 @@ Route::middleware(['auth', 'role:admin'])
         Route::patch('/categories/{category}/toggle', [CategoryController::class, 'toggle'])->name('categories.toggle');
 
         Route::get('/menu-items', [MenuItemController::class, 'index'])->name('menu-items.index');
+        Route::get('/menu-items/import-template', [MenuItemController::class, 'importTemplate'])->name('menu-items.import-template');
+        Route::post('/menu-items/import', [MenuItemController::class, 'import'])->name('menu-items.import');
         Route::get('/menu-items/create', [MenuItemController::class, 'create'])->name('menu-items.create');
         Route::post('/menu-items', [MenuItemController::class, 'store'])->name('menu-items.store');
         Route::get('/menu-items/{menuItem}/edit', [MenuItemController::class, 'edit'])->name('menu-items.edit');

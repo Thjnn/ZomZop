@@ -5,7 +5,11 @@
 @section('content')
     @php $money = fn ($v) => number_format($v, 0, ',', '.') . 'đ'; @endphp
 
-    <h1 class="text-xl font-bold mb-1">Menu & giá chi nhánh</h1>
+    <div class="flex items-center justify-between mb-1">
+        <h1 class="text-xl font-bold">Menu & giá chi nhánh</h1>
+        <x-import-excel :action="route('manager.menu.import')" :template="route('manager.menu.import-template')"
+                        hint="File mẫu là menu hiện tại của chi nhánh: sửa giá / tồn / đang bán rồi nhập lại." />
+    </div>
     <p class="text-sm text-slate-500 mb-4">Để trống ô giá = dùng giá gốc. Giảm giá % của món (do admin đặt) vẫn áp lên giá chi nhánh.</p>
 
     <form method="GET" class="bg-white rounded-2xl p-4 border border-slate-100 mb-4 flex flex-wrap gap-3 items-end text-sm">

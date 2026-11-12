@@ -5,7 +5,11 @@
 @section('content')
     <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold">Món ăn toàn chuỗi</h1>
-        <a href="{{ route('admin.menu-items.create') }}" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold">+ Thêm món</a>
+        <div class="flex items-center gap-2">
+            <x-import-excel :action="route('admin.menu-items.import')" :template="route('admin.menu-items.import-template')"
+                            hint="Chỉ thêm món mới. Tên danh mục lấy ở sheet thứ 2 của file mẫu." />
+            <a href="{{ route('admin.menu-items.create') }}" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold">+ Thêm món</a>
+        </div>
     </div>
 
     <form method="GET" class="bg-white rounded-2xl p-4 border border-slate-100 mb-4 flex flex-wrap gap-3 items-end text-sm">

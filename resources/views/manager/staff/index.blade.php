@@ -5,7 +5,11 @@
 @section('content')
     <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold">Nhân viên chi nhánh</h1>
-        <a href="{{ route('manager.staff.create') }}" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold">+ Tạo tài khoản</a>
+        <div class="flex items-center gap-2">
+            <x-import-excel :action="route('manager.staff.import')" :template="route('manager.staff.import-template')"
+                            hint="Tạo nhiều tài khoản cùng lúc. Khuôn mặt vẫn đăng ký riêng từng người." />
+            <a href="{{ route('manager.staff.create') }}" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold">+ Tạo tài khoản</a>
+        </div>
     </div>
 
     <div class="bg-white rounded-2xl border border-slate-100 overflow-x-auto">

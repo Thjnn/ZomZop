@@ -27,9 +27,13 @@ Route::middleware(['auth', 'role:manager'])
 
         Route::get('/menu', [MenuController::class, 'index'])->name('menu.index');
         Route::put('/menu', [MenuController::class, 'update'])->name('menu.update');
+        Route::get('/menu/import-template', [MenuController::class, 'importTemplate'])->name('menu.import-template');
+        Route::post('/menu/import', [MenuController::class, 'import'])->name('menu.import');
         Route::put('/chef-picks', [MenuController::class, 'updateChefPicks'])->name('chef-picks.update');
 
         Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
+        Route::get('/staff/import-template', [StaffController::class, 'importTemplate'])->name('staff.import-template');
+        Route::post('/staff/import', [StaffController::class, 'import'])->name('staff.import');
         Route::get('/staff/create', [StaffController::class, 'create'])->name('staff.create');
         Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
         Route::get('/staff/{user}/edit', [StaffController::class, 'edit'])->name('staff.edit');

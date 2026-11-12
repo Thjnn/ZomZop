@@ -7,12 +7,24 @@ use App\Models\Category;
 use App\Models\MenuItem;
 use App\Models\MenuItemTopping;
 use App\Services\BranchMenu;
+use App\Support\ExcelImport;
+use App\Support\ExcelReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class MenuController extends ManagerController
 {
+    /** Cột file giá chi nhánh; Tên món, Danh mục, Giá gốc chỉ để xem, không đọc lại */
+    private const IMPORT_COLUMNS = [
+        'id'            => 'Mã món',
+        'name'          => 'Tên món',
+        'price'         => 'Giá chi nhánh',
+        'stock_qty'     => 'Tồn kho',
+        'is_available'  => 'Đang bán',
+        'is_bestseller' => 'Bán chạy',
+    ];
+
     public function index(Request $request)
     {
         $branchId = $this->branchId();
@@ -126,5 +138,64 @@ class MenuController extends ManagerController
         });
 
         return back()->with('success', "Đã lưu {$ids->count()} món ưu đãi từ đầu bếp.");
+    }
+
+    /** File mẫu = menu hiện tại của chi nhánh (món đang bán toàn chuỗi), sửa xong nhập lại */
+    public function importTemplate()
+    {
+        $branchId = $this->branchId();
+        $items = MenuItem::with('category')->where('is_available', true)->orderBy('category_id')->orderBy('name')->get();
+        $rows  = BranchMenuItem::where('branch_id', $branchId)->get()->keyBy('menu_item_id');
+
+        $report = new ExcelReport('Giá & tồn kho — ' . $this->branchName(), 'Chỉ sửa 4 cột cuối · Giá trống = giá gốc · Tồn trống = không giới hạn · Đang bán / Bán chạy: 1 hoặc 0');
+        $report->sheet('Menu chi nhánh')->table(['Mã món', 'Tên món', 'Danh mục', 'Giá gốc', 'Giá chi nhánh', 'Tồn kho', 'Đang bán', 'Bán chạy'], $items->map(fn ($m) => [
+                $m->id, $m->name, $m->category?->name, $m->base_price,
+                $rows[$m->id]->price ?? null,
+                $rows[$m->id]->stock_qty ?? null,
+                (int) ($rows[$m->id]->is_available ?? true),
+                (int) ($rows[$m->id]->is_bestseller ?? false),
+            ]), ['D' => 'money', 'E' => 'money']);
+
+        return $report->download('menu-chi-nhanh.xlsx');
+    }
+
+    /** Đọc file rồi đi đúng đường lưu bảng menu (update): cùng kiểm tra, cùng quy tắc ngừng bán toàn chuỗi */
+    public function import(Request $request)
+    {
+        $request->validate(['file' => ExcelImport::FILE_RULES], ExcelImport::FILE_MESSAGES);
+        $rows = ExcelImport::rows($request->file('file'), self::IMPORT_COLUMNS);
+        $known = MenuItem::whereIn('id', array_filter(array_column($rows, 'id'), 'ctype_digit'))->pluck('is_available', 'id');
+
+        $errors = $items = [];
+        foreach ($rows as $line => $row) {
+            if (!ctype_digit((string) $row['id']) || !isset($known[(int) $row['id']])) {
+                $errors[] = "Dòng {$line}: mã món \"{$row['id']}\" không có trong hệ thống.";
+                continue;
+            }
+            $available  = ExcelImport::bool($row['is_available'], true);
+            $bestseller = ExcelImport::bool($row['is_bestseller'], false);
+            if ($available === null || $bestseller === null) {
+                $errors[] = "Dòng {$line}: cột Đang bán / Bán chạy chỉ nhận 1 hoặc 0.";
+                continue;
+            }
+            if ($available && !$known[(int) $row['id']]) {
+                $errors[] = "Dòng {$line}: món \"{$row['name']}\" đã ngừng bán toàn chuỗi, không bật được ở chi nhánh.";
+                continue;
+            }
+            $items[(int) $row['id']] = [
+                'price'         => ExcelImport::int($row['price']),
+                'stock_qty'     => ExcelImport::int($row['stock_qty']),
+                'is_available'  => $available,
+                'is_bestseller' => $bestseller,
+            ];
+        }
+        if ($errors) {
+            ExcelImport::fail($errors);
+        }
+
+        // Quy tắc ngừng bán toàn chuỗi đã kiểm ở trên nên update() chỉ còn lỗi validate (ném ra) hoặc lưu thành công
+        $request->merge(['items' => $items, 'toppings' => []]);
+
+        return $this->update($request)->with('success', 'Đã nhập giá & tồn kho của ' . count($items) . ' món từ Excel.');
     }
 }

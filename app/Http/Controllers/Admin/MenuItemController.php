@@ -6,9 +6,12 @@ use App\Models\AdminLog;
 use App\Models\Category;
 use App\Models\MenuItem;
 use App\Models\MenuItemTopping;
+use App\Support\ExcelImport;
+use App\Support\ExcelReport;
 use App\Support\Slug;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -32,16 +35,31 @@ class MenuItemController extends AdminController
         'toppings.*.icon.in'   => 'Icon topping không còn trong thư mục public/images/toppings.',
     ];
 
+    /** Cột file nhập món: khoá => tiêu đề cột trong file mẫu */
+    private const IMPORT_COLUMNS = [
+        'name'              => 'Tên món',
+        'category'          => 'Danh mục',
+        'base_price'        => 'Giá gốc',
+        'discount_percent'  => 'Giảm %',
+        'prep_time_minutes' => 'Phút chuẩn bị',
+        'description'       => 'Mô tả',
+        'tags'              => 'Tag',
+        'is_available'      => 'Đang bán',
+    ];
+
+    private const ITEM_RULES = [
+        'category_id'       => ['required', 'integer', 'exists:categories,id'],
+        'name'              => ['required', 'string', 'max:150'],
+        'description'       => ['nullable', 'string', 'max:1000'],
+        'base_price'        => ['required', 'integer', 'min:1000', 'max:10000000'],
+        'discount_percent'  => ['required', 'integer', 'min:0', 'max:90'],
+        'prep_time_minutes' => ['required', 'integer', 'min:1', 'max:120'],
+        'tags'              => ['nullable', 'string', 'max:255'],
+    ];
+
     private function payload(Request $request): array
     {
-        $data = $request->validate([
-            'category_id'       => ['required', 'integer', 'exists:categories,id'],
-            'name'              => ['required', 'string', 'max:150'],
-            'description'       => ['nullable', 'string', 'max:1000'],
-            'base_price'        => ['required', 'integer', 'min:1000', 'max:10000000'],
-            'discount_percent'  => ['required', 'integer', 'min:0', 'max:90'],
-            'prep_time_minutes' => ['required', 'integer', 'min:1', 'max:120'],
-            'tags'              => ['nullable', 'string', 'max:255'],
+        $data = $request->validate(self::ITEM_RULES + [
             'toppings'          => ['nullable', 'array', 'max:20'],
             'toppings.*.id'     => ['nullable', 'integer'],
             'toppings.*.name'   => ['nullable', 'string', 'max:80'],
@@ -188,5 +206,78 @@ class MenuItemController extends AdminController
         return back()->with('success', $menuItem->is_available
             ? "Đã mở bán lại {$menuItem->name} toàn chuỗi."
             : "Đã ngừng bán {$menuItem->name} toàn chuỗi.");
+    }
+
+    /** File mẫu trống, kèm sheet danh mục hợp lệ để admin chép tên */
+    public function importTemplate()
+    {
+        $categories = Category::orderBy('sort_order')->get(['name', 'slug']);
+
+        $report = new ExcelReport('Mẫu nhập món ăn', 'Điền từ dòng 5 · Giá gốc bắt buộc · Giảm %, phút chuẩn bị để trống = 0 / 10 · Đang bán: 1 hoặc 0 · Tag cách nhau dấu phẩy');
+        $report->sheet('Món ăn')->table(array_values(self::IMPORT_COLUMNS), []);
+        $report->sheet('Danh mục hợp lệ')->table(['Tên danh mục', 'Mã (slug)'], $categories->map(fn ($c) => [$c->name, $c->slug]));
+
+        return $report->download('mau-nhap-mon-an.xlsx');
+    }
+
+    /** Chỉ thêm món mới (trùng tên món đã có → báo lỗi). Topping và ảnh thêm sau ở trang sửa món */
+    public function import(Request $request)
+    {
+        $request->validate(['file' => ExcelImport::FILE_RULES], ExcelImport::FILE_MESSAGES);
+        $rows = ExcelImport::rows($request->file('file'), self::IMPORT_COLUMNS);
+
+        $categories = Category::all(['id', 'name', 'slug'])
+            ->flatMap(fn ($c) => [mb_strtolower($c->name) => $c->id, mb_strtolower($c->slug) => $c->id]);
+        $existing = MenuItem::pluck('name')->map(fn ($n) => mb_strtolower($n))->flip();
+
+        $errors = $items = $seen = [];
+        foreach ($rows as $line => $row) {
+            $data = [
+                'category_id'       => $categories[mb_strtolower((string) $row['category'])] ?? null,
+                'name'              => $row['name'],
+                'description'       => $row['description'],
+                'base_price'        => ExcelImport::int($row['base_price']),
+                'discount_percent'  => ExcelImport::int($row['discount_percent']) ?? 0,
+                'prep_time_minutes' => ExcelImport::int($row['prep_time_minutes']) ?? 10,
+                'tags'              => $row['tags'],
+            ];
+            $rowErrors = Validator::make($data, self::ITEM_RULES, self::MESSAGES)->errors()->all();
+
+            if ($row['category'] !== null && !$data['category_id']) {
+                $rowErrors = array_diff($rowErrors, [self::MESSAGES['category_id.required']]);
+                $rowErrors[] = "Không có danh mục \"{$row['category']}\".";
+            }
+            $key = mb_strtolower((string) $row['name']);
+            if ($key !== '' && (isset($existing[$key]) || isset($seen[$key]))) {
+                $rowErrors[] = "Món \"{$row['name']}\" đã có" . (isset($seen[$key]) ? " ở dòng {$seen[$key]}." : ' trong hệ thống.');
+            }
+            $seen[$key] ??= $line;
+            if (($data['is_available'] = ExcelImport::bool($row['is_available'], true)) === null) {
+                $rowErrors[] = 'Cột Đang bán chỉ nhận 1 hoặc 0.';
+            }
+            try {
+                $data['tags'] = $this->parseTags($data['tags'] ?? '');
+            } catch (ValidationException $e) {
+                $rowErrors[] = $e->validator->errors()->first();
+            }
+
+            foreach ($rowErrors as $msg) {
+                $errors[] = "Dòng {$line}: {$msg}";
+            }
+            $items[] = $data;
+        }
+        if ($errors) {
+            ExcelImport::fail($errors);
+        }
+
+        DB::transaction(function () use ($items) {
+            foreach ($items as $data) {
+                $data['slug'] = Slug::unique(MenuItem::withTrashed(), $data['name'], 'mon');
+                $item = MenuItem::create($data);
+                $this->log('menu_item.create', $item, ['after' => $data + ['source' => 'excel']]);
+            }
+        });
+
+        return redirect()->route('admin.menu-items.index')->with('success', 'Đã nhập ' . count($items) . ' món từ Excel. Nhớ thêm ảnh cho từng món.');
     }
 }

@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Manager;
 
 use App\Models\User;
+use App\Support\ExcelImport;
+use App\Support\ExcelReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class StaffController extends ManagerController
@@ -26,6 +30,17 @@ class StaffController extends ManagerController
         'started_at.before_or_equal' => 'Ngày bắt đầu không được quá 30 ngày tới.',
         'probation_rate.*'           => 'Lương thử việc/giờ phải là số nguyên từ 1 đến 999.999.999.',
         'salary_rate.*'              => 'Lương chính thức/giờ phải là số nguyên từ 1 đến 999.999.999.',
+    ];
+
+    private const IMPORT_COLUMNS = [
+        'name'           => 'Họ tên',
+        'email'          => 'Email',
+        'phone'          => 'SĐT',
+        'role'           => 'Vai trò',
+        'started_at'     => 'Ngày bắt đầu',
+        'probation_rate' => 'Lương thử việc/giờ',
+        'salary_rate'    => 'Lương chính thức/giờ',
+        'password'       => 'Mật khẩu',
     ];
 
     private const USER_FIELDS = ['name', 'email', 'phone', 'role', 'started_at'];
@@ -126,5 +141,61 @@ class StaffController extends ManagerController
         $user->update(['password' => $data['password']]); // cast 'hashed' trong User tự mã hoá
 
         return back()->with('success', "Đã đặt lại mật khẩu cho {$user->name}.");
+    }
+
+    public function importTemplate()
+    {
+        $report = new ExcelReport('Mẫu nhập nhân viên — ' . $this->branchName(), 'Điền từ dòng 5 · Vai trò: Nhân viên hoặc Bếp · Ngày dạng 12/11/2026 (trống = hôm nay) · Mật khẩu ≥ 8 ký tự, xoá file sau khi nhập');
+        $report->sheet('Nhân viên')->table(array_values(self::IMPORT_COLUMNS), []);
+
+        return $report->download('mau-nhap-nhan-vien.xlsx');
+    }
+
+    /** Chỉ tạo tài khoản mới cho chi nhánh mình; khuôn mặt vẫn đăng ký tay ở từng nhân viên */
+    public function import(Request $request)
+    {
+        $request->validate(['file' => ExcelImport::FILE_RULES], ExcelImport::FILE_MESSAGES);
+        $rows  = ExcelImport::rows($request->file('file'), self::IMPORT_COLUMNS);
+        $roles = ['nhân viên' => 'staff', 'staff' => 'staff', 'bếp' => 'kitchen', 'kitchen' => 'kitchen'];
+        $rules = $this->rules() + ['password' => ['required', 'string', 'min:8']];
+
+        $errors = $people = $seen = [];
+        foreach ($rows as $line => $row) {
+            $phone = $row['phone'];
+            if ($phone !== null && ctype_digit($phone) && $phone[0] !== '0') {
+                $phone = '0' . $phone; // Excel lưu SĐT dạng số nên rơi mất số 0 đầu
+            }
+            $data = [
+                'role'           => $roles[mb_strtolower((string) $row['role'])] ?? $row['role'],
+                'phone'          => $phone,
+                'started_at'     => ExcelImport::date($row['started_at']) ?? today()->toDateString(),
+                'probation_rate' => ExcelImport::int($row['probation_rate']),
+                'salary_rate'    => ExcelImport::int($row['salary_rate']),
+            ] + $row;
+
+            $rowErrors = Validator::make($data, $rules, self::MESSAGES)->errors()->all();
+            $key = mb_strtolower((string) $row['email']);
+            if ($key !== '' && isset($seen[$key])) {
+                $rowErrors[] = "Email trùng với dòng {$seen[$key]}.";
+            }
+            $seen[$key] ??= $line;
+
+            foreach ($rowErrors as $msg) {
+                $errors[] = "Dòng {$line}: {$msg}";
+            }
+            $people[] = $data;
+        }
+        if ($errors) {
+            ExcelImport::fail($errors);
+        }
+
+        DB::transaction(function () use ($people) {
+            foreach ($people as $data) {
+                $user = User::create(Arr::only($data, [...self::USER_FIELDS, 'password']) + ['branch_id' => $this->branchId(), 'is_active' => true]);
+                $this->saveSalary($user, $data);
+            }
+        });
+
+        return redirect()->route('manager.staff.index')->with('success', 'Đã tạo ' . count($people) . ' tài khoản từ Excel. Nhớ đăng ký khuôn mặt cho từng người.');
     }
 }
