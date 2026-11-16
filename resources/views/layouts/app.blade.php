@@ -201,60 +201,80 @@
         })();
     </script>
 
+    @php
+        // Danh mục đang hiện, link đúng /category/{slug}; đổi tên/thêm danh mục ở admin là footer tự theo
+        $_footerCats = \App\Models\Category::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['name', 'slug']);
+        $_hotline    = \App\Models\Setting::get('hotline', '1900 1234');
+        $_email      = \App\Models\Setting::get('email', 'contact@zomzop.vn');
+        $_address    = \App\Models\Setting::get('address', 'Toà nhà ZomZop, Quận 1, TP. Hồ Chí Minh');
+        $_facebook   = \App\Models\Setting::get('footer_facebook', '');
+        $_zalo       = \App\Models\Setting::get('footer_zalo', '');
+        $_about      = \App\Models\Setting::get('footer_about', '') ?: 'ZomZop - Chuỗi hệ thống thức ăn nhanh chất lượng cao, mang đến những bữa ăn ngon miệng, nhanh chóng và tràn đầy năng lượng cho ngày dài của bạn.';
+        $_link       = 'hover:text-red-500 transition';
+        $_social     = 'w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition';
+    @endphp
     <footer class="bg-white border-t border-slate-100 mt-16 text-slate-600 text-sm">
         <div class="max-w-7xl mx-auto px-4 py-12">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div class="space-y-4">
-                    <a href="/" class="flex items-center gap-2 hover:opacity-90 transition">
+                    <a href="{{ route('home') }}" class="flex items-center gap-2 hover:opacity-90 transition">
                         <img src="{{ asset('images/avatar-logo.png') }}" alt="ZomZop Avatar" class="h-9 w-auto object-contain">
                         <img src="{{ asset('images/text-logo.png') }}" alt="ZomZop Fast Food" class="h-7 w-auto object-contain">
                     </a>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        ZomZop - Chuỗi hệ thống thức ăn nhanh chất lượng cao, mang đến những bữa ăn ngon miệng, nhanh chóng và tràn đầy năng lượng cho ngày dài của bạn.
-                    </p>
-                    <div class="flex items-center gap-3 text-lg select-none">
-                        <a href="#" class="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition">🌐</a>
-                        <a href="#" class="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition">💬</a>
-                        <a href="#" class="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition">📮</a>
+                    <p class="text-xs text-slate-400 leading-relaxed">{{ $_about }}</p>
+                    {{-- Mạng xã hội lấy từ Admin → Cài đặt; chưa nhập link thì ẩn nút --}}
+                    <div class="flex items-center gap-3 text-xs font-bold select-none">
+                        @if ($_facebook)
+                            <a href="{{ $_facebook }}" target="_blank" rel="noopener" class="{{ $_social }}" aria-label="Facebook ZomZop" title="Facebook">f</a>
+                        @endif
+                        @if ($_zalo)
+                            <a href="{{ $_zalo }}" target="_blank" rel="noopener" class="{{ $_social }}" aria-label="Zalo ZomZop" title="Zalo">Zalo</a>
+                        @endif
+                        <a href="mailto:{{ $_email }}" class="{{ $_social }} text-base" aria-label="Gửi email cho ZomZop" title="Email">✉</a>
                     </div>
                 </div>
-
                 <div class="space-y-3">
                     <h4 class="font-bold text-slate-800 text-sm tracking-wide uppercase">Thực Đơn</h4>
                     <ul class="space-y-2 text-xs">
-                        <li><a href="#" class="hover:text-red-500 transition">Combo Ưu Đãi</a></li>
-                        <li><a href="#" class="hover:text-red-500 transition">Gà Rán Giòn Rụm</a></li>
-                        <li><a href="/category/pizza" class="hover:text-red-500 transition">Pizza Ý Thượng Hạng</a></li>
-                        <li><a href="#" class="hover:text-red-500 transition">Tráng Miệng & Đồ Uống</a></li>
+                        <li><a href="{{ route('menu.all') }}" class="{{ $_link }} font-semibold">Toàn bộ thực đơn</a></li>
+                        <li><a href="{{ route('bestsellers') }}" class="{{ $_link }}">Món bán chạy</a></li>
+                        @foreach ($_footerCats as $_cat)
+                            <li><a href="{{ route('category.show', $_cat->slug) }}" class="{{ $_link }}">{{ $_cat->name }}</a></li>
+                        @endforeach
                     </ul>
                 </div>
-
                 <div class="space-y-3">
                     <h4 class="font-bold text-slate-800 text-sm tracking-wide uppercase">Chính Sách & Hỗ Trợ</h4>
                     <ul class="space-y-2 text-xs">
-                        <li><a href="#" class="hover:text-red-500 transition">Hình thức thanh toán</a></li>
-                        <li><a href="#" class="hover:text-red-500 transition">Chính sách giao hàng</a></li>
-                        <li><a href="#" class="hover:text-red-500 transition">Chính sách bảo mật thông tin</a></li>
-                        <li><a href="#" class="hover:text-red-500 transition">Phản hồi & Góp ý</a></li>
+                        <li><a href="{{ route('policies') }}#thanh-toan" class="{{ $_link }}">Hình thức thanh toán</a></li>
+                        <li><a href="{{ route('policies') }}#giao-hang" class="{{ $_link }}">Chính sách giao hàng</a></li>
+                        <li><a href="{{ route('privacy-policy') }}" class="{{ $_link }}">Chính sách bảo mật thông tin</a></li>
+                        <li><a href="{{ route('coupons') }}" class="{{ $_link }}">Mã giảm giá</a></li>
+                        <li><a href="{{ route('support') }}" class="{{ $_link }}">Trung tâm hỗ trợ</a></li>
+                        <li><a href="{{ route('home') }}#lien-he" class="{{ $_link }}">Phản hồi & Góp ý</a></li>
+                        <li><a href="{{ route('about-us') }}" class="{{ $_link }}">Về ZomZop</a></li>
                     </ul>
                 </div>
-
                 <div class="space-y-3">
                     <h4 class="font-bold text-slate-800 text-sm tracking-wide uppercase">Thông Tin Liên Hệ</h4>
                     <ul class="space-y-2 text-xs text-slate-500">
-                        <li class="flex items-center gap-1.5"><span>📞</span> <strong class="text-slate-700">Hotline:</strong> {{ \App\Models\Setting::get('hotline', '1900 1234') }}</li>
-                        <li class="flex items-center gap-1.5"><span>✉️</span> <strong class="text-slate-700">Email:</strong> {{ \App\Models\Setting::get('email', 'contact@zomzop.vn') }}</li>
+                        <li class="flex items-center gap-1.5"><span>📞</span> <strong class="text-slate-700">Hotline:</strong>
+                            <a href="tel:{{ preg_replace('/[^0-9+]/', '', $_hotline) }}" class="{{ $_link }}">{{ $_hotline }}</a></li>
+                        <li class="flex items-center gap-1.5"><span>✉️</span> <strong class="text-slate-700">Email:</strong>
+                            <a href="mailto:{{ $_email }}" class="{{ $_link }}">{{ $_email }}</a></li>
                         <li class="flex items-center gap-1.5"><span>⏰</span> <strong class="text-slate-700">Giờ mở cửa:</strong> {{ \App\Models\Setting::get('open_hours', '09:00 - 22:00') }}</li>
-                        <li class="flex items-start gap-1.5"><span class="mt-0.5">📍</span> <span><strong class="text-slate-700">Trụ sở:</strong> {{ \App\Models\Setting::get('address', 'Toà nhà ZomZop, Quận 1, TP. Hồ Chí Minh') }}</span></li>
+                        <li class="flex items-start gap-1.5"><span class="mt-0.5">📍</span> <span><strong class="text-slate-700">Trụ sở:</strong>
+                            <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($_address) }}" target="_blank" rel="noopener" class="{{ $_link }}">{{ $_address }}</a></span></li>
+                        <li class="flex items-center gap-1.5"><span>🏪</span> <a href="{{ route('branches.select') }}" class="{{ $_link }} font-semibold">Hệ thống chi nhánh</a></li>
                     </ul>
                 </div>
             </div>
-
             <div class="border-t border-slate-100 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-                <p>© 2026 ZomZop Fast Food. Tất cả các quyền được bảo lưu.</p>
+                <p>© {{ now()->year }} ZomZop Fast Food. Tất cả các quyền được bảo lưu.</p>
                 <div class="flex gap-4">
-                    <a href="#" class="hover:underline">Điều khoản sử dụng</a>
-                    <a href="#" class="hover:underline">Sitemap</a>
+                    <a href="{{ route('policies') }}#dieu-khoan" class="hover:underline">Điều khoản sử dụng</a>
+                    <a href="{{ route('privacy-policy') }}" class="hover:underline">Bảo mật</a>
+                    <a href="{{ route('support') }}" class="hover:underline">Hỗ trợ</a>
                 </div>
             </div>
         </div>
