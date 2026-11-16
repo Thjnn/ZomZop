@@ -8,6 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hóa đơn {{ $order->order_code }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     {{-- CSS viết tay, không qua Vite: hóa đơn phải in đúng kể cả khi chưa build lại asset --}}
     <style>
         @page { size: {{ $paper }}mm auto; margin: 0; }
