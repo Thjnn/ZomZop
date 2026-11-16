@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Chấm công · ZomZop</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/kiosk.js'])
 </head>
 {{-- Màn hình máy chấm công (máy tính bảng / laptop có webcam). Nút to cho màn hình cảm ứng. --}}
