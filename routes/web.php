@@ -83,6 +83,8 @@ Route::get('/coupons', function () {
 Route::get('/about-us', function () { return view('pages.about-us'); })->name('about-us');
 Route::get('/support', function () { return view('pages.support'); })->name('support');
 Route::get('/privacy-policy', function () { return view('pages.privacy-policy'); })->name('privacy-policy');
+// Thanh toán, giao hàng, điều khoản: một trang, footer link tới từng mục (#thanh-toan, #giao-hang, #dieu-khoan)
+Route::get('/chinh-sach', function () { return view('pages.policies'); })->name('policies');
 
 // Các trang hồ sơ, đơn hàng, địa chỉ (yêu thích đã có ở trên)
 Route::middleware('auth')->group(function () {
